@@ -13,15 +13,18 @@ sudo ./install_service.sh
 The installer sets up everything (anything already present is skipped, so it is safe to run
 again) and only asks:
 
-1. Which IP devices call home to (pick an interface or type an IP)
-2. Which address of this server listens for call-home: all interfaces (default) or one
+1. A password for the system's own PostgreSQL user, and whether Redis keeps no password (the
+   default) or gets one you choose; a Redis that already has a password is only asked for it.
+   Nothing is generated or changed behind your back, and any character is allowed.
+2. Which IP devices call home to (pick an interface or type an IP)
+3. Which address of this server listens for call-home: all interfaces (default) or one
    interface's IP (`CALLHOME_LISTEN_ADDRESS`)
-3. The website address (`SITE_URL`) and path (`ROOT_PATH`: `/`, or e.g. `/cmm/` behind a
+4. The website address (`SITE_URL`) and path (`ROOT_PATH`: `/`, or e.g. `/cmm/` behind a
    reverse proxy) - press Enter to skip
-4. Where devices download their config (`BOOTSTRAP_BASE_URL`) - press Enter to leave it empty
+5. Where devices download their config (`BOOTSTRAP_BASE_URL`) - press Enter to leave it empty
    (recommended: straight from this machine)
-5. Whether to set up Cloudflare / Email / Google now (optional - the system works without them)
-6. The first website account: username, email, password
+6. Whether to set up Cloudflare / Email / Google now (optional - the system works without them)
+7. The first website account: username, email, password
 
 When it finishes, the system runs as Linux services: it starts on boot and restarts after a
 crash. Website at `https://<machine>:8080` · API and bootstrap files at `:8000` · device

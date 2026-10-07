@@ -1,10 +1,37 @@
-# Local PostgreSQL database/user and Redis password (sourced by install_service.sh).
+# Local PostgreSQL database/user and Redis connection (sourced by install_service.sh).
 # Already-configured DB_URL / REDIS_URL in the config file are left alone (e.g. an existing remote DB).
+# Passwords are always chosen by the user - never generated - and may contain any character:
+# they are percent-encoded inside DB_URL / REDIS_URL and never pass through a command line.
 
 DB_NAME="callmemanage"
 DB_ROLE="callmemanage"
 REDIS_PORT="${REDIS_PORT:-6379}"
 
+
+# Read a new password twice, without echo and without trimming spaces. Prints it on stdout.
+ask_new_password() {
+    local label="$1" first second
+    while true; do
+        IFS= read -r -s -p "  $label: " first; echo >&2
+        if [[ -z "$first" ]]; then warn "the password cannot be empty"; continue; fi
+        IFS= read -r -s -p "  Type it again: " second; echo >&2
+        [[ "$first" == "$second" ]] && break
+        warn "the two passwords are different - try again"
+    done
+    printf '%s' "$first"
+}
+
+# Read an existing password once (no echo, no trimming)
+ask_existing_password() {
+    local value
+    IFS= read -r -s -p "  $1: " value; echo >&2
+    printf '%s' "$value"
+}
+
+# Percent-encode a password for use inside a URL (value through the environment, not argv)
+url_quote() {
+    URL_PART="$1" python3 -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["URL_PART"], safe=""), end="")'
+}
 
 uses_managed_local_database() {
     local url
@@ -55,17 +82,21 @@ setup_postgresql() {
         return
     fi
     local password exists
-    password="$(random_secret 24)"
     exists="$(runuser -u postgres -- psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='${DB_ROLE}'" 2>/dev/null || true)"
+    say "  CallMe Manage keeps its data in its own database \"${DB_NAME}\", owned by the database"
+    say "  user \"${DB_ROLE}\". Other databases and users on this PostgreSQL are not touched."
     if [[ "$exists" == "1" ]]; then
-        # role exists but the config file lost its URL: rotate the password so we know it
-        todo "reset password of existing role ${DB_ROLE}"
+        # role exists but the config file lost its URL: its password becomes the one typed now
+        say "  The database user ${DB_ROLE} already exists; it gets the password you type now."
+        todo "set the password of existing role ${DB_ROLE}"
     else
         todo "create role ${DB_ROLE} and database ${DB_NAME}"
     fi
     if [[ "${DRY_RUN:-0}" == "1" ]]; then
-        say "  (dry-run) psql create/alter role, create database"
+        say "  (dry-run) ask for the password, psql create/alter role, create database"
+        password="dry-run"
     else
+        password="$(ask_new_password "Choose a password for database user ${DB_ROLE} (any characters)")"
         # password passed through stdin (psql variable), never on a command line
         printf '%s' "$password" | runuser -u postgres -- bash -c "
             psql -v ON_ERROR_STOP=1 -v role='${DB_ROLE}' -v pw=\"\$(cat)\" -q <<'SQL'
@@ -77,34 +108,66 @@ SQL"
         fi
         grant_managed_database_permissions
     fi
-    conf_set DB_URL "postgresql+asyncpg://${DB_ROLE}:${password}@127.0.0.1:5432/${DB_NAME}"
+    conf_set DB_URL "postgresql+asyncpg://${DB_ROLE}:$(url_quote "$password")@127.0.0.1:5432/${DB_NAME}"
 }
 
 setup_redis() {
-    step "Redis password"
+    step "Redis"
     if ! conf_unset REDIS_URL; then
         skip "REDIS_URL already set in the config file"
         return
     fi
-    local reply password
+    local reply password="" choice bind
     reply="$(redis-cli -h 127.0.0.1 -p "$REDIS_PORT" ping 2>&1 || true)"
     if [[ "$reply" == "PONG" ]]; then
-        password="$(random_secret 24)"
-        todo "set a Redis password (requirepass) and save it to redis.conf"
-        if [[ "${DRY_RUN:-0}" != "1" ]]; then
-            # command via stdin so the password never appears in `ps`
-            printf 'CONFIG SET requirepass "%s"\n' "$password" | redis-cli -h 127.0.0.1 -p "$REDIS_PORT" >/dev/null
-            if ! REDISCLI_AUTH="$password" redis-cli -h 127.0.0.1 -p "$REDIS_PORT" CONFIG REWRITE >/dev/null 2>&1; then
-                warn "could not write redis.conf - the password lasts until Redis restarts; add 'requirepass' to redis.conf"
+        bind="$(redis-cli -h 127.0.0.1 -p "$REDIS_PORT" CONFIG GET bind 2>/dev/null | sed -n 2p || true)"
+        say "  Redis answers without a password (it listens on: ${bind:-unknown})."
+        say "    1) Keep Redis without a password   [default]"
+        say "    2) Set a password for Redis now - every other program that uses this Redis"
+        say "       will need it too"
+        while true; do
+            choice="$(ask "Choose [1-2, Enter = 1]")"
+            [[ -z "$choice" || "$choice" == "1" || "$choice" == "2" ]] && break
+            warn "choose 1 or 2"
+        done
+        if [[ "$choice" == "2" ]]; then
+            if [[ "${DRY_RUN:-0}" == "1" ]]; then
+                say "  (dry-run) ask for the password, CONFIG SET requirepass, CONFIG REWRITE"
+                password="dry-run"
+            else
+                password="$(ask_new_password "Choose a Redis password (any characters)")"
+                todo "set the Redis password (requirepass) and save it to redis.conf"
+                # -x: the password arrives on stdin exactly as typed - no quoting, not visible in `ps`
+                printf '%s' "$password" | redis-cli -h 127.0.0.1 -p "$REDIS_PORT" -x CONFIG SET requirepass >/dev/null
+                if ! REDISCLI_AUTH="$password" redis-cli -h 127.0.0.1 -p "$REDIS_PORT" CONFIG REWRITE >/dev/null 2>&1; then
+                    warn "could not write redis.conf - the password lasts until Redis restarts; add 'requirepass' to redis.conf"
+                fi
             fi
+        else
+            skip "Redis password (left as it is: none)"
         fi
     elif [[ "$reply" == *NOAUTH* ]]; then
-        say "  Redis already has a password (set by someone else)."
-        password="$(ask "Enter the existing Redis password" secret)"
-        [[ -n "$password" ]] || die "Redis password is required to continue"
-        REDISCLI_AUTH="$password" redis-cli -h 127.0.0.1 -p "$REDIS_PORT" ping 2>/dev/null | grep -q PONG || die "That Redis password was not accepted"
+        say "  This Redis already has a password (set outside this installer). Type it here;"
+        say "  it is only used to connect - it is not changed."
+        local tries
+        for tries in 1 2 3; do
+            password="$(ask_existing_password "Existing Redis password")"
+            if [[ -z "$password" ]]; then
+                warn "the password is needed to use this Redis"
+            elif REDISCLI_AUTH="$password" redis-cli -h 127.0.0.1 -p "$REDIS_PORT" ping 2>/dev/null | grep -q PONG; then
+                break
+            else
+                warn "Redis did not accept that password"
+            fi
+            password=""
+        done
+        [[ -n "$password" ]] || die "no working Redis password - find it in the requirepass line of /etc/redis/redis.conf, then run the installer again"
     else
         die "Redis is not answering on 127.0.0.1:${REDIS_PORT} ($reply)"
     fi
-    conf_set REDIS_URL "redis://:${password}@127.0.0.1:${REDIS_PORT}/0"
+    if [[ -n "$password" ]]; then
+        conf_set REDIS_URL "redis://:$(url_quote "$password")@127.0.0.1:${REDIS_PORT}/0"
+    else
+        conf_set REDIS_URL "redis://127.0.0.1:${REDIS_PORT}/0"
+    fi
 }
