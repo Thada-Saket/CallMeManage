@@ -55,6 +55,8 @@ class ConsumedGoogleOAuthState:
     code_verifier: str
     created_at: int
     turnstile_verified: bool
+    # SITE_URL address the flow started from (None = the main one)
+    site: str | None = None
 
 
 def _state_key(state: str) -> str:
@@ -75,7 +77,7 @@ def _validate_state_input(state: str) -> str:
     return state
 
 
-async def create_google_oauth_state(*, turnstile_verified: bool) -> GoogleOAuthStart:
+async def create_google_oauth_state(*, turnstile_verified: bool, site: str | None = None) -> GoogleOAuthStart:
     """Create a short-lived state record after server-side Turnstile success.
 
     Only the challenge is returned to the browser. The PKCE verifier remains in
@@ -104,6 +106,8 @@ async def create_google_oauth_state(*, turnstile_verified: bool) -> GoogleOAuthS
                 "code_verifier": code_verifier,
                 "created_at": int(time.time()),
                 "turnstile_verified": True,
+                # kept server-side, so the browser cannot change where Google sends it back
+                "site": site,
             },
             separators=(",", ":"),
         )
@@ -170,9 +174,15 @@ async def consume_google_oauth_state(state: str) -> ConsumedGoogleOAuthState:
     if not valid_record:
         raise GoogleOAuthStateInvalid("Google authorization session is invalid")
 
+    # only an address that is still configured (the config may have changed meanwhile)
+    site = record.get("site")
+    if not isinstance(site, str) or load_environment().match_site(site) != site:
+        site = None
+
     return ConsumedGoogleOAuthState(
         nonce=nonce,
         code_verifier=code_verifier,
         created_at=created_at,
         turnstile_verified=True,
+        site=site,
     )

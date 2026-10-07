@@ -75,13 +75,13 @@ def _verify_sync(token: str, remote_ip: str | None, expected_action: str) -> Non
     if settings.APP_ENV != "production" and settings.TURNSTILE_SECRET_KEY == TURNSTILE_ALWAYS_PASS_TEST_SECRET:
         return
 
-    expected_hostname = settings.TURNSTILE_EXPECTED_HOSTNAME.strip().casefold()
+    accepted_hostnames = settings.turnstile_hostnames
     actual_hostname = str(result.get("hostname") or "").strip().casefold()
-    if expected_hostname and actual_hostname != expected_hostname:
-        # e.g. the site was opened by IP while SITE_URL names the domain: tell the user where
+    if actual_hostname not in accepted_hostnames:
+        # e.g. the site was opened by IP while SITE_URL names the domain(s): tell the user where
         # the check works instead of a "try again" that can never succeed
         raise TurnstileRejected(
-            f"Bot verification only works at {expected_hostname}. Open the website there",
+            f"Bot verification only works at {', '.join(sorted(accepted_hostnames))}. Open the website there",
             code="TURNSTILE_HOSTNAME_MISMATCH",
         )
 

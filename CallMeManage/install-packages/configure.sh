@@ -32,33 +32,71 @@ site_host() {
     SITE_VALUE="$1" python3 -c 'import os; from urllib.parse import urlparse; print(urlparse(os.environ["SITE_VALUE"]).hostname or "")'
 }
 
+# SITE_URL holds one or more addresses separated by commas; one per line here
+site_list() {
+    local IFS=,
+    local site
+    for site in $(conf_get SITE_URL); do [[ -n "$site" ]] && printf '%s\n' "$site"; done
+}
+
+is_on() {  # is_on KEY -> exit 0 when the config value is yes/true/on/1
+    [[ "$(conf_get "$1")" =~ ^([Tt]rue|[Yy]es|[Oo]n|1)$ ]]
+}
+
 # --- website address ---
 
-# SITE_URL and ROOT_PATH. Enter keeps the current value.
+# SITE_URL (one or more addresses) and ROOT_PATH. Existing values can be kept.
 configure_site() {
     step "Website address"
     say "  SITE_URL  = the address people type, without a path (e.g. https://www.example.ac.th)."
+    say "              Several are allowed (e.g. with and without www); the first is the main one."
     say "              Leave it empty if the website is only opened by IP."
     say "  ROOT_PATH = / normally, or e.g. /cmm/ when a reverse proxy forwards https://<site>/cmm/"
     say "              here (the proxy must forward /cmm/ unchanged)."
-    local site root
-    while true; do
-        site="$(ask_default "SITE_URL" "$(conf_get SITE_URL)")"
-        site="${site%/}"
-        [[ -z "$site" || "$site" == "-" ]] && { site=""; break; }
-        valid_site_url "$site" && break
-        warn "must look like https://www.example.ac.th (no path; the path goes in ROOT_PATH). Type - to leave it empty."
-    done
+    local sites=() site keep=no
+    mapfile -t sites < <(site_list)
+    if (( ${#sites[@]} )); then
+        say "  Current address(es): ${sites[*]}"
+        yes_no "Keep them?" y && keep=yes
+    fi
+    if [[ "$keep" == no ]]; then
+        sites=()
+        while true; do
+            if (( ${#sites[@]} == 0 )); then
+                site="$(ask "Website address (Enter = none, opened by IP only)")"
+                [[ -z "$site" ]] && break
+            else
+                site="$(ask "Website address #$(( ${#sites[@]} + 1 ))")"
+                [[ -z "$site" ]] && break
+            fi
+            site="${site%/}"
+            if ! valid_site_url "$site"; then
+                warn "must look like https://www.example.ac.th (no path; the path goes in ROOT_PATH)"
+                continue
+            fi
+            if [[ " ${sites[*]} " == *" $site "* ]]; then
+                warn "already in the list"
+            else
+                sites+=("$site")
+            fi
+            yes_no "Add another address?" n || break
+        done
+    fi
+    local root
     while true; do
         root="$(normalize_root_path "$(ask_default "ROOT_PATH" "$(conf_get ROOT_PATH)")")"
         valid_root_path "$root" && break
         warn "use / or a path such as /cmm/ (letters, digits, . _ ~ -)"
     done
-    conf_set SITE_URL "$site"
+    conf_set SITE_URL "$(IFS=,; printf '%s' "${sites[*]}")"
     conf_set ROOT_PATH "$root"
     local port
     port="$(conf_get FRONTEND_PORT)"
-    say "  Website: ${site:-https://<this machine>:${port:-8080}}$root"
+    if (( ${#sites[@]} )); then
+        for site in "${sites[@]}"; do say "  Website: $site$root"; done
+    else
+        say "  Website: https://<this machine>:${port:-8080}$root"
+    fi
 }
 
 # Where devices download their config file when added. Empty (default) = straight from this
@@ -92,23 +130,31 @@ need_site_url() {
     local site
     site="$(ask "SITE_URL")"
     site="${site%/}"
-    if [[ -n "$site" ]] && valid_site_url "$site"; then conf_set SITE_URL "$site"; return 0; fi
+    if [[ -n "$site" ]] && valid_site_url "$site"; then
+        conf_set SITE_URL "$site"
+        say "  (more addresses can be added with: sudo callmemanage setup site)"
+        return 0
+    fi
     warn "no valid SITE_URL - nothing changed"
     return 1
 }
 
 # --- Cloudflare Turnstile ---
 
-setup_turnstile() {
-    step "Cloudflare Turnstile (\"I am not a robot\" check)"
+TURNSTILE_TITLE="Cloudflare Turnstile (\"I am not a robot\" check)"
+setup_turnstile() { step "$TURNSTILE_TITLE"; turnstile_wizard; }
+
+turnstile_wizard() {
     say "  Get the keys (free):"
     say "    1. https://dash.cloudflare.com -> Turnstile -> Add widget"
-    say "    2. Hostname: the host name of SITE_URL (no https://, no path)"
+    say "    2. Hostnames: every host name in SITE_URL (no https://, no path)"
     say "    3. Widget mode: Managed -> Create, then copy the Site Key and the Secret Key"
     say "  (Testing without an account: site key 1x00000000000000000000AA,"
     say "   secret 1x0000000000000000000000000000000AA - always passes, no real protection.)"
     need_site_url || return 1
-    say "  Hostname to register at Cloudflare: $(site_host "$(conf_get SITE_URL)")"
+    local hosts=() site
+    while IFS= read -r site; do hosts+=("$(site_host "$site")"); done < <(site_list)
+    say "  Hostnames to add at Cloudflare (Hostname Management): ${hosts[*]}"
     local site_key secret
     site_key="$(ask_default "Site key" "$(conf_get TURNSTILE_SITE_KEY)")"
     secret="$(ask "Secret key$([[ -n "$(conf_get TURNSTILE_SECRET_KEY)" ]] && echo " [Enter = keep current]")" secret)"
@@ -148,8 +194,10 @@ PY
 
 # --- email (Gmail by default) ---
 
-setup_email() {
-    step "Email (codes for sign-up and \"forgot password\")"
+EMAIL_TITLE="Email (codes for sign-up and \"forgot password\")"
+setup_email() { step "$EMAIL_TITLE"; email_wizard; }
+
+email_wizard() {
     say "  With Gmail:"
     say "    1. Turn on 2-Step Verification: https://myaccount.google.com/security"
     say "    2. https://myaccount.google.com/apppasswords -> name it CallMeManage -> Create"
@@ -206,18 +254,25 @@ PY
 
 # --- Google sign-in ---
 
+GOOGLE_TITLE="Google sign-in"
 setup_google() {
-    step "Google sign-in"
+    step "$GOOGLE_TITLE"
+    google_wizard || return 1
+    is_on SIGNUP_ENABLED \
+        || say "  Note: SIGNUP_ENABLED=false - new people cannot create accounts (sudo callmemanage config to change)."
+}
+
+google_wizard() {
     need_site_url || return 1
-    local redirect
-    redirect="$(conf_get SITE_URL)$(normalize_root_path "$(conf_get ROOT_PATH)")api/auth/google/callback"
+    local root site
+    root="$(normalize_root_path "$(conf_get ROOT_PATH)")"
     say "  1. https://console.cloud.google.com -> create a project"
     say "  2. APIs & Services -> OAuth consent screen -> complete it (User type: External)"
     say "  3. APIs & Services -> Credentials -> Create credentials -> OAuth client ID"
     say "     Application type: Web application"
-    say "  4. Authorized redirect URIs -> Add URI, paste exactly:"
+    say "  4. Authorized redirect URIs -> Add URI, paste exactly (one per website address):"
     say ""
-    say "        $redirect"
+    while IFS= read -r site; do say "        ${site}${root}api/auth/google/callback"; done < <(site_list)
     say ""
     say "  5. Create, then copy the Client ID and the Client secret"
     local client_id secret
@@ -232,38 +287,58 @@ setup_google() {
     conf_set GOOGLE_CLIENT_SECRET "$secret"
     conf_set GOOGLE_ENABLED yes
     say "  Google sign-in is ON."
-    [[ "$(conf_get SIGNUP_ENABLED)" =~ ^(true|yes|on|1)$ ]] \
-        || say "  Note: SIGNUP_ENABLED=false - new people cannot create accounts (sudo callmemanage config to change)."
 }
 
 # --- used by the installer ---
 
+# One heading per service: what it is, whether it is on, then the question right under it.
+offer_service() {  # offer_service <title> <ENABLED key> <setup name> <wizard> <what it does...>
+    local title="$1" key="$2" name="$3" wizard="$4"
+    shift 4
+    step "$title"
+    local line
+    for line in "$@"; do say "  $line"; done
+    if is_on "$key"; then
+        say "  It is ON now."
+        yes_no "Change its settings now?" n || { skip "kept as it is"; return 0; }
+    else
+        say "  Optional - the system works without it. Later: sudo callmemanage setup $name"
+        yes_no "Set it up now?" n || { skip "not now"; return 0; }
+    fi
+    "$wizard" || true
+}
+
 configure_external_services() {
-    step "Cloudflare / Email / Google (all optional - the system works without them)"
-    say "  Skip now and set them up any time later, one at a time:"
-    say "    sudo callmemanage setup turnstile | email | google"
-    yes_no "Set any of them up now?" n || { skip "external services"; return 0; }
-    yes_no "Cloudflare Turnstile (bot check)?" n && { setup_turnstile || true; }
-    yes_no "Email (Gmail)?" n && { setup_email || true; }
-    yes_no "Google sign-in?" n && { setup_google || true; }
+    offer_service "$TURNSTILE_TITLE" TURNSTILE_ENABLED turnstile turnstile_wizard \
+        "A check before the website and at login that the visitor is a person, not a bot."
+    offer_service "$EMAIL_TITLE" EMAIL_ENABLED email email_wizard \
+        "Sends the codes for signing up and for resetting a forgotten password (Gmail works)."
+    offer_service "$GOOGLE_TITLE" GOOGLE_ENABLED google google_wizard \
+        "A \"Sign up with Google\" button."
     return 0
 }
 
-# SIGNUP_ENABLED: may people create their own account? Asked after the external services,
-# because sign-up only works through email codes or Google.
+# SIGNUP_ENABLED: may people create their own account? Only asked when both Email and Google
+# sign-in are on; otherwise it stays as it is (off on a new install). Default: the current
+# value, which is off unless it was switched on before.
 configure_signup() {
     step "Sign-up on the website"
-    say "  May people create their own account with the Sign Up button?"
+    if ! is_on EMAIL_ENABLED || ! is_on GOOGLE_ENABLED; then
+        say "  Asked only when both Email and Google sign-in are on."
+        if is_on SIGNUP_ENABLED; then
+            say "  Sign-up stays ON."
+        else
+            say "  Sign-up stays OFF - accounts are created by an admin: sudo callmemanage user add"
+        fi
+        return 0
+    fi
+    say "  May people create their own account with the Sign Up button (email code or Google)?"
     say "  No = only an admin creates accounts (sudo callmemanage user add)."
     local default=n
-    [[ "$(conf_get SIGNUP_ENABLED)" =~ ^([Tt]rue|[Yy]es|[Oo]n|1)$ ]] && default=y
+    is_on SIGNUP_ENABLED && default=y
     if yes_no "Allow sign-up?" "$default"; then
         conf_set SIGNUP_ENABLED true
         say "  Sign-up is ON - anyone who can open the website can create an account."
-        if [[ ! "$(conf_get EMAIL_ENABLED)" =~ ^([Tt]rue|[Yy]es|[Oo]n|1)$ && ! "$(conf_get GOOGLE_ENABLED)" =~ ^([Tt]rue|[Yy]es|[Oo]n|1)$ ]]; then
-            warn "sign-up needs email (for the code) or Google sign-in, and both are off - nobody can"
-            warn "finish signing up until one is on: sudo callmemanage setup email (or google)"
-        fi
     else
         conf_set SIGNUP_ENABLED false
         say "  Sign-up is OFF - create accounts with: sudo callmemanage user add"

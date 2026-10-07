@@ -16,9 +16,11 @@
 #  1) Website and server
 # -------------------------------------------------------------------------------------
 
-# The address people type, WITHOUT a path, e.g. https://www.labict.sci.ubu.ac.th
-# Leave empty if the website is only opened by IP (Google sign-in and a real
-# Cloudflare key need it).
+# The address(es) people type, WITHOUT a path, e.g. https://www.labict.sci.ubu.ac.th
+# Several are allowed, separated by commas (e.g. with and without www); the first is the main
+# one. Cloudflare and Google work on every address listed (Google needs each redirect URI
+# registered - sudo callmemanage setup google shows them).
+# Leave empty if the website is only opened by IP (Google sign-in and a real Cloudflare key need it).
 SITE_URL=
 
 # The path the website lives under: / = at the root of this machine.

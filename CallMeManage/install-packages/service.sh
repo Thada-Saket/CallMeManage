@@ -178,9 +178,11 @@ restart_services() {
 website_urls() {
     local root site ip port
     root="$(configured_root_path)"
-    site="$(conf_get SITE_URL)"
     port="$(conf_get FRONTEND_PORT)"; port="${port:-8080}"
     ip="$(current_callhome_ip)"
-    [[ -n "$site" ]] && say "    $site$root"
+    # SITE_URL may hold several addresses separated by commas
+    local IFS=,
+    for site in $(conf_get SITE_URL); do [[ -n "$site" ]] && say "    $site$root"; done
+    unset IFS
     say "    https://${ip:-<this machine>}$([[ "$port" == 443 ]] || echo ":$port")$root"
 }

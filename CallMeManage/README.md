@@ -19,13 +19,15 @@ again) and only asks:
 2. Which IP devices call home to (pick an interface or type an IP)
 3. Which address of this server listens for call-home: all interfaces (default) or one
    interface's IP (`CALLHOME_LISTEN_ADDRESS`)
-4. The website address (`SITE_URL`) and path (`ROOT_PATH`: `/`, or e.g. `/cmm/` behind a
-   reverse proxy) - press Enter to skip
+4. The website address(es) (`SITE_URL`, one at a time - "Add another address?" - e.g. with
+   and without www) and path (`ROOT_PATH`: `/`, or e.g. `/cmm/` behind a reverse proxy) -
+   press Enter to skip
 5. Where devices download their config (`BOOTSTRAP_BASE_URL`) - press Enter to leave it empty
    (recommended: straight from this machine)
-6. Whether to set up Cloudflare / Email / Google now (optional - the system works without them)
-7. Whether people may create their own account (Sign Up) - off by default; it needs Email
-   or Google
+6. Cloudflare, Email and Google, each under its own heading: set it up now or later
+   (optional - the system works without them)
+7. Whether people may create their own account (Sign Up) - asked only when both Email and
+   Google are on; off by default
 8. The first website account: username, email, password
 
 When it finishes, the system runs as Linux services: it starts on boot and restarts after a

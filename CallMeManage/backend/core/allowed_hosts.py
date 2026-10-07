@@ -3,7 +3,7 @@
 The list is derived from configuration the system already has, so production
 picks up its real domain from the same settings instead of a wildcard:
 local names, the server IP that devices use for bootstrap downloads, the
-hostnames of SITE_URL, the auth URLs and BOOTSTRAP_BASE_URL, and optional
+hostnames of every SITE_URL address, the auth URLs and BOOTSTRAP_BASE_URL, and optional
 ALLOWED_HOSTS from the config file.
 """
 
@@ -20,7 +20,7 @@ def build_allowed_hosts(settings, cloud_server_ip: str | None) -> list[str]:
         hosts.append(cloud_server_ip)
     if settings.TURNSTILE_EXPECTED_HOSTNAME:
         hosts.append(settings.TURNSTILE_EXPECTED_HOSTNAME)
-    for url in (settings.SITE_URL, settings.FRONTEND_BASE_URL, settings.GOOGLE_REDIRECT_URI, settings.BOOTSTRAP_BASE_URL):
+    for url in (*settings.site_urls, settings.FRONTEND_BASE_URL, settings.GOOGLE_REDIRECT_URI, settings.BOOTSTRAP_BASE_URL):
         if url and urlparse(url).hostname:
             hosts.append(urlparse(url).hostname)
     hosts.extend((settings.ALLOWED_HOSTS or "").split(","))

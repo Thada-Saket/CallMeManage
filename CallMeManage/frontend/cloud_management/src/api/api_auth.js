@@ -97,7 +97,9 @@ export async function cancelPasswordReset({ challengeId, resetToken }) {
 export async function startGoogleOAuthRegistration() {
   return request("/auth/register/google/start", {
     method: "POST",
-    body: {},
+    // Google returns the user to this same address when it is one of the server's SITE_URL
+    // addresses (the server checks it; any other value means the main address)
+    body: { site_url: window.location.origin },
     auth: false,
   });
 }

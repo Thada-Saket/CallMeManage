@@ -18,15 +18,27 @@ TURNSTILE_TEST_SECRETS = {
 DEFAULT_CERT_DIR = PROJECT_ROOT / "tools" / "keys" / "cert"
 
 
+def _site_key(url: str) -> tuple[str, str, int]:
+    """scheme, host and port of a site address, so https://x and https://x:443 are the same"""
+    parsed = urlparse(url)
+    try:
+        port = parsed.port
+    except ValueError:
+        port = None
+    default = {"http": 80, "https": 443}.get(parsed.scheme, 0)
+    return parsed.scheme.lower(), (parsed.hostname or "").lower(), port or default
+
+
 def _missing(switch: str, names: list[str]) -> str:
     return f"{switch}=yes but {' and '.join(names)} {'is' if len(names) == 1 else 'are'} empty"
 
 
 class Setting(BaseSettings):
     APP_ENV: Literal["development", "test", "production"] = "development"
-    # Public address of the website as people type it, without a path
-    # (https://www.example.ac.th). Empty = reached by IP only; Google sign-in and a real
-    # Cloudflare key need it. The Google URLs and Turnstile hostname are derived from it.
+    # Public address(es) of the website as people type them, without a path, comma-separated
+    # (https://www.example.ac.th,https://example.ac.th). The first one is the main address.
+    # Empty = reached by IP only; Google sign-in and a real Cloudflare key need it. The Google
+    # URLs and the hostnames accepted from Cloudflare are derived from these addresses.
     SITE_URL: str | None = None
     # Path the website lives under: "/" or e.g. "/cmm/" behind a reverse proxy at /cmm.
     ROOT_PATH: str = "/"
@@ -208,12 +220,19 @@ class Setting(BaseSettings):
     def validate_site_url(cls, value: str | None) -> str | None:
         if value is None:
             return None
-        cleaned = value.strip().rstrip("/")
-        parsed = urlparse(cleaned)
-        if (parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.path
-                or parsed.query or parsed.fragment or parsed.username):
-            raise ValueError("SITE_URL must look like https://www.example.ac.th (no path - the path goes in ROOT_PATH)")
-        return cleaned
+        sites = []
+        for item in value.split(","):
+            cleaned = item.strip().rstrip("/")
+            if not cleaned:
+                continue
+            parsed = urlparse(cleaned)
+            if (parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.path
+                    or parsed.query or parsed.fragment or parsed.username):
+                raise ValueError(f"SITE_URL entry '{cleaned}' must look like https://www.example.ac.th "
+                                 "(no path - the path goes in ROOT_PATH; several are separated by commas)")
+            if _site_key(cleaned) not in {_site_key(site) for site in sites}:
+                sites.append(cleaned)
+        return ",".join(sites) or None
 
     @field_validator("ROOT_PATH")
     @classmethod
@@ -240,6 +259,35 @@ class Setting(BaseSettings):
     def smtp_configured(self) -> bool:
         return self.EMAIL_ENABLED and all((self.SMTP_HOST, self.SMTP_USERNAME, self.SMTP_APP_PASSWORD))
 
+    @property
+    def site_urls(self) -> list[str]:
+        """Every website address, the main one first."""
+        return self.SITE_URL.split(",") if self.SITE_URL else []
+
+    @property
+    def turnstile_hostnames(self) -> set[str]:
+        """Hostnames accepted in a Cloudflare result: every site address (and an override)."""
+        hosts = {urlparse(site).hostname for site in self.site_urls}
+        hosts.add(self.TURNSTILE_EXPECTED_HOSTNAME)
+        return {host.casefold() for host in hosts if host}
+
+    def match_site(self, origin: str | None) -> str | None:
+        """The configured site address a browser origin belongs to, or None."""
+        if not origin:
+            return None
+        key = _site_key(origin.strip().rstrip("/"))
+        return next((site for site in self.site_urls if _site_key(site) == key), None)
+
+    def frontend_base_url_for(self, site: str | None) -> str | None:
+        if not site or site == (self.site_urls or [None])[0]:
+            return self.FRONTEND_BASE_URL
+        return f"{site}{self.ROOT_PATH}".rstrip("/")
+
+    def google_redirect_uri_for(self, site: str | None) -> str | None:
+        if not site or site == (self.site_urls or [None])[0]:
+            return self.GOOGLE_REDIRECT_URI
+        return f"{site}{self.ROOT_PATH}api/auth/google/callback"
+
     def bootstrap_base_url(self, callhome_ip: str | None) -> str:
         return self.BOOTSTRAP_BASE_URL or f"https://{callhome_ip}:{self.BACKEND_PORT}"
 
@@ -262,9 +310,10 @@ class Setting(BaseSettings):
 
     @model_validator(mode="after")
     def derive_and_check(self):
-        site = urlparse(self.SITE_URL) if self.SITE_URL else None
+        main_site = self.site_urls[0] if self.site_urls else None
+        site = urlparse(main_site) if main_site else None
         if site is not None:
-            public_root = f"{self.SITE_URL}{self.ROOT_PATH}"
+            public_root = f"{main_site}{self.ROOT_PATH}"
             self.FRONTEND_BASE_URL = self.FRONTEND_BASE_URL or public_root.rstrip("/")
             self.GOOGLE_REDIRECT_URI = self.GOOGLE_REDIRECT_URI or f"{public_root}api/auth/google/callback"
             self.TURNSTILE_EXPECTED_HOSTNAME = self.TURNSTILE_EXPECTED_HOSTNAME or site.hostname
@@ -301,8 +350,10 @@ class Setting(BaseSettings):
             if self.google_configured:
                 redirect = urlparse(self.GOOGLE_REDIRECT_URI)
                 frontend = urlparse(self.FRONTEND_BASE_URL)
-                if redirect.scheme != "https" or frontend.scheme != "https":
-                    raise ValueError("Production Google sign-in needs an https:// SITE_URL")
+                if redirect.scheme != "https" or frontend.scheme != "https" or any(
+                    urlparse(other).scheme != "https" for other in self.site_urls
+                ):
+                    raise ValueError("Production Google sign-in needs https:// in every SITE_URL address")
                 if redirect.hostname != self.TURNSTILE_EXPECTED_HOSTNAME or frontend.hostname != self.TURNSTILE_EXPECTED_HOSTNAME:
                     raise ValueError("Production authentication URLs must use the SITE_URL hostname")
         return self

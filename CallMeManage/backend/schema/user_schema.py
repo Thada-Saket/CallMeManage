@@ -140,6 +140,12 @@ class RegistrationStatusRead(SQLModel):
     google_enabled: bool = False
 
 
+# The page's own address (window.location.origin). Used only when it is one of the
+# SITE_URL addresses, so Google sends the user back to the address they started from.
+class GoogleOAuthStartRequest(SQLModel):
+    site_url: str | None = Field(default=None, max_length=256)
+
+
 # Public settings the web page needs before anything else (no secrets).
 class ClientConfigRead(SQLModel):
     turnstile_enabled: bool

@@ -77,6 +77,7 @@ from backend.schema.user_schema import (
     EmailRegistrationVerify,
     GoogleOAuthComplete,
     GoogleOAuthStartRead,
+    GoogleOAuthStartRequest,
     RegistrationCancel,
     RegistrationChallengeRead,
     RegistrationStatusRead,
@@ -249,13 +250,18 @@ async def site_access_verify(request_data: SiteAccessVerify, http_request: Reque
         Depends(require_site_access),
     ],
 )
-async def register_google_oauth_start(http_request: Request = None):
+async def register_google_oauth_start(
+    request_data: GoogleOAuthStartRequest | None = None,
+    http_request: Request = None,
+):
+    # an address that is not in SITE_URL falls back to the main one (never trusted as-is)
+    site = load_environment().match_site(request_data.site_url if request_data else None)
     try:
         # Validate provider configuration before allocating a Redis state so a
         # missing local secret does not leave unusable records behind.
-        get_google_oauth_configuration()
-        flow = await create_google_oauth_state(turnstile_verified=True)
-        authorization_url = build_google_authorization_url(flow)
+        get_google_oauth_configuration(site)
+        flow = await create_google_oauth_state(turnstile_verified=True, site=site)
+        authorization_url = build_google_authorization_url(flow, site)
     except GoogleOAuthStateInvalid as exc:
         audit_auth_event("auth.google_start", failure_code(exc), request=http_request)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
@@ -332,17 +338,18 @@ async def google_oauth_callback(
 
     if authorization_issuer is not None and authorization_issuer not in GOOGLE_ISSUERS:
         await record_failure("GOOGLE_ISSUER_MISMATCH")
-        return RedirectResponse(frontend_callback_url(error="rejected"), status_code=status.HTTP_303_SEE_OTHER)
+        return RedirectResponse(frontend_callback_url(error="rejected", site=oauth_state.site), status_code=status.HTTP_303_SEE_OTHER)
     if provider_error or not code:
         # Google's error value is attacker-controllable, so it is not logged.
         audit("GOOGLE_CONSENT_CANCELLED")
-        return RedirectResponse(frontend_callback_url(error="cancelled"), status_code=status.HTTP_303_SEE_OTHER)
+        return RedirectResponse(frontend_callback_url(error="cancelled", site=oauth_state.site), status_code=status.HTTP_303_SEE_OTHER)
 
     try:
         identity = await exchange_code_and_verify_identity(
             code,
             code_verifier=oauth_state.code_verifier,
             expected_nonce=oauth_state.nonce,
+            site=oauth_state.site,
         )
         if (
             await get_user_by_email_casefold(session, identity.email) is not None
@@ -350,19 +357,19 @@ async def google_oauth_callback(
         ):
             # Safe to tell this browser: Google just proved it owns that email.
             audit("REGISTRATION_EMAIL_EXISTS")
-            return RedirectResponse(frontend_callback_url(error="account_exists"), status_code=status.HTTP_303_SEE_OTHER)
+            return RedirectResponse(frontend_callback_url(error="account_exists", site=oauth_state.site), status_code=status.HTTP_303_SEE_OTHER)
         result_code = await create_google_callback_result(identity)
         audit("GOOGLE_IDENTITY_VERIFIED")
         return RedirectResponse(
-            frontend_callback_url(result_code=result_code),
+            frontend_callback_url(result_code=result_code, site=oauth_state.site),
             status_code=status.HTTP_303_SEE_OTHER,
         )
     except GoogleOAuthRejected as exc:
         await record_failure(failure_code(exc))
-        return RedirectResponse(frontend_callback_url(error="rejected"), status_code=status.HTTP_303_SEE_OTHER)
+        return RedirectResponse(frontend_callback_url(error="rejected", site=oauth_state.site), status_code=status.HTTP_303_SEE_OTHER)
     except GoogleOAuthUnavailable as exc:
         audit(failure_code(exc))
-        return RedirectResponse(frontend_callback_url(error="unavailable"), status_code=status.HTTP_303_SEE_OTHER)
+        return RedirectResponse(frontend_callback_url(error="unavailable", site=oauth_state.site), status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.post(

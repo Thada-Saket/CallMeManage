@@ -52,20 +52,22 @@ class VerifiedGoogleIdentity:
     email: str
 
 
-def get_google_oauth_configuration() -> GoogleOAuthConfiguration:
+def get_google_oauth_configuration(site: str | None = None) -> GoogleOAuthConfiguration:
+    """site: one of the SITE_URL addresses (None = the main one). Google sends the user back
+    to that address, so each address needs its redirect URI registered at Google."""
     settings = load_environment()
     if not settings.google_configured:
         raise GoogleOAuthUnavailable("Google registration is not configured", code="GOOGLE_NOT_CONFIGURED")
     return GoogleOAuthConfiguration(
         client_id=settings.GOOGLE_CLIENT_ID,
         client_secret=settings.GOOGLE_CLIENT_SECRET,
-        redirect_uri=settings.GOOGLE_REDIRECT_URI,
-        frontend_base_url=settings.FRONTEND_BASE_URL,
+        redirect_uri=settings.google_redirect_uri_for(site),
+        frontend_base_url=settings.frontend_base_url_for(site),
     )
 
 
-def build_google_authorization_url(flow: GoogleOAuthStart) -> str:
-    config = get_google_oauth_configuration()
+def build_google_authorization_url(flow: GoogleOAuthStart, site: str | None = None) -> str:
+    config = get_google_oauth_configuration(site)
     query = urllib.parse.urlencode(
         {
             "client_id": config.client_id,
@@ -119,8 +121,9 @@ def _classify_token_error(exc: urllib.error.HTTPError) -> Exception:
     )
 
 
-def _exchange_code_sync(code: str, code_verifier: str) -> dict:
-    config = get_google_oauth_configuration()
+def _exchange_code_sync(code: str, code_verifier: str, site: str | None = None) -> dict:
+    # the redirect_uri must be the one the authorization request used (same site)
+    config = get_google_oauth_configuration(site)
     body = urllib.parse.urlencode(
         {
             "code": code,
@@ -205,10 +208,11 @@ async def exchange_code_and_verify_identity(
     *,
     code_verifier: str,
     expected_nonce: str,
+    site: str | None = None,
 ) -> VerifiedGoogleIdentity:
     if not isinstance(code, str) or not 1 <= len(code) <= 4096:
         raise GoogleOAuthRejected("Google authorization code is invalid")
-    token_payload = await asyncio.to_thread(_exchange_code_sync, code, code_verifier)
+    token_payload = await asyncio.to_thread(_exchange_code_sync, code, code_verifier, site)
     return await asyncio.to_thread(
         _verify_id_token_sync,
         token_payload["id_token"],
@@ -263,8 +267,8 @@ async def consume_google_callback_result(result_code: str) -> VerifiedGoogleIden
     return identity
 
 
-def frontend_callback_url(*, result_code: str | None = None, error: str | None = None) -> str:
-    base = get_google_oauth_configuration().frontend_base_url
+def frontend_callback_url(*, result_code: str | None = None, error: str | None = None, site: str | None = None) -> str:
+    base = get_google_oauth_configuration(site).frontend_base_url
     fragment = urllib.parse.urlencode(
         {"google_result": result_code} if result_code else {"google_error": error or "failed"}
     )

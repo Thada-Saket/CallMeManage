@@ -71,8 +71,10 @@ export default defineConfig(() => {
   const apiPath = `${appBase}api`;
   // Host names the website answers to (IP addresses are always accepted by Vite):
   // the same sources the backend uses - SITE_URL and ALLOWED_HOSTS.
-  const siteHost = config.SITE_URL ? new URL(config.SITE_URL).hostname : "";
-  const allowedHosts = ["localhost", "www.callmemanage.local", "callmemanage.local", siteHost,
+  // SITE_URL may list several addresses, separated by commas
+  const siteHosts = String(config.SITE_URL || "").split(",").map((url) => url.trim()).filter(Boolean)
+    .map((url) => { try { return new URL(url).hostname; } catch { return ""; } });
+  const allowedHosts = ["localhost", "www.callmemanage.local", "callmemanage.local", ...siteHosts,
     ...String(config.ALLOWED_HOSTS || "").split(",")].map((host) => host.trim()).filter(Boolean);
   const apiProxy = {
     [apiPath]: {
