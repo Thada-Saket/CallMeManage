@@ -114,7 +114,7 @@ SMTP_FROM_NAME=CallMe Manage
 
 
 # -------------------------------------------------------------------------------------
-#  5) Google sign-in - the "Sign up / sign in with Google" button   (needs SITE_URL)
+#  5) Google sign-in - the "Sign up / sign in with Google" button  (needs SITE_URL)
 #
 #  Getting the values:
 #   1. https://console.cloud.google.com -> create a project
