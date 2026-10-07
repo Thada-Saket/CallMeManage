@@ -162,13 +162,13 @@ setup_email() {
     password="${password:-$(conf_get SMTP_APP_PASSWORD)}"
     [[ -n "$password" ]] || { warn "the app password is needed - nothing changed"; return 1; }
     host="$(conf_get SMTP_HOST)"; host="${host:-smtp.gmail.com}"
-    port="$(conf_get SMTP_PORT)"; port="${port:-465}"
+    port="$(conf_get SMTP_PORT)"; port="${port:-587}"
     if ! yes_no "Is this a Gmail account?" y; then
         host="$(ask_default "SMTP server" "$host")"
         port="$(ask_default "SMTP port (465 or 587)" "$port")"
         [[ "$port" == 465 || "$port" == 587 ]] || { warn "port must be 465 or 587 - nothing changed"; return 1; }
     else
-        host="smtp.gmail.com"; port=465
+        host="smtp.gmail.com"; port=587
     fi
 
     say "  Signing in to $host..."
