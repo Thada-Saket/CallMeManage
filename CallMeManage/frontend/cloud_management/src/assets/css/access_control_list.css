@@ -1,0 +1,148 @@
+.acl-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.acl-data-table th,
+.acl-data-table td {
+  text-align: left;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+}
+
+.acl-data-table th {
+  color: var(--text-secondary);
+  font-weight: 600;
+  background: var(--bg-input);
+  text-align: center;
+}
+
+.acl-data-table td {
+  font-family: var(--mono);
+  color: var(--text-primary);
+}
+
+.acl-data-table td:nth-child(1) {
+  vertical-align: top;
+  width: 15%;
+}
+
+.acl-data-table tr.row-clickable {
+  cursor: pointer;
+}
+
+.acl-data-table tr.row-clickable:hover td:not(.acl-name-cell) {
+  background: var(--bg-input);
+}
+
+.acl-data-table tr.row-selected td:not(.acl-name-cell) {
+  background: var(--jade-dim);
+}
+
+.acl-rule-block {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+  background: var(--bg-card, rgba(255, 255, 255, 0.02));
+}
+
+.acl-rule-block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.acl-rule-block-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.cfg-header {
+  margin: 0.75rem 1rem;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.acl-binding-header {
+  border-top: 1px solid var(--border-strong);
+}
+
+.acl-binding-table th,
+.acl-binding-table td {
+  vertical-align: middle;
+}
+
+.acl-binding-table th:nth-child(2) {
+  width: 10%;
+}
+
+.acl-binding-direction-cell,
+.acl-binding-interfaces-cell {
+  padding: 0 !important;
+}
+
+.binding-subrow {
+  padding: 8px 14px;
+}
+
+.binding-subrow-in {
+  border-bottom: 1px solid var(--border);
+}
+
+.acl-binding-table tr.row-selected td {
+  background: var(--jade-dim);
+}
+
+/* |==== for mobile apply ====| */
+@media (max-width: 768px) {
+  /* Lock outer block container in place */
+  .acl-rule-block {
+    padding: 12px 10px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+
+  .acl-rule-block-header {
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Only the ACL tables scroll horizontally when columns overflow */
+  .acl-data-table,
+  .acl-binding-table {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-collapse: collapse;
+    box-sizing: border-box;
+  }
+
+  .acl-data-table th,
+  .acl-binding-table th {
+    width: auto !important;
+  }
+
+  .acl-data-table th,
+  .acl-data-table td,
+  .acl-binding-table th,
+  .acl-binding-table td {
+    padding: 6px 10px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+}
+/* |==== end apply mobile ====| */

@@ -1,0 +1,87 @@
+:root {
+  /* FortiGate "Jade" theme palette */
+  --bg-app: #12171a;
+  --bg-sidebar: #0c1012;
+  --bg-panel: #1a2226;
+  --bg-panel-hover: #212b30;
+  --bg-input: #161d20;
+  --border: #2a3438;
+  --border-strong: #3a4448;
+
+  --jade: #00b39a;
+  --jade-bright: #1ee6c4;
+  --jade-dim: rgba(0, 179, 154, 0.14);
+  --jade-border: rgba(0, 179, 154, 0.4);
+
+  --text-primary: #e8eff0;
+  --text-secondary: #93a5aa;
+  --text-muted: #5c6c70;
+
+  --danger: #e05a4e;
+  --danger-dim: rgba(224, 90, 78, 0.14);
+  --warning: #e0a83e;
+  --warning-dim: rgba(224, 168, 62, 0.14);
+
+  --radius: 8px;
+  --radius-sm: 5px;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --sans: "Segoe UI", system-ui, Roboto, "Noto Sans Thai", sans-serif;
+  --mono: ui-monospace, "SFMono-Regular", Consolas, monospace;
+
+  /* Motion tokens */
+  --motion-fast: 150ms;
+  --motion-normal: 250ms;
+  --motion-card-flip: 400ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  font: 15px/1.5 var(--sans);
+  color-scheme: dark;
+  color: var(--text-primary);
+  background: var(--bg-app);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  min-width: 100%;
+  background: var(--bg-app);
+}
+
+#root {
+  min-height: 100svh;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--sans);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+a {
+  color: var(--jade-bright);
+}
+
+code {
+  font-family: var(--mono);
+}
+
+::selection {
+  background: var(--jade-dim);
+  color: var(--text-primary);
+}

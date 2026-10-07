@@ -1,0 +1,576 @@
+/* ==========================================================================
+   Mobile Responsive Layer (mobile.css)
+   เฉพาะโทรศัพท์มือถือ (Phone breakpoint: max-width: 600px)
+   รักษาธีม Jade/Dark และการทำงานของ Desktop และ Tablet เดิม 100%
+   ========================================================================== */
+
+/* ---------- 1. Reusable Helpers (ทุกขนาดหน้าจอ) ---------- */
+
+/* Container สำหรับตารางที่ต้องเลื่อนแนวนอนบนหน้าจอแคบ */
+.table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+}
+
+/* ---------- 2. Touch Devices (ปิด Hover Scale บนหน้าจอสัมผัส และเพิ่ม Touch Feedback) ---------- */
+@media (hover: none), (max-width: 600px) {
+  /* ป้องกัน hover/active scale ค้างบนหน้าจอสัมผัส โดยไม่ปิด transform ของ card flipped */
+  .device-card:hover,
+  .device-card:active {
+    transform: none;
+  }
+
+  /* การ์ดที่พลิกบนมือถือ: ขยายเพียงเล็กน้อย (scale 1.01) ไม่ชนขอบ viewport และไม่ทับการ์ดข้างเคียง */
+  .device-card.flipped {
+    transform: scale(1.01);
+  }
+
+  /* คืน touch feedback ที่นุ่มนวลให้ปุ่มบนจอสัมผัส (scale 0.98 แทน desktop 0.9) */
+  .btn {
+    transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
+  }
+
+  .btn:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+}
+
+/* ---------- 3. Phone Layout & Components (max-width: 600px) ---------- */
+@media (max-width: 600px) {
+
+  .site-rename-controls {
+    flex-direction: column;
+  }
+
+  .site-rename-controls .btn {
+    width: 100%;
+  }
+
+  /* --- 3.1 Base Page & Layout --- */
+  html,
+  body {
+    max-width: 100%;
+  }
+
+  .app-shell,
+  .main-content {
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .page-header {
+    margin: 0.75rem 0.75rem 0.5rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    width: auto;
+    box-sizing: border-box;
+  }
+
+  .page-header-actions,
+  .page-header-buttons {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .page-header-actions .btn,
+  .page-header-buttons .btn {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  /* --- 3.2 Form Inputs: ป้องกัน iOS Safari Auto-Zoom (Font >= 16px) --- */
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  input[type="number"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="url"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* --- 3.3 Touch Targets: ขั้นต่ำ 44x44px สำหรับการแตะสั่งงาน --- */
+  .btn,
+  .btn-primary,
+  .btn-ghost,
+  .btn-danger,
+  .btn-secondary {
+    min-height: 44px;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+  }
+
+  .mini-btn {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+
+  .btn-refresh {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    box-sizing: border-box;
+  }
+
+  .modal-close {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  .drawer-close-btn {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  .paginate-btn {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+
+  .mobile-burger-btn {
+    min-height: 44px;
+    padding: 10px 16px;
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+  }
+
+  .group-header {
+    min-height: 44px;
+    padding: 12px 14px;
+    box-sizing: border-box;
+  }
+
+  .submenu-item {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    box-sizing: border-box;
+  }
+
+  .segmented-control label {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    box-sizing: border-box;
+  }
+
+  .page-tab-button {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+
+  /* --- 3.4 TopBar Navigation --- */
+  .topbar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 8px 12px;
+    gap: 6px;
+    box-sizing: border-box;
+  }
+
+  .topbar .brand {
+    justify-content: center;
+    margin-bottom: 2px;
+  }
+
+  .topbar-user {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    width: 100%;
+    border-top: 1px solid var(--border);
+    padding-top: 4px;
+    gap: 4px;
+    box-sizing: border-box;
+  }
+
+  .topbar-element {
+    min-height: 44px;
+    padding: 8px 10px;
+    font-size: 13px;
+    flex: 1;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+
+  /* --- 3.5 Site Invitations Summary Bar --- */
+  .site-invitations-summary {
+    flex-direction: column;
+    align-items: stretch;
+    margin: 0.75rem 0.5rem;
+    gap: 10px;
+    text-align: center;
+    box-sizing: border-box;
+  }
+
+  .site-invitations-summary .btn {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  /* --- 3.6 Cards & Grid --- */
+  .site-section {
+    margin: 0.75rem 0.5rem;
+    padding: 1rem 0.75rem;
+    box-sizing: border-box;
+  }
+
+  .device-grid {
+    grid-template-columns: 1fr;
+    margin: 0.75rem 0;
+    gap: 12px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .device-card {
+    width: 100% !important;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .device-card-face-back .btn {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  /* --- 3.7 Modals: Bottom Sheet Layout on Mobile --- */
+  .modal-overlay {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+
+  .modal-card,
+  .modal-card-wide,
+  .modal-card-offline,
+  .cli-generator-boilerplate-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: min(92dvh, calc(100svh - 24px)) !important;
+    border-radius: var(--radius) var(--radius) 0 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    box-sizing: border-box !important;
+    padding: 20px 16px max(18px, env(safe-area-inset-bottom, 16px)) !important;
+    margin: 0 !important;
+  }
+
+  .modal-header {
+    position: sticky;
+    top: 0;
+    background: var(--bg-panel);
+    z-index: 10;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .modal-actions {
+    position: sticky;
+    bottom: 0;
+    background: var(--bg-panel);
+    z-index: 10;
+    padding-top: 12px;
+    margin-top: 16px;
+    border-top: 1px solid var(--border);
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .modal-actions .btn {
+    width: 100% !important;
+    min-height: 44px;
+  }
+
+  /* --- 3.8 Action Toolbars (New / Edit / Delete / Refresh) --- */
+  .command-output-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 10px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .command-action-buttons {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .command-action-buttons .btn {
+    min-height: 44px;
+    padding: 8px 14px;
+    font-size: 13px;
+    min-width: 64px;
+  }
+
+  .command-output-title .btn-refresh {
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 18px;
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+
+  /* --- 3.9 Tables --- */
+  /* ตาราง Basic Info จัดให้อยู่ในหน้าจอเสมอโดยไม่ต้องเลื่อนแนวนอน */
+  .basic-info-table {
+    width: 100% !important;
+    display: table !important;
+    table-layout: auto !important;
+    word-break: break-word !important;
+  }
+
+  .basic-info-table td {
+    padding: 10px 8px !important;
+    font-size: 13px !important;
+  }
+
+  /* ตารางข้อมูลหลายคอลัมน์: เลื่อนแนวนอนเฉพาะภายในตารางโดยไม่กระทบความกว้างหน้าเว็บ */
+  .table-scroll,
+  .command-output:has(> table),
+  .command-configuration:has(> table) {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
+  }
+
+  .table-scroll > table,
+  .command-output > table.data-table,
+  .command-output > table.interfaces-brief-table,
+  .command-output > table.firewall-policy-table,
+  .command-output > table.juniper-policy-table,
+  .command-output > table.security-status-table {
+    min-width: 520px;
+    display: table;
+  }
+
+  /* --- 3.10 Device Configuration Drawer --- */
+  #device-commands-container {
+    width: min(290px, 85vw) !important;
+    max-width: 85vw !important;
+    padding-top: max(16px, env(safe-area-inset-top, 16px)) !important;
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 16px)) !important;
+    padding-left: max(16px, env(safe-area-inset-left, 16px)) !important;
+    box-sizing: border-box;
+  }
+
+  #device-get-results {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  /* --- 3.11 Toast Notification --- */
+  .toast-container {
+    top: max(12px, env(safe-area-inset-top, 12px)) !important;
+    left: 12px !important;
+    right: 12px !important;
+    transform: none !important;
+    width: auto !important;
+    max-width: calc(100vw - 24px) !important;
+    box-sizing: border-box !important;
+    align-items: center !important;
+  }
+
+  .toast-item {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* --- 3.12 Dropdown Checkbox Pickers --- */
+  .zone-interface-picker {
+    width: 100% !important;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .zone-interface-picker-options {
+    max-height: 240px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .zone-interface-picker-option {
+    min-height: 44px;
+    padding: 10px 12px;
+    box-sizing: border-box;
+  }
+
+  .zone-interface-picker-option input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+
+  /* --- 3.13 Forms inside Command Panels --- */
+  .interface-configuration-form {
+    padding: 12px 10px;
+    box-sizing: border-box;
+  }
+
+  .interface-configuration-form-field {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .interface-configuration-form-field input,
+  .interface-configuration-form-field select {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .interface-form-btn-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .interface-form-btn-container .btn {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  /* --- 3.14 Account Settings --- */
+  .account-page {
+    padding: 0.75rem 0.75rem 2rem;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .account-info-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 10px 0;
+  }
+
+  .account-info-row dd {
+    text-align: left;
+    width: 100%;
+  }
+
+  .account-back {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+/* ---------- 4. Accessibility: Prefers Reduced Motion (Visible Reduced Motion) ---------- */
+/* ลดระยะเวลาและความรุนแรงของการเคลื่อนไหวให้สั้นลง แต่ยังคงมองเห็นการเปลี่ยนสถานะของ UI ได้ชัดเจน
+   (Approach A: Visible Reduced Motion: 100ms - 160ms)
+   ไม่ใช้ 0.01ms เพื่อให้ผู้ใช้บนทุกอุปกรณ์เข้าใจ state การสลับหน้าการ์ด, เมนู, และปุ่มกด
+   และไม่ใช้ universal wildcard (*) เพื่อรักษา functional loading spinner ให้หมุนต่อเนื่อง */
+@media (prefers-reduced-motion: reduce) {
+  html,
+  html:focus-within {
+    scroll-behavior: auto;
+  }
+
+  /* Card flip และ Zoom: ลดเวลาลงเหลือ 160ms / 120ms แต่ยังมองเห็นการหมุน 3D ชัดเจน */
+  .device-card {
+    transition-duration: 120ms;
+  }
+
+  .device-card-flip-inner {
+    transition-duration: 160ms;
+  }
+
+  /* Drawer slide animation: เลื่อนเร็วขึ้น (140ms แทน 250ms) */
+  #device-commands-container {
+    transition-duration: 140ms;
+  }
+
+  /* Submenu accordion slide: คลี่เร็วขึ้น (140ms แทน 250ms) */
+  .submenu {
+    transition-duration: 140ms;
+  }
+
+  /* ปรับการหมุนของลูกศรบอกทิศทาง: หมุนเร็วขึ้น (120ms แทน 200ms) */
+  .group-header .arrow,
+  .account-sites-arrow {
+    transition-duration: 120ms;
+  }
+
+  /* ปรับ Toast slide-in animation: แสดงผลเร็วขึ้น (120ms แทน 250ms) */
+  .toast-item {
+    animation-duration: 120ms;
+  }
+
+  /* Button transitions: ปรับเวลา transition 100ms และลดแรงขยาย/ยุบเหลือ scale(0.99) */
+  .btn,
+  .mini-btn,
+  .page-tab-button,
+  .paginate-btn {
+    transition-duration: 100ms;
+  }
+
+  .btn:active:not(:disabled) {
+    transform: scale(0.99);
+  }
+}

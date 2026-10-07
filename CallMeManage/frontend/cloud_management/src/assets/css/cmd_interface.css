@@ -1,0 +1,1039 @@
+.command-configuration {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+
+.zone-interface-picker {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.zone-interface-picker > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.zone-interface-picker > summary::-webkit-details-marker {
+  display: none;
+}
+
+.zone-interface-picker > summary input {
+  min-width: 0;
+  flex: 1;
+  pointer-events: none;
+  text-overflow: ellipsis;
+}
+
+/* The text input inside a checkbox dropdown is only a visual summary. It is
+   technically readonly, but the surrounding summary remains interactive. */
+.interface-configuration-form-field .zone-interface-picker:not(.is-disabled) > summary input[readonly],
+.interface-configuration-form-field-third .zone-interface-picker:not(.is-disabled) > summary input[readonly] {
+  color: var(--text-primary);
+  background: var(--bg-input);
+  border-color: var(--border-strong);
+  border-style: solid;
+  opacity: 1;
+}
+
+.zone-interface-picker.is-disabled > summary {
+  opacity: 0.58;
+  cursor: not-allowed;
+}
+
+.zone-interface-picker > summary:focus-visible {
+  outline: 2px solid var(--text-secondary);
+  outline-offset: 2px;
+}
+
+.zone-interface-picker-options {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 220px;
+  overflow-y: auto;
+  margin-top: 6px;
+  padding: 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  box-shadow: 0 6px 16px rgb(0 0 0 / 18%);
+}
+
+.zone-interface-picker-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  font-weight: normal;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background-color 120ms ease, box-shadow 120ms ease;
+}
+
+.zone-interface-picker-option:hover {
+  background: var(--bg-panel-hover);
+}
+
+.zone-interface-picker-option:has(> input[type="checkbox"]:disabled) {
+  color: var(--text-muted);
+  opacity: 0.58;
+  cursor: not-allowed;
+}
+
+.zone-interface-picker-option:has(> input[type="checkbox"]:disabled):hover {
+  background: transparent;
+}
+
+.zone-interface-picker-option:has(> input[type="checkbox"]:checked) {
+  background: var(--jade-dim);
+  box-shadow: inset 0 0 0 1px var(--jade-border);
+}
+
+.command-output-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-input);
+  border-bottom: 1px solid var(--border-strong);
+}
+
+.command-output pre {
+  margin: 0;
+  padding: 14px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 420px;
+  overflow: auto;
+}
+
+.center-loading {
+  padding: 60px 0;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+/* start show interface information */
+
+.data-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.data-table th,
+.data-table td {
+  text-align: left;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+}
+
+.data-table th {
+  color: var(--text-secondary);
+  font-weight: 600;
+  background: var(--bg-input);
+  text-align: center;
+}
+
+.data-table th:nth-child(1) { width: 13%; }
+.data-table th:nth-child(2) { width: 15%; }
+.data-table th:nth-child(3) { width: 15%; }
+.data-table th:nth-child(4) { width: 10%; }
+.data-table th:nth-child(5) { width: 10%; }
+.data-table th:nth-child(6) { width: 20%; }
+
+.data-table td {
+  font-family: var(--mono);
+  color: var(--text-primary);
+}
+
+.data-table tr.row-clickable {
+  cursor: pointer;
+}
+
+.data-table tr.row-clickable:hover td {
+  background: var(--bg-input);
+}
+
+.data-table tr.row-selected td {
+  background: var(--jade-dim);
+}
+
+/* vertical radio list - ใช้แทน dropdown ตอนตัวเลือกมีได้หลายสิบตัว (เช่น Exit
+   Interface ของ StaticRouteFormModal.jsx) ที่ไม่เหมาะกับ .segmented-control
+   แนวนอน (pattern นั้นในระบบใช้แค่ 2 ตัวเลือกเสมอ) */
+.radio-option-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+}
+
+.radio-option-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+
+/* ตารางหลักของหน้า Interfaces มี 7 คอลัมน์ (Name, IP, Subnet, Layer, Switchport Mode, Status, Last Change) -
+   override width ของ .data-table th:nth-child เดิม (คำนวณไว้สำหรับ 6 คอลัมน์
+   เดิม) ด้วย class เฉพาะแทนแก้ rule เดิมตรงๆ กันกระทบตารางอื่นที่ยังใช้
+   .data-table เฉยๆ (ไม่ scope) อยู่ทั่วแอป */
+.interfaces-brief-table th:nth-child(1) { width: 18%; }
+.interfaces-brief-table th:nth-child(2) { width: 14%; }
+.interfaces-brief-table th:nth-child(3) { width: 14%; }
+.interfaces-brief-table th:nth-child(4) { width: 9%; }
+.interfaces-brief-table th:nth-child(5) { width: 13%; }
+.interfaces-brief-table th:nth-child(6) { width: 9%; }
+.interfaces-brief-table th:nth-child(7) { width: 23%; }
+
+/* Basic Info (basic_info.jsx) - ตาราง 2 คอลัมน์ label/value (ไม่มี <thead>/<th>
+   เลย - เป็น key-value list ไม่ใช่ตารางข้อมูลหลายแถวแบบมีหัวคอลัมน์) - set
+   สัดส่วนคอลัมน์ผ่าน td:nth-child (table-layout:fixed อ่านความกว้างจากแถวแรก) +
+   คอลัมน์ label ให้ดูจางกว่า value ตามธรรมเนียม .detail-item .label/.value เดิม */
+.basic-info-table td:nth-child(1) {
+  width: 32%;
+  color: var(--text-secondary);
+  font-family: var(--sans);
+}
+
+.basic-info-users-row > td {
+    vertical-align: top;
+  }
+
+.basic-info-table td:nth-child(2) {
+  width: 68%;
+}
+
+.table-section-header td {
+  background: var(--bg-panel, rgba(255, 255, 255, 0.03));
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  cursor: default;
+}
+
+.interface-row-sub {
+  padding-left: 26px !important;
+  color: var(--text-secondary);
+}
+
+.data-table tr.interface-row-readonly {
+  cursor: default;
+}
+
+.data-table tr.interface-row-readonly td {
+  color: var(--text-secondary);
+}
+
+.firewall-policy-table td:nth-child(1) {
+  vertical-align: top;
+}
+
+.firewall-policy-table tr.row-clickable:hover td:first-child,
+.firewall-policy-table tr.row-selected td:first-child {
+  background: transparent;
+}
+
+/* Stateful Firewall (stateful.jsx + juniperPolicyTable.jsx) - แถวหัวข้อกลุ่มคู่ Zone
+   (From Zone → To Zone) ก่อนแต่ละกลุ่ม ทั้ง Cisco และ Juniper ใช้ class table-section-
+   header ร่วมกับหน้า Interfaces (ได้ background/color/font ของหัวข้อมาแล้ว) rule นี้
+   เพิ่มแค่เส้นขอบบนให้เห็นการแบ่งกลุ่มชัดขึ้น scope ด้วย .firewall-policy-table จึงไม่
+   กระทบ .table-section-header ของหน้า Interfaces ที่ไม่มี class นี้ */
+.firewall-policy-table tr.table-section-header td {
+  border-top: 1px solid var(--border-strong);
+}
+
+/* Juniper Stateful Firewall (juniperPolicyTable.jsx) - scope ด้วย .juniper-policy-table
+   เท่านั้น ตาราง Cisco ใช้ .firewall-policy-table ตัวเดียวกันจึงห้ามแตะ rule กว้าง ๆ
+   ตารางมี 7 คอลัมน์ จึง override ความกว้าง 6 คอลัมน์ของ .data-table เฉพาะตารางนี้
+   คอลัมน์ "จัดลำดับ" ขวาสุด sticky - จอแคบตารางเลื่อนแนวนอนได้ แต่ปุ่มยังเห็นและกดได้
+   โดยไม่ทับข้อความ (พื้นหลังทึบ ข้อความเลื่อนลอดใต้คอลัมน์แทน) */
+.juniper-policy-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* min-width ขยับขึ้นจาก 760px เพราะคอลัมน์ 3/4 เปลี่ยนจาก From/To Zone (ชื่อสั้น) เป็น
+   Source/Destination Address ที่มักมีหลายรายการต่อ Policy (2026-09) */
+.juniper-policy-table {
+  min-width: 860px;
+}
+
+.juniper-policy-table th:nth-child(1) { width: 64px; }
+.juniper-policy-table th:nth-child(2) { width: 18%; }
+.juniper-policy-table th:nth-child(3) { width: 16%; }
+.juniper-policy-table th:nth-child(4) { width: 16%; }
+.juniper-policy-table th:nth-child(5) { width: 10%; }
+.juniper-policy-table th:nth-child(6) { width: auto; }
+.juniper-policy-table th:nth-child(7) { width: 104px; }
+
+.juniper-policy-table td {
+  vertical-align: top;
+}
+
+.juniper-policy-table td.juniper-policy-order-col {
+  text-align: center;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* rule เดิมของ .firewall-policy-table ทำให้คอลัมน์แรกไม่ไฮไลต์ - คอลัมน์แรกของ Juniper
+   เป็นเลขลำดับของแถวนั้น ต้องไฮไลต์ไปพร้อมทั้งแถว */
+.juniper-policy-table tr.row-clickable:hover td:first-child {
+  background: var(--bg-input);
+}
+
+.juniper-policy-table tr.row-selected td:first-child {
+  background: var(--jade-dim);
+}
+
+.juniper-policy-name {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Services / Source Address / Destination Address: หนึ่งรายการต่อหนึ่งบรรทัด แบบ
+   เดียวกับช่อง Interface ของหน้า Zone - ใช้ selector รวมกันเพราะทั้ง 3 คอลัมน์เป็น
+   รายการแนวตั้งแบบเดียวกันทุกประการ (ต่างกันแค่ชนิดข้อมูล) */
+.juniper-policy-services ul,
+.cisco-policy-services ul,
+.juniper-policy-addresses ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* ชื่อ Brownfield/Address Book ยาว ๆ ตัดบรรทัดภายในรายการของตัวเอง ห้ามซ่อนด้วย ellipsis */
+.juniper-policy-services li,
+.cisco-policy-services li,
+.juniper-policy-addresses li {
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.juniper-policy-table .juniper-policy-move-col {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  text-align: center;
+  vertical-align: middle;
+  background: var(--bg-panel);
+  box-shadow: inset 1px 0 0 var(--border-strong);
+}
+
+.juniper-policy-table th.juniper-policy-move-col {
+  background: var(--bg-input);
+}
+
+.juniper-policy-table tr.row-clickable:hover td.juniper-policy-move-col {
+  background: var(--bg-input);
+}
+
+.juniper-policy-table tr.row-selected td.juniper-policy-move-col {
+  background: linear-gradient(var(--jade-dim), var(--jade-dim)), var(--bg-panel);
+}
+
+.juniper-policy-move-group {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.juniper-policy-move-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 30px;
+  padding: 0;
+  font-family: var(--sans);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+}
+
+.juniper-policy-move-btn:hover:not(:disabled) {
+  border-color: var(--jade-border);
+  color: var(--text-primary);
+  background: var(--bg-input);
+}
+
+.juniper-policy-move-btn:focus-visible {
+  outline: 2px solid var(--jade);
+  outline-offset: 1px;
+}
+
+.juniper-policy-move-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.juniper-policy-move-btn.is-busy,
+.juniper-policy-move-btn.is-busy:disabled {
+  opacity: 1;
+  cursor: progress;
+  border-color: var(--jade-border);
+}
+
+.juniper-policy-move-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--jade-border);
+  border-top-color: var(--jade-bright);
+  border-radius: 50%;
+  animation: juniper-policy-move-spin 0.8s linear infinite;
+}
+
+@keyframes juniper-policy-move-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* end show interface information */
+
+/* start interface configuration */
+.interface-configuration-form {
+    width: 100%;
+    padding: 1rem;
+}
+
+.interface-configuration-form .data-label {
+    padding: 1.1rem 1rem;
+    align-self: start;
+}
+
+.interface-configuration-form-field .form-interface-add-list {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: 12.5px;
+    margin-top: 0.7rem;
+}
+
+.interface-configuration-form-field .form-interface-add-list td:nth-child(1) { width: 80%; }
+
+.interface-configuration-form-field .form-interface-add-list td {
+    text-align: left;
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+}
+
+.interface-configuration-form-field {
+    width: 45%;
+    min-height: 10%;
+    display: grid;
+    grid-template-columns: 45% 55%;
+    justify-items: start;
+    align-items: center;
+    gap: 6px;
+}
+
+.interface-configuration-form-field-third {
+    width: 40%;
+    display: grid;
+    grid-template-columns: 50% 70% auto;
+    justify-items: start;
+    align-items: center;
+    gap: 6px;
+}
+
+.nat-pool-range-inputs {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 6px;
+}
+
+.interface-configuration-form-field-third.nat-pool-range-field {
+    width: 65%;
+    grid-template-columns: 28% minmax(0, 1fr) auto;
+}
+
+/* Specific trunk ใช้แถว dropdown แบบ DNS Cisco; แยกแนวตั้ง 6px เพื่อให้แถว
+   ที่เพิ่มด้วยปุ่ม + ไม่ชิดกัน ใช้ร่วมกันระหว่าง Cisco และ Huawei. */
+.trunk-vlan-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 6px 0;
+}
+
+.interface-configuration-form-field label,
+.interface-configuration-form-field-third label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: 0.2px;
+}
+
+.interface-configuration-form-field input:not(input[type="checkbox"]),
+.interface-configuration-form-field select,
+.interface-configuration-form-field-third input:not(input[type="checkbox"]),
+.interface-configuration-form-field-third select {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    font-size: 14px;
+    font-family: var(--mono);
+    letter-spacing: 0.3px;
+    color: var(--text-primary);
+    outline: none;
+    appearance: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.interface-configuration-form input::-webkit-outer-spin-button,
+.interface-configuration-form input::-webkit-inner-spin-button,
+.interface-configuration-form-third input::-webkit-outer-spin-button,
+.interface-configuration-form-third input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.interface-configuration-form-field input:hover,
+.interface-configuration-form-field select:hover,
+.interface-configuration-form-field-third input:hover,
+.interface-configuration-form-field-third select:hover {
+    cursor: pointer;
+}
+
+.interface-configuration-form-field select,
+.interface-configuration-form-field-third select  {
+    appearance: none;
+}
+
+.interface-configuration-form-field input:focus,
+.interface-configuration-form-field select:focus,
+.interface-configuration-form-field-third input:focus,
+.interface-configuration-form-field-third select:focus {
+  border-color: var(--jade);
+  box-shadow: 0 0 0 3px var(--jade-dim);
+}
+
+/* Locked values are still useful context in Edit forms, but must not look or
+   behave like interactive controls. Keep this after the generic hover/focus
+   rules so a disabled control never inherits the pointer cursor. */
+.interface-configuration-form-field input:disabled:not([type="checkbox"]):not([type="radio"]),
+.interface-configuration-form-field input[readonly]:not([type="checkbox"]):not([type="radio"]),
+.interface-configuration-form-field select:disabled,
+.interface-configuration-form-field textarea:disabled,
+.interface-configuration-form-field textarea[readonly],
+.interface-configuration-form-field-third input:disabled:not([type="checkbox"]):not([type="radio"]),
+.interface-configuration-form-field-third input[readonly]:not([type="checkbox"]):not([type="radio"]),
+.interface-configuration-form-field-third select:disabled,
+.interface-configuration-form-field-third textarea:disabled,
+.interface-configuration-form-field-third textarea[readonly] {
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--bg-input) 58%, var(--bg-panel));
+  border-color: var(--border);
+  border-style: dashed;
+  box-shadow: none;
+  opacity: 0.62;
+  cursor: not-allowed;
+}
+
+.interface-configuration-form-field input:disabled:hover,
+.interface-configuration-form-field input[readonly]:hover,
+.interface-configuration-form-field select:disabled:hover,
+.interface-configuration-form-field textarea:disabled:hover,
+.interface-configuration-form-field textarea[readonly]:hover,
+.interface-configuration-form-field-third input:disabled:hover,
+.interface-configuration-form-field-third input[readonly]:hover,
+.interface-configuration-form-field-third select:disabled:hover,
+.interface-configuration-form-field-third textarea:disabled:hover,
+.interface-configuration-form-field-third textarea[readonly]:hover {
+  border-color: var(--border);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.interface-configuration-form-field input.ip-input-invalid,
+.interface-configuration-form-field input.ip-input-invalid:focus {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px var(--danger-dim);
+}
+
+.interface-configuration-form-field input::placeholder,
+.interface-configuration-form-field-third input::placeholder {
+  color: var(--text-muted);
+  font-family: var(--sans);
+}
+
+/* Cisco IKEv2 global objects -------------------------------------------------
+   Proposal/Policy เป็น resource คนละชนิดกับ Security Profile จึงแบ่งเป็น card
+   ชัดเจนแทนการวางหัวข้อและตารางต่อกันยาว ๆ */
+.ikev2-object-sections {
+  display: grid;
+  gap: 22px;
+  margin: 18px;
+  padding: 0;
+  background: transparent;
+}
+
+.ikev2-object-section {
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-panel);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
+}
+
+.security-profile-section {
+  margin: 18px;
+}
+
+.ikev2-section-heading {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.ikev2-section-heading h3 {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.ikev2-section-heading p {
+  margin: 5px 0 0;
+  color: var(--text-muted);
+  font-size: 12.5px;
+}
+
+.ikev2-inline-notice {
+  margin: 10px 14px;
+  padding: 9px 12px;
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--border));
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  background: var(--danger-dim);
+  font-size: 12.5px;
+}
+
+@media (max-width: 760px) {
+  .ikev2-object-sections {
+    margin: 12px;
+    padding: 0;
+  }
+  .security-profile-section {
+    margin: 12px;
+  }
+}
+
+/* start addressing mode */
+
+.segmented-control {
+    display: flex;
+}
+
+.segmented-control input[type="radio"] {
+    display: none; 
+}
+
+.segmented-control label {
+    padding: 4px 12px;
+    cursor: pointer;
+    background: var(--bg-input);
+    color: var(--text-secondary);
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.segmented-control label:last-of-type {
+    border-right: none; 
+}
+
+.segmented-control input[type="radio"]:checked + label {
+    background-color: #344d43; /* สีเขียว */
+    color: #ffffff;
+}
+
+.segmented-control input[type="radio"]:disabled + label {
+    opacity: 0.58;
+    cursor: not-allowed;
+}
+
+/* A value which becomes immutable after creation is presented as its current
+   value, not as a choice the user appears able to change. */
+.segmented-control.locked-choice input[type="radio"]:not(:checked),
+.segmented-control.locked-choice input[type="radio"]:not(:checked) + label {
+    display: none;
+}
+
+.segmented-control.locked-choice input[type="radio"]:checked + label {
+    opacity: 0.62;
+    cursor: not-allowed;
+}
+
+.locked-form-indicator {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  color: var(--text-muted);
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
+.toggle-switch-container input[type="checkbox"]:disabled + .toggleSwitch {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+/* end addressing mode */
+
+/* start interface form button container */
+
+.interface-form-btn-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-top: 1.2rem;
+}
+
+/* end interface form button container */
+
+/* start checkbox list (เลือก interface หลายตัวเข้า zone - stateful firewall) */
+
+.checkbox-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+}
+
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-family: var(--sans);
+    font-size: 0.9rem;
+}
+
+.checkbox-item input[type="checkbox"] {
+    cursor: pointer;
+}
+
+/* end checkbox list */
+
+/* |==== for mobile apply ====| */
+@media (max-width: 768px) {
+  /* Prevent horizontal blowout from commands container - locks header, title and buttons */
+  .command-output,
+  .command-configuration,
+  .command-form-wrapper {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+
+  .command-output-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 10px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .command-output-title > div {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .command-output-title .btn {
+    min-width: 0;
+    padding: 4px 10px;
+    font-size: 12px;
+  }
+
+  .command-output pre {
+    padding: 10px;
+    font-size: 11.5px;
+    max-height: 350px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  /* Data tables: ONLY the table element itself scrolls horizontally when content overflows */
+  .data-table:not(.basic-info-table),
+  .interfaces-brief-table,
+  .firewall-policy-table,
+  .juniper-policy-table {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-collapse: collapse;
+    box-sizing: border-box;
+  }
+
+  /* Override desktop percentage widths so columns size naturally */
+  .data-table:not(.basic-info-table) th,
+  .interfaces-brief-table th,
+  .firewall-policy-table th,
+  .juniper-policy-table th {
+    width: auto !important;
+  }
+
+  .data-table:not(.basic-info-table) th,
+  .data-table:not(.basic-info-table) td,
+  .interfaces-brief-table th,
+  .interfaces-brief-table td,
+  .firewall-policy-table th,
+  .firewall-policy-table td,
+  .juniper-policy-table th,
+  .juniper-policy-table td {
+    padding: 6px 10px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  /* Basic Info 2-column key-value table: fits screen cleanly without horizontal scroll */
+  .basic-info-table {
+    display: table;
+    width: 100%;
+    table-layout: auto;
+  }
+
+  .basic-info-table td:nth-child(1) {
+    width: 35%;
+    white-space: normal;
+  }
+
+  .basic-info-table td:nth-child(2) {
+    width: 65%;
+    word-break: break-all;
+  }
+
+  /* Form fields layout */
+  .interface-configuration-form,
+  form.interface-configuration-form {
+    padding: 12px 10px;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+  }
+
+  /* When form is nested inside a container with class .interface-configuration-form */
+  .interface-configuration-form .interface-configuration-form,
+  .interface-configuration-form form {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  .interface-configuration-form .data-label,
+  .interface-configuration-form-field label,
+  .interface-configuration-form-field-third label {
+    padding: 0 0 4px 0 !important;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    width: 100%;
+    align-self: auto;
+  }
+
+  .interface-configuration-form-field {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-items: stretch;
+    gap: 6px;
+    margin-bottom: 14px;
+    min-height: auto;
+  }
+
+  /* Toggle switch rows (e.g. Enable NAT, Enable OSPF, Enable RIP, IP DNS Server, IP Domain Lookup) */
+  .interface-configuration-form-field:has(.toggle-switch-container) {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    gap: 12px;
+  }
+
+  .interface-configuration-form-field:has(.toggle-switch-container) .data-label {
+    width: auto;
+    padding: 0 !important;
+    margin: 0;
+  }
+
+  .interface-configuration-form-field-third {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .interface-configuration-form-field-third > .data-label {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .interface-configuration-form-field-third > input:not([type="checkbox"]),
+  .interface-configuration-form-field-third > select,
+  .interface-configuration-form-field-third > .ipv4-input {
+    grid-column: 1;
+    width: 100% !important;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .interface-configuration-form-field-third > .mini-btn {
+    grid-row: 2;
+    height: 38px;
+    min-width: 44px;
+    padding: 0 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* When field-third does not have a mini-btn (e.g. IP Domain Name) */
+  .interface-configuration-form-field-third:not(:has(.mini-btn)) > input,
+  .interface-configuration-form-field-third:not(:has(.mini-btn)) > select,
+  .interface-configuration-form-field-third:not(:has(.mini-btn)) > .ipv4-input {
+    grid-column: 1 / -1;
+  }
+
+  .interface-configuration-form-field-third.nat-pool-range-field {
+    width: 100% !important;
+    grid-template-columns: 1fr auto auto;
+  }
+
+  .nat-pool-range-inputs {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    width: 100% !important;
+    box-sizing: border-box;
+  }
+
+  .interface-configuration-form-field input:not(input[type="checkbox"]),
+  .interface-configuration-form-field select,
+  .interface-configuration-form-field-third input:not(input[type="checkbox"]),
+  .interface-configuration-form-field-third select {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    min-width: 0;
+  }
+
+  .interface-form-btn-container {
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 1rem;
+    width: 100% !important;
+    box-sizing: border-box;
+  }
+
+  .interface-form-btn-container .btn {
+    width: 100% !important;
+  }
+
+  .checkbox-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+  }
+
+  .segmented-control {
+    width: 100% !important;
+    max-width: 100%;
+    display: flex;
+    box-sizing: border-box;
+  }
+
+  .segmented-control label {
+    flex: 1;
+    text-align: center;
+    padding: 8px 12px;
+  }
+
+  .zone-interface-picker {
+    width: 100% !important;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .zone-interface-picker > summary {
+    width: 100%;
+  }
+
+  .zone-interface-picker > summary input {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    font-size: 13px;
+  }
+
+  .zone-interface-picker-options {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .ipv4-input,
+  .ipv4-input-cidr {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+}
+/* |==== end apply mobile ====| */

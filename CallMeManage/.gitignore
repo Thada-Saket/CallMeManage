@@ -1,0 +1,28 @@
+*.pem
+keys/
+.claude/
+backend/HANDOFF.md
+backend/__pycache__/*
+logs/
+.auth-token-backups/
+.env
+.env.migrated
+# config for development (CALLMEMANAGE_CONF=./callmemanage.conf); production uses /etc/callmemanage
+callmemanage.conf
+testsyntax.py
+scripts/*
+run_dev.sh
+testReqScript.py
+juniper.pcapng
+
+zHuawei/*
+_not-include
+
+# install_service.sh outputs
+.venv/
+frontend/cloud_management/dist/
+__pycache__/
+*.pyc
+
+# local notes
+SUBPATH_FIX_NOTES.md

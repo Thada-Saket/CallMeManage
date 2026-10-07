@@ -1,0 +1,169 @@
+#!/usr/bin/env bash
+# callmemanage - manage an installed CallMe Manage (installed as /usr/local/bin/callmemanage
+# by install_service.sh). Run `callmemanage help` for the commands.
+set -euo pipefail
+
+PROJECT_ROOT="${CALLMEMANAGE_PROJECT:-$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)}"
+APP_USER="${CALLMEMANAGE_USER:-$(stat -c %U "$PROJECT_ROOT")}"
+DRY_RUN=0
+
+source "$PROJECT_ROOT/install/lib.sh"
+source "$PROJECT_ROOT/install/secrets.sh"
+source "$PROJECT_ROOT/install/configure.sh"
+source "$PROJECT_ROOT/install/service.sh"
+
+usage() {
+    cat <<EOF
+CallMe Manage - config file: $CONF_FILE
+
+  callmemanage status                    running or not, and where the website is
+  callmemanage check                     check the config file (no changes)
+  callmemanage logs [backend|frontend]   follow the log (Ctrl+C to leave)
+
+  sudo callmemanage config               edit the config file; it is checked, then applied
+                                         (website rebuilt if ROOT_PATH changed, services restarted)
+  sudo callmemanage setup site           website address (SITE_URL, ROOT_PATH)
+  sudo callmemanage setup turnstile      Cloudflare bot check, step by step
+  sudo callmemanage setup email          email for sign-up codes / forgot password (Gmail)
+  sudo callmemanage setup google         Google sign-in
+  sudo callmemanage disable turnstile|email|google
+  sudo callmemanage apply                apply the config file after editing it by hand
+
+  sudo callmemanage user add             create a website account
+  sudo callmemanage user passwd <name>   set a new password (username or email)
+
+  sudo callmemanage start | stop | restart
+EOF
+}
+
+as_project_python() {  # as_project_python <script and args...> (quoted for bash -c)
+    as_app_user "cd '$PROJECT_ROOT' && '$VENV_DIR/bin/python' $*"
+}
+
+check_config() {
+    as_project_python tools/env_check.py
+}
+
+apply_changes() {
+    step "Checking the config file"
+    if ! check_config; then
+        warn "not applied - the running system keeps its previous settings until this is fixed"
+        return 1
+    fi
+    build_frontend_if_needed
+    step "Restarting"
+    restart_services
+    say ""
+    say "Website:"
+    website_urls
+}
+
+cmd_config() {
+    require_root callmemanage config
+    local editor="${SUDO_EDITOR:-${VISUAL:-${EDITOR:-nano}}}"
+    local draft
+    draft="$(mktemp "$CONF_DIR/.callmemanage.conf.XXXXXX")"
+    # the path is put into the trap now: the local variable is gone when the script exits
+    trap "rm -f '$draft'" EXIT
+    cp "$CONF_FILE" "$draft"
+    chown root:"$APP_GROUP" "$draft"; chmod 0640 "$draft"
+    while true; do
+        "$editor" "$draft"
+        if cmp -s "$draft" "$CONF_FILE"; then say "No changes."; return 0; fi
+        step "Checking your changes"
+        if CALLMEMANAGE_CONF="$draft" CALLMEMANAGE_CONF_SHOWN="$CONF_FILE" check_config; then
+            # keep the same file (owner, group, mode); the draft is removed by the trap
+            cat "$draft" > "$CONF_FILE"
+            build_frontend_if_needed
+            step "Restarting"
+            restart_services
+            say ""
+            say "Saved and applied. Website:"
+            website_urls
+            return 0
+        fi
+        say ""
+        if yes_no "Edit again? (No = throw these changes away)" y; then continue; fi
+        say "Changes thrown away - $CONF_FILE was not touched."
+        return 1
+    done
+}
+
+cmd_setup() {
+    require_root callmemanage setup "${1:-}"
+    case "${1:-}" in
+        site)      configure_site ;;
+        turnstile) setup_turnstile ;;
+        email)     setup_email ;;
+        google)    setup_google ;;
+        *) die "usage: sudo callmemanage setup site|turnstile|email|google" ;;
+    esac
+    apply_changes
+}
+
+cmd_disable() {
+    require_root callmemanage disable "${1:-}"
+    case "${1:-}" in
+        turnstile) conf_set TURNSTILE_ENABLED no ;;
+        email)     conf_set EMAIL_ENABLED no ;;
+        google)    conf_set GOOGLE_ENABLED no ;;
+        *) die "usage: sudo callmemanage disable turnstile|email|google" ;;
+    esac
+    say "$1 switched off (its keys stay in the file for later)."
+    apply_changes
+}
+
+cmd_user() {
+    require_root callmemanage user "${1:-}"
+    case "${1:-}" in
+        add)    as_project_python tools/create_user.py ;;
+        passwd)
+            [[ -n "${2:-}" ]] || die "usage: sudo callmemanage user passwd <username or email>"
+            # the name travels in the environment, not inside the shell command
+            USER_IDENTIFIER="$2" as_app_user "cd '$PROJECT_ROOT' && '$VENV_DIR/bin/python' tools/reset_password.py \"\$USER_IDENTIFIER\"" ;;
+        *) die "usage: sudo callmemanage user add | passwd <username or email>" ;;
+    esac
+}
+
+cmd_status() {
+    local unit state
+    for unit in "${SERVICES[@]}"; do
+        state="$(systemctl is-active "$unit" 2>/dev/null || true)"
+        printf '  %-32s %s\n' "$unit" "$state"
+    done
+    if [[ -r "$CONF_FILE" ]]; then
+        say ""
+        say "Website:"
+        website_urls
+    else
+        say ""
+        say "(run with sudo to show the website address)"
+    fi
+}
+
+cmd_logs() {
+    local units=()
+    case "${1:-}" in
+        backend)  units=(-u callmemanage-backend.service) ;;
+        frontend) units=(-u callmemanage-frontend.service) ;;
+        "")       units=(-u callmemanage-backend.service -u callmemanage-frontend.service) ;;
+        *) die "usage: callmemanage logs [backend|frontend]" ;;
+    esac
+    journalctl "${units[@]}" -n 100 -f
+}
+
+case "${1:-help}" in
+    status)  cmd_status ;;
+    check)   check_config ;;
+    logs)    cmd_logs "${2:-}" ;;
+    config)  cmd_config ;;
+    apply)   require_root callmemanage apply; apply_changes ;;
+    setup)   cmd_setup "${2:-}" ;;
+    disable) cmd_disable "${2:-}" ;;
+    user)    cmd_user "${2:-}" "${3:-}" ;;
+    start)   require_root callmemanage start; systemctl start callmemanage.target ;;
+    stop)    require_root callmemanage stop; systemctl stop callmemanage.target ;;
+    restart) require_root callmemanage restart; restart_services ;;
+    help|-h|--help) usage ;;
+    *) usage; exit 1 ;;
+esac

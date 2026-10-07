@@ -1,0 +1,734 @@
+@import url(cmd_interface.css);
+@import url(access_control_list.css);
+@import url(security_status.css);
+@import url(page_tabs.css);
+/* ---------- Detail page ---------- */
+
+.detail-back {
+  margin-bottom: 16px;
+}
+
+.detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.device-panel-controls {
+    min-width: 100%;
+    display: flex;
+    align-items: start;
+    justify-content: left;
+}
+#device-get-results {
+    width: 100%;
+}
+#device-commands-container {
+    width: 20%;
+    max-width: 40%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* |==== for mobile apply ====| */
+.mobile-config-bar,
+.mobile-menu-overlay,
+.drawer-close-btn {
+  display: none;
+}
+/* |==== end apply mobile ====| */
+
+.detail-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+  margin-bottom: 18px;
+}
+
+.detail-panel h2 {
+  font-size: 14px;
+  margin-bottom: 16px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+/* ---------- CLI Generator page (แบ่งครึ่งจอ: ซ้ายกรอก ขวา output) ---------- */
+
+.cli-generator-layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.cli-generator-form-panel {
+  width: 25%;
+}
+.cli-generator-output-panel {
+  flex: 1 50%;
+  min-width: 0;
+}
+
+/* ความสูงมาจาก rows ที่คำนวณจากจำนวนบรรทัดจริง (utils/textareaRows.js) -
+   เดิมบังคับ min-height 520px ทุกกล่อง ทำให้ rows ไม่มีผลเลย ท่อนสั้นได้กล่อง
+   สูงเท่ากล่องยาว เหลือที่ว่างครึ่งจอ ส่วนก้อนยาวก็ยังต้องเลื่อนอยู่ดี
+
+   line-height ต้องตรงกับที่เบราว์เซอร์ใช้คำนวณความสูงจาก rows พอดี ไม่งั้นความสูง
+   จะคลาดจากจำนวนบรรทัดจริง */
+.cli-generator-output-panel textarea,
+.cli-generator-boilerplate-modal textarea {
+  width: 100%;
+  display: block;
+  font-family: var(--mono, ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace);
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.6;
+  letter-spacing: 0.2px;
+  tab-size: 2;
+  /* บรรทัดยาว (เช่น ssh-rsa ~120 ตัวอักษรใน boilerplate ของ Cisco) ต้องตัดขึ้น
+     บรรทัดใหม่ ไม่ใช่ให้เลื่อนแนวนอน - แถบเลื่อนแนวนอนกินความสูงด้านในราว 15px
+     ทำให้บรรทัดสุดท้ายตกขอบแล้วเกิดแถบเลื่อนแนวตั้งตามมาอีก (นี่คือเหตุที่รอบก่อน
+     ยังต้องเลื่อนอยู่) · ตัดที่ช่องว่างก่อน ถ้าคำเดียวยาวเกินกล่องจริง ๆ ค่อยตัดกลางคำ
+     ความสูงถูกวัดจากของจริงหลังตัดบรรทัดแล้วโดย AutoSizeTextarea */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow: hidden;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  /* ล็อกขนาด - ความสูงถูกกำหนดจากเนื้อหาแล้ว การลากย่อ/ขยายมีแต่ทำให้เพี้ยน */
+  resize: none;
+  /* AutoSizeTextarea เขียน height เป็น px ทับทุกครั้งที่วัดใหม่ ห้ามมี height/
+     min-height อื่นมาแข่ง ไม่งั้นกลับไปสูงผิดแบบเดิม */
+  box-sizing: border-box;
+}
+
+.cli-generator-output-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+/* ระยะห่างระหว่างท่อนมากกว่าระยะภายในท่อน เพื่อให้เห็นว่าอะไรเป็นกลุ่มเดียวกัน */
+.cli-generator-segment {
+  margin-bottom: 28px;
+}
+
+/* ปุ่มฝั่งขวาของหัวแถว - ท่อนสุดท้ายมีสองปุ่ม (เปิดดู config + คัดลอก) */
+.cli-generator-segment-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+/* ปุ่มเปิดดู config ที่อุปกรณ์จะโหลดเอง - ตั้งใจให้สะดุดตากว่าปุ่มคัดลอกข้าง ๆ
+   เพราะเป็นทางเดียวที่ผู้ใช้จะเห็นว่ามีอะไรถูกตั้งค่าให้โดยที่ไม่ได้พิมพ์เอง */
+.btn-inspect {
+  background: var(--warning-dim);
+  border: 1px solid var(--warning);
+  color: var(--warning);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.btn-inspect:hover {
+  background: var(--warning);
+  color: #1b1405;
+}
+
+/* กล่อง popup กว้างกว่า modal ทั่วไป เพราะเนื้อหาเป็น CLI ที่บรรทัดยาว */
+.cli-generator-boilerplate-modal {
+  width: min(860px, 100%);
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+/* หัวข้อ "ส่วนที่ n" กับปุ่มคัดลอกอยู่บรรทัดเดียวกัน คนละฝั่งของแถว */
+.cli-generator-segment-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.cli-generator-segment-header h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--text-primary);
+}
+
+/* ข้อความเตือนให้ commit initial network configuration ก่อน download bootstrap */
+.cli-generator-step-notice {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  background: var(--warning-dim);
+  border: 1px solid var(--warning);
+  color: var(--warning);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* หัวข้อระดับพาเนลกับหัวข้อย่อยต้องแยกน้ำหนักให้เห็นลำดับชั้นชัด */
+.cli-generator-output-panel > h2 {
+  margin: 0 0 16px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: var(--text-primary);
+}
+
+.cli-generator-output-panel > h2:not(:first-child) {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.cli-generator-output-panel > h3 {
+  margin: 28px 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--text-primary);
+}
+
+.cli-generator-segment textarea {
+  min-height: 140px;
+}
+
+/* dropdown prefix + ช่องกรอก ID ของ Interface (WAN/Management) - ต่อกันเป็น
+   string เดียวก่อนส่งไป backend (ดู CliGenerator.jsx's wanInterfaceName) */
+.interface-picker {
+  display: flex;
+  gap: 8px;
+}
+
+.interface-picker select {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 140px;
+}
+
+.interface-picker input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* ผลหลัง Generate สำเร็จ (Token Enrollment): สรุปสถานะอุปกรณ์และขั้นตอนการเชื่อมต่อ */
+.cli-generator-enrollment-notice {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-bottom: 14px;
+}
+
+.cli-generator-enrollment-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.cli-generator-enrollment-title {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 17px;
+}
+
+.cli-generator-enrollment-meta {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin-top: 5px;
+}
+
+.cli-generator-enroll-another {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.cli-generator-enrollment-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.enrollment-progress-step {
+  align-items: center;
+  color: var(--text-muted);
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 8px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.enrollment-progress-step.is-complete,
+.enrollment-progress-step.is-current {
+  color: var(--text-primary);
+}
+
+.enrollment-progress-step.is-complete:first-child {
+  color: var(--jade-bright);
+}
+
+.enrollment-progress-icon {
+  align-items: center;
+  border: 1px solid currentColor;
+  border-radius: 5px;
+  display: inline-flex;
+  font-size: 14px;
+  font-weight: 700;
+  height: 20px;
+  justify-content: center;
+  width: 20px;
+}
+
+.enrollment-progress-line {
+  background: var(--border-strong);
+  flex: 1 1 40px;
+  height: 1px;
+  min-width: 20px;
+  transition: background 0.35s ease;
+}
+
+.enrollment-progress-line.is-complete {
+  background: var(--jade);
+}
+
+.cli-generator-enrollment-message {
+  align-items: flex-start;
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  display: flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 12px;
+  line-height: 1.35;
+  padding: 12px 14px;
+}
+
+.detail-item .label {
+  display: block;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 4px;
+}
+
+.detail-item .value {
+  font-family: var(--mono);
+  font-size: 13.5px;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+/* ---------- History (dashboard/history.jsx) - แถวรวมหลาย action ต้องแสดง badge
+   และ detail เรียงแนวตั้งเป็นลิสต์เดียวกัน ไม่ต่อกันเป็นบรรทัดเดียวจนล้น ---------- */
+
+.history-action-stack,
+.history-detail-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-action-badge {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  display: inline-block;
+  padding: 0.25rem 0.55rem;
+  align-self: flex-start;
+}
+
+.history-detail-sentence {
+  font-size: 13.5px;
+  color: var(--text-primary);
+}
+
+.history-detail-block + .history-detail-block {
+  margin-top: 4px;
+}
+
+/* คอลัมน์ Detail แคบกว่าที่ .detail-grid เดิมออกแบบไว้ (เต็มความกว้างหน้า) -
+   ลด minmax ลงกันบีบจน wrap เหลือคอลัมน์เดียวดูรกเกินจำเป็น */
+.history-detail-grid {
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px 16px;
+  margin-top: 4px;
+}
+
+.config-placeholder {
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 32px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.command-item {
+    text-decoration: none;
+    list-style-type: none;
+}
+
+.command-item:hover {
+    background-color: rgba(255,255,255,0.5);
+}
+
+.command-buttons {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 16px;
+}
+
+.command-form-wrapper {
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+/* command groups */
+.menu { width: 240px; background:#222; color:#ccc; font-family:sans-serif; }
+.group-header {
+    display:flex; 
+    justify-content:space-between; 
+    align-items:center;
+    padding:12px 15px; 
+    cursor:pointer; 
+    border-bottom:1px solid #333;
+    cursor: pointer;
+}
+.group-header:hover { background:#2a2a2a; }
+.group-header .arrow { transition: transform .2s; }
+.group.open > .group-header .arrow { transform: rotate(90deg); }
+
+/* ตัว submenu ที่จะดัน group อื่นลง */
+.submenu {
+    max-height:0; overflow:hidden;
+    transition: max-height .25s ease;
+    background:#1a1a1a;
+}
+.group.open > .submenu { max-height:600px; }
+.submenu a {
+    display:block; 
+    padding:10px 30px; 
+    color:#bbb; 
+    text-decoration:none;
+    cursor: pointer;
+}
+.submenu a:hover, .submenu a.active { background:#0f7d3d; color:#fff; }
+
+/* Read-only history mode (อุปกรณ์ offline) - เมนูอื่นนอกจาก "History" ถูกล็อก
+   ทั้งหมด (ดู DeviceDetail.jsx's readOnlyHistoryMode) ตัวอักษรจางลง + cursor
+   not-allowed + ไม่มี hover highlight กัน hover เข้าใจผิดว่ากดได้ */
+.submenu a.submenu-item-locked {
+  color: #666;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.submenu a.submenu-item-locked .lock-icon {
+  opacity: 0.7;
+}
+
+/* Warning banner ใต้ TopBar ตอนอยู่ใน read-only history mode - ค้างอยู่ตลอดเวลา
+   ระหว่างดู history ของอุปกรณ์ offline กันผู้ใช้ลืมว่ากำลังดูข้อมูลย้อนหลัง */
+.offline-readonly-banner {
+  background: var(--warning-dim);
+  color: var(--warning);
+  border-bottom: 1px solid var(--warning);
+  padding: 10px 24px;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* |==== for mobile apply ====| */
+@media (max-width: 768px) {
+  /* Burger Button on the Left for Configuration */
+  .mobile-config-bar {
+    display: flex;
+    justify-content: flex-start;
+    margin: 0 0 12px;
+    width: 100%;
+  }
+
+  .mobile-burger-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    font-weight: 600;
+    padding: 8px 14px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-family: var(--sans);
+  }
+
+  .mobile-burger-btn:hover,
+  .mobile-burger-btn:active {
+    background: var(--bg-input);
+    border-color: var(--jade);
+  }
+
+  /* Overlay backdrop when drawer is open */
+  .mobile-menu-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    z-index: 999;
+  }
+
+  /* Configuration Menu as a Slide-out Drawer on the Left */
+  #device-commands-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 270px;
+    max-width: 82vw;
+    height: 100svh;
+    z-index: 1000;
+    background: #1a1a1a;
+    border-right: 1px solid #333;
+    overflow-y: auto;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    margin: 0;
+    border-radius: 0;
+    padding: 16px;
+    box-sizing: border-box;
+  }
+
+  #device-commands-container.mobile-drawer-open {
+    transform: translateX(0);
+  }
+
+  .drawer-header-mobile {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #333;
+  }
+
+  .drawer-header-mobile h2 {
+    margin: 0;
+    font-size: 14px;
+    color: #ccc;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .drawer-close-btn {
+    display: block;
+    background: none;
+    border: none;
+    font-size: 20px;
+    line-height: 1;
+    color: #bbb;
+    cursor: pointer;
+    padding: 2px 6px;
+  }
+
+  .drawer-close-btn:hover {
+    color: #fff;
+  }
+
+  /* Menu inside Drawer: Strictly follows desktop theme */
+  .menu {
+    width: 100%;
+    background: #222;
+    color: #ccc;
+    font-family: sans-serif;
+  }
+
+  .group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    cursor: pointer;
+    border-bottom: 1px solid #333;
+  }
+
+  .group-header:hover {
+    background: #2a2a2a;
+  }
+
+  .submenu {
+    background: #1a1a1a;
+  }
+
+  .submenu a {
+    display: block;
+    padding: 10px 24px;
+    color: #bbb;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .submenu a:hover,
+  .submenu a.active {
+    background: #0f7d3d;
+    color: #fff;
+  }
+
+  /* Results / Output Panel takes Full Width on Mobile without pushing edges */
+  .device-panel-controls {
+    flex-direction: column;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  #device-get-results {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+    box-sizing: border-box;
+    padding: 16px 12px;
+    margin-bottom: 16px;
+  }
+
+  .detail-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  /* CLI Generator Page on Mobile */
+  .cli-generator-layout {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .cli-generator-form-panel {
+    width: 100%;
+  }
+
+  .cli-generator-output-panel {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .cli-generator-boilerplate-modal {
+    width: 100%;
+    max-height: 90vh;
+    padding: 16px 12px;
+  }
+
+  .cli-generator-segment-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .cli-generator-segment-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .cli-generator-output-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .cli-generator-output-actions .btn {
+    width: 100%;
+  }
+
+  .cli-generator-enrollment-device {
+    align-items: flex-start;
+  }
+
+  .cli-generator-enrollment-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .cli-generator-enroll-another {
+    width: 100%;
+  }
+
+  .cli-generator-enrollment-progress {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .enrollment-progress-line {
+    flex: 0 0 auto;
+    height: 16px;
+    margin-left: 10px;
+    min-width: 1px;
+    width: 1px;
+  }
+
+  .interface-picker {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .interface-picker select,
+  .interface-picker input {
+    width: 100%;
+  }
+
+  .offline-readonly-banner {
+    padding: 8px 12px;
+    font-size: 12.5px;
+  }
+}
+
+@media (max-width: 480px) {
+  .detail-panel {
+    padding: 14px 10px;
+  }
+
+  .command-form-wrapper {
+    padding: 12px 10px;
+  }
+}
+/* |==== end apply mobile ====| */

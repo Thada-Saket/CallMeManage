@@ -1,0 +1,157 @@
+# =====================================================================================
+#  CallMe Manage - configuration file   /etc/callmemanage/callmemanage.conf
+#
+#  Edit it with:   sudo callmemanage config
+#    (opens the file -> checks your changes -> rebuilds the website if needed -> restarts)
+#  Or answer questions one field at a time:   sudo callmemanage setup turnstile | email | google | site
+#
+#  Format: KEY=value, one per line, no spaces around "=", no quotes around the value.
+#  yes/no also accepts true/false and on/off.
+#  This file holds secrets: only root and the user running the system can read it.
+#  Never share it or commit it to git.
+# =====================================================================================
+
+
+# -------------------------------------------------------------------------------------
+#  1) Website and server
+# -------------------------------------------------------------------------------------
+
+# The address people type, WITHOUT a path, e.g. https://www.labict.sci.ubu.ac.th
+# Leave empty if the website is only opened by IP (Google sign-in and a real
+# Cloudflare key need it).
+SITE_URL=
+
+# The path the website lives under: / = at the root of this machine.
+# If a reverse proxy forwards https://<SITE_URL>/cmm/ to this machine, use /cmm/
+#   - the proxy must forward /cmm/... unchanged (do not strip /cmm)
+#   - changing this needs a website rebuild (sudo callmemanage config does it for you)
+ROOT_PATH=/
+
+# Where connections are accepted from: 0.0.0.0 = every machine on the network,
+# 127.0.0.1 = this machine only (when the reverse proxy runs on this machine)
+BIND_HOST=0.0.0.0
+
+# Website port (what users open in the browser). 443 works if nothing else uses it.
+FRONTEND_PORT=8080
+# API port, also where devices download their bootstrap file
+BACKEND_PORT=8000
+# Port network devices call home to (NETCONF over SSH) - it cannot go through an HTTP proxy
+CALLHOME_PORT=4334
+
+# HTTPS certificate (used by both the website and the API)
+# Default: the self-signed certificate made by the installer (browsers warn - normal in a lab)
+# A real one such as Let's Encrypt: copy fullchain.pem / privkey.pem to /etc/callmemanage/cert/
+# and let the user running the system read them (files in /etc/letsencrypt are root-only)
+TLS_CERT_FILE=
+TLS_KEY_FILE=
+
+
+# -------------------------------------------------------------------------------------
+#  2) Network devices
+# -------------------------------------------------------------------------------------
+
+# The IP devices call home to (Cisco/Huawei accept IPv4 only), chosen by the installer:
+# CALLHOME_ADDRESS (a fixed IPv4) wins, otherwise the IPv4 of CALLHOME_INTERFACE.
+# Change it with: sudo ./install_service.sh --configure
+CALLHOME_INTERFACE=
+CALLHOME_ADDRESS=
+
+# Where devices download their config file when added (do not add /bootstrap at the end)
+#   Empty (recommended) = straight from this machine: https://<call-home IP>:<BACKEND_PORT>
+#     No DNS needed, and devices must reach this machine directly for call-home anyway.
+#   Through a reverse proxy at /cmm = https://www.labict.sci.ubu.ac.th/cmm/api
+#     Only if devices cannot reach this machine directly. Devices must resolve the domain,
+#     and the proxy needs an RSA certificate: many Cisco IOS-XE versions cannot connect
+#     to an ECDSA-only certificate (error: SSL Handshake failure).
+BOOTSTRAP_BASE_URL=
+
+# The user the system creates on each device for NETCONF management (not a website account)
+MNG_USER=Netconf-MGMT
+
+# Extra host names accepted, comma-separated (IPs and the SITE_URL host are accepted already)
+ALLOWED_HOSTS=
+
+
+# -------------------------------------------------------------------------------------
+#  3) Cloudflare Turnstile - the "I am not a robot" check before the website and at login
+#
+#  no  = no bot check; everything else works, and no Internet is needed (fine for a lab)
+#  yes = needs Cloudflare keys and SITE_URL
+#
+#  Getting the keys (free):
+#   1. Sign in at https://dash.cloudflare.com -> Turnstile -> Add widget
+#   2. Hostname: the host name of SITE_URL (e.g. www.labict.sci.ubu.ac.th, no https://, no path)
+#   3. Widget mode: Managed -> Create
+#   4. Copy the Site Key and the Secret Key below (both from the same widget)
+#  Trying it without an account: Cloudflare's test keys (always pass):
+#    TURNSTILE_SITE_KEY=1x00000000000000000000AA
+#    TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
+# -------------------------------------------------------------------------------------
+TURNSTILE_ENABLED=no
+TURNSTILE_SITE_KEY=
+TURNSTILE_SECRET_KEY=
+
+
+# -------------------------------------------------------------------------------------
+#  4) Email - sends the codes for sign-up and "forgot password"
+#
+#  no  = everything works, but a forgotten password is reset by an admin:
+#        sudo callmemanage user passwd <name>
+#
+#  With Gmail:
+#   1. The Gmail account needs 2-Step Verification (https://myaccount.google.com/security)
+#   2. Open https://myaccount.google.com/apppasswords -> name it e.g. CallMeManage -> Create
+#   3. Put the 16-letter code in SMTP_APP_PASSWORD (not your Gmail password; no spaces)
+# -------------------------------------------------------------------------------------
+EMAIL_ENABLED=no
+# sender address (the Gmail account above)
+SMTP_USERNAME=
+SMTP_APP_PASSWORD=
+# leave these two as they are for Gmail (port 465 or 587 only)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_FROM_NAME=CallMe Manage
+
+
+# -------------------------------------------------------------------------------------
+#  5) Google sign-in - the "Sign up / sign in with Google" button   (needs SITE_URL)
+#
+#  Getting the values:
+#   1. https://console.cloud.google.com -> create a project
+#   2. APIs & Services -> OAuth consent screen -> complete it (User type: External)
+#   3. APIs & Services -> Credentials -> Create credentials -> OAuth client ID
+#      Application type: Web application
+#   4. Authorized redirect URIs: paste the address this command shows (must match exactly)
+#        sudo callmemanage setup google
+#      (it is <SITE_URL><ROOT_PATH>api/auth/google/callback)
+#   5. Copy the Client ID and Client secret below
+# -------------------------------------------------------------------------------------
+GOOGLE_ENABLED=no
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+
+
+# -------------------------------------------------------------------------------------
+#  6) Other
+# -------------------------------------------------------------------------------------
+
+# Let anyone create an account on the website (needs email or Google switched on)
+# false = only an admin creates accounts:  sudo callmemanage user add
+SIGNUP_ENABLED=false
+
+# development | production
+# production = requires a real Cloudflare key and https (refuses to start otherwise)
+APP_ENV=development
+
+# Log more detail when a device calls home (vendor, serial, device ID ...)
+CALLHOME_VERBOSE_LOG=false
+
+
+# =====================================================================================
+#  7) Generated by the installer - do not edit
+#     Wrong values break the database connection or sign every user out.
+# =====================================================================================
+DB_URL=
+REDIS_URL=
+JWT_SECRET_KEY=
+SSH_KEY_PATH=tools/keys/rsa_key.pem

@@ -1,0 +1,90 @@
+.security-table-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+
+.security-data-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.security-data-table caption {
+    text-align: left;
+    padding: 1rem 0;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.security-data-table th,
+.security-data-table td {
+    vertical-align: top;
+    text-align: left;
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+}
+
+.security-data-table th {
+  color: var(--text-secondary);
+  font-weight: 600;
+  background: var(--bg-input);
+  text-align: center;
+}
+
+.security-data-table li,
+.security-data-table ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    text-align: left;
+}
+
+.security-data-table tr.row-clickable {
+  cursor: pointer;
+}
+
+.security-data-table tr.row-clickable:hover td {
+  background: var(--bg-input);
+}
+
+.security-data-table tr.row-selected td {
+  background: var(--jade-dim);
+}
+
+/* |==== for mobile apply ====| */
+@media (max-width: 768px) {
+  /* Lock container in place */
+  .security-table-container {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+
+  /* Only the security data table scrolls horizontally when content overflows */
+  .security-data-table {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-collapse: collapse;
+    box-sizing: border-box;
+  }
+
+  .security-data-table th {
+    width: auto !important;
+  }
+
+  .security-data-table th,
+  .security-data-table td {
+    padding: 6px 10px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+}
+/* |==== end apply mobile ====| */

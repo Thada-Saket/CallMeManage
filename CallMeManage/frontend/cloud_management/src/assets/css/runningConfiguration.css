@@ -1,0 +1,97 @@
+.device-info-title { align-items: center; display: flex; justify-content: space-between; gap: 16px; }
+.device-info-title > div > span { display: block; }
+.device-info-title p { color: var(--text-secondary); font-size: 12px; font-weight: 400; margin: 5px 0 0; }
+.device-info-sections { display: grid; gap: 16px; }
+.device-info-section { background: var(--bg-app); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: visible; padding: 20px; }
+.device-info-section-heading { align-items: center; border-bottom: 1px solid var(--border); display: flex; gap: 12px; margin-bottom: 18px; padding-bottom: 14px; }
+.device-info-section-heading h3 { color: var(--text-primary); font-size: 14px; letter-spacing: .03em; margin: 0; }
+.device-info-section-heading p { color: var(--text-secondary); font-size: 12px; margin: 4px 0 0; }
+.device-info-section-icon { align-items: center; background: var(--jade-dim); border: 1px solid color-mix(in srgb, var(--jade-bright) 35%, transparent); border-radius: 9px; color: var(--jade-bright); display: flex; flex: 0 0 38px; font-family: var(--mono, monospace); font-size: 10px; font-weight: 800; height: 38px; justify-content: center; letter-spacing: .04em; }
+.device-info-grid { display: grid; gap: 18px 22px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+.device-info-item { min-width: 0; }
+.device-info-label { color: var(--text-muted); display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .07em; margin-bottom: 6px; text-transform: uppercase; }
+.device-info-value { color: var(--text-primary); display: inline-flex; font-size: 13.5px; font-weight: 600; max-width: 100%; overflow-wrap: anywhere; }
+.device-info-name-value { align-items: flex-start; gap: 6px; }
+.device-info-name-value .device-hostname-edit-button {
+  flex: 0 0 20px;
+  font-size: 14px;
+  height: 20px;
+  margin-top: -2px;
+  width: 20px;
+}
+.device-info-value.is-mono { font-family: var(--mono, monospace); }
+.device-info-verified { color: var(--text-secondary); font-size: 13px; font-weight: 600; }
+.device-info-verified::before { content: "○"; margin-right: 7px; }
+.device-info-verified.is-verified { color: var(--jade-bright); }
+.device-info-verified.is-verified::before { content: "✓"; }
+.device-info-page .field-help-tooltip { z-index: 20; }
+.device-configuration-table td { vertical-align: middle; }
+.device-configuration-table td:nth-child(2) { text-align: left; }
+.device-configuration-table .btn { min-width: 160px; }
+.device-license-table-wrap { overflow-x: auto; width: 100%; }
+.device-license-table { min-width: 640px; }
+.device-license-table th { text-align: left; }
+.device-license-table td.is-mono { font-family: var(--mono, monospace); }
+.device-license-empty { color: var(--text-secondary); padding: 18px !important; text-align: center; }
+.factory-reset-password-field { display: grid; gap: 7px; margin-top: 16px; }
+.factory-reset-password-field label { color: var(--text-primary); font-size: 12px; font-weight: 700; }
+.factory-reset-password-field input { background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm, 6px); color: var(--text-primary); padding: 10px 12px; width: 100%; }
+.factory-reset-password-field input:focus { border-color: var(--jade-bright); outline: none; }
+.factory-reset-password-field p { color: var(--text-secondary); font-size: 11px; line-height: 1.45; margin: 0; }
+
+.running-config-loading-overlay { cursor: wait; }
+.running-config-loading-card { align-items: center; display: flex; flex-direction: column; max-width: 460px; padding: 36px; text-align: center; }
+.running-config-loading-card h2 { margin: 18px 0 8px; }
+.running-config-loading-card p { color: var(--text-secondary); line-height: 1.55; margin: 0; }
+.running-config-spinner { animation: running-config-spin .8s linear infinite; border: 3px solid var(--border); border-radius: 50%; border-top-color: var(--jade-bright); height: 34px; width: 34px; }
+@keyframes running-config-spin { to { transform: rotate(360deg); } }
+
+.running-config-viewer { background: var(--bg-app); color: var(--text-primary); min-height: 100vh; padding: clamp(24px, 4vw, 56px); }
+.running-config-centered { align-items: center; display: flex; flex-direction: column; justify-content: center; text-align: center; }
+.running-config-centered h1 { font-size: 25px; margin: 20px 0 8px; }
+.running-config-centered p { color: var(--text-secondary); max-width: 560px; }
+.running-config-expired-icon { align-items: center; border: 2px solid var(--danger, #e05a4e); border-radius: 50%; color: var(--danger, #e05a4e); display: flex; font-size: 22px; font-weight: 800; height: 44px; justify-content: center; width: 44px; }
+
+.running-config-header { align-items: flex-end; border-bottom: 1px solid var(--border); display: flex; gap: 24px; justify-content: space-between; padding-bottom: 22px; }
+.running-config-header h1 { align-items: center; display: flex; font-size: clamp(25px, 3vw, 38px); gap: 10px; margin: 5px 0; }
+.running-config-header p { color: var(--text-secondary); margin: 0; }
+.running-config-eyebrow { color: var(--jade-bright); font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.running-config-expiry { align-items: center; background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius); display: grid; gap: 3px 9px; grid-template-columns: auto auto; padding: 13px 16px; white-space: nowrap; }
+.running-config-expiry > span:first-child { color: var(--text-secondary); font-size: 12px; }
+.running-config-expiry > strong { color: var(--jade-bright); font-family: var(--mono, monospace); font-size: 20px; grid-row: 2; }
+.running-config-expiry > .field-help { grid-column: 2; grid-row: 1 / span 2; }
+.running-config-meta { color: var(--text-secondary); display: flex; flex-wrap: wrap; font-size: 12px; gap: 10px 24px; padding: 15px 1px 24px; }
+.running-config-meta span + span::before { color: var(--border-strong); content: "•"; margin-right: 24px; }
+
+.running-config-sections { display: grid; gap: 18px; }
+.running-config-section { background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.running-config-section > h2 { background: color-mix(in srgb, var(--jade-bright) 8%, transparent); border-bottom: 1px solid var(--border); font-size: 15px; letter-spacing: .03em; margin: 0; padding: 15px 18px; }
+.running-config-table-wrap { overflow-x: auto; width: 100%; }
+.running-config-table { border-collapse: collapse; min-width: 680px; table-layout: fixed; width: 100%; }
+.running-config-table th { background: var(--bg-input); color: var(--text-secondary); font-size: 11px; font-weight: 700; letter-spacing: .07em; padding: 10px 16px; text-align: left; text-transform: uppercase; }
+.running-config-table th:first-child { width: 55%; }
+.running-config-table th:last-child { width: 45%; }
+.running-config-table td { border-top: 1px solid var(--border); padding: 10px 16px; vertical-align: top; }
+.running-config-table tbody tr { transition: background var(--motion-fast) var(--ease-standard); }
+.running-config-table tbody tr:nth-child(even) { background: rgba(255, 255, 255, .012); }
+.running-config-table tbody tr:hover { background: var(--jade-dim); }
+.running-config-path { color: var(--text-secondary); font-size: 12px; overflow-wrap: anywhere; }
+.running-config-path-part { display: inline; }
+.running-config-path-separator { color: var(--jade); font-weight: 700; margin: 0 7px; }
+.running-config-path-part:last-child > span:last-child { color: var(--text-primary); font-weight: 600; }
+.running-config-value { color: var(--text-primary); font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; white-space: pre-wrap; }
+
+@media (max-width: 700px) {
+  .device-info-title { align-items: stretch; flex-direction: column; }
+  .device-info-title > .btn { width: 100%; }
+  .device-info-section { padding: 16px; }
+  .device-info-grid { grid-template-columns: 1fr; }
+  .device-configuration-table .btn { min-width: 0; width: 100%; }
+  .running-config-header { align-items: stretch; flex-direction: column; }
+  .running-config-expiry { width: fit-content; }
+  .running-config-meta { flex-direction: column; gap: 6px; }
+  .running-config-meta span + span::before { display: none; }
+  .running-config-table { min-width: 560px; }
+  .running-config-table th,
+  .running-config-table td { padding: 9px 12px; }
+}

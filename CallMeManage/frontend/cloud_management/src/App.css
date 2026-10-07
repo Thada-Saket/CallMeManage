@@ -1,0 +1,1898 @@
+@import url("../src/assets/css/DeviceConfiguration.css");
+/* ---------- Layout ---------- */
+
+.cant-copy {
+  user-select: none;
+}
+
+.app-shell {
+  min-height: 100svh;
+  min-width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+  color: var(--text-primary);
+}
+
+.brand-mark {
+  border-radius: 6px;
+  background: linear-gradient(135deg, var(--jade-bright), var(--jade));
+  padding: 0.5rem;
+  margin-left: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: #06211d;
+}
+
+.topbar-user {
+  display: flex;
+  align-items: center;
+  color: var(--text-secondary);
+}
+
+.topbar-element {
+  height: 100%;
+  font-size: 15px;
+  padding: 1.5rem 2rem;
+  cursor: pointer;
+}
+
+button.topbar-element {
+  appearance: none;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  display: inline-flex;
+  align-items: center;
+}
+
+button.topbar-element:focus-visible {
+  outline: 2px solid var(--jade);
+  outline-offset: -2px;
+}
+
+.topbar-element:hover {
+  background-color: rgba(255,255,255,0.1);
+}
+
+.site-invitations-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 1rem 2rem;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.main-content {
+  flex: 1;
+  min-width: 100%;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 1rem 2rem;
+  flex-wrap: wrap;
+}
+
+.page-header h1 {
+  font-weight: bold;
+}
+
+.device-hostname-edit-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 0.2rem;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease, transform 100ms ease;
+}
+
+.device-hostname-edit-button:hover:not(:disabled),
+.device-hostname-edit-button:focus-visible {
+  color: var(--jade, #00a98f);
+  background: rgba(0, 169, 143, 0.1);
+  border-color: rgba(0, 169, 143, 0.35);
+  outline: none;
+}
+
+.device-hostname-edit-button:active:not(:disabled) {
+  transform: scale(0.92);
+  background: rgba(0, 169, 143, 0.18);
+}
+
+.device-hostname-edit-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-header button {
+  margin-left: 1rem;
+}
+
+.device-page-header {
+  padding: 1rem;
+}
+
+.page-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Checklist นโยบายรหัสผ่าน (CliGenerator.jsx - ช่อง Device CLI Password)
+   อัปเดตแบบ real-time ตามที่ผู้ใช้พิมพ์ - ข้อที่ผ่านแล้วเป็นสีเขียว ข้อที่ยังไม่ผ่าน
+   ใช้สีจางเท่ากับ hint ทั่วไป (ไม่ใช้สีแดง เพราะตอนเริ่มพิมพ์ทุกข้อยังไม่ผ่าน
+   ถ้าแดงหมดจะดูเหมือน error ทั้งที่ผู้ใช้แค่ยังพิมพ์ไม่เสร็จ) */
+.password-policy-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.password-policy-list .policy-pass {
+  color: var(--jade-bright);
+}
+
+.password-policy-list .policy-fail {
+  color: var(--text-muted);
+}
+
+/* Compact, keyboard-accessible help used by the CLI generator. The details stay
+   out of the form flow and appear on hover or focus. */
+.field-label-with-hint {
+  align-items: center;
+  display: flex;
+  gap: 7px;
+  width: fit-content;
+}
+
+/* CM-09: inline "Passwords do not match" under a confirm field (never shows the password) */
+.field-note-error {
+  color: var(--danger, #e05a4e);
+  font-size: 12px;
+  margin: 0;
+}
+
+.field-help {
+  display: inline-flex;
+  position: relative;
+}
+
+.field-help-trigger {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--text-muted);
+  border-radius: 50%;
+  color: var(--text-muted);
+  cursor: help;
+  display: inline-flex;
+  font: 700 11px/1 var(--sans);
+  height: 17px;
+  justify-content: center;
+  padding: 0;
+  transition: border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  width: 17px;
+}
+
+.field-help-trigger:hover,
+.field-help-trigger:focus-visible {
+  border-color: var(--jade-bright);
+  box-shadow: 0 0 0 3px var(--jade-dim);
+  color: var(--jade-bright);
+  outline: none;
+}
+
+.field-help-invalid .field-help-trigger {
+  border-color: var(--danger, #e05a4e);
+  color: #ff8a7d;
+}
+
+.field-help-tooltip {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  color: var(--text-secondary);
+  display: none;
+  font-size: 12px;
+  font-weight: 400;
+  left: calc(100% + 9px);
+  line-height: 1.5;
+  padding: 10px 12px;
+  position: absolute;
+  text-align: left;
+  top: 50%;
+  transform: translateY(-50%);
+  width: min(320px, calc(100vw - 32px));
+  z-index: 60;
+}
+
+.field-help-tooltip::before {
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border-strong);
+  border-left: 1px solid var(--border-strong);
+  content: "";
+  height: 8px;
+  left: -5px;
+  position: absolute;
+  top: calc(50% - 4px);
+  transform: rotate(45deg);
+  width: 8px;
+}
+
+.field-help-tooltip > span {
+  display: block;
+  margin-top: 6px;
+}
+
+.field-help:hover .field-help-tooltip,
+.field-help:focus-within .field-help-tooltip {
+  display: block;
+}
+
+.field-help-list {
+  list-style: none;
+  margin: 7px 0 0;
+  padding: 0;
+}
+
+.field-help-list .hint-rule-pass {
+  color: var(--jade-bright);
+}
+
+.field-help-list .hint-rule-fail {
+  color: var(--text-secondary);
+}
+
+.field-help-invalid .field-help-tooltip {
+  border-color: rgba(224, 90, 78, 0.55);
+}
+
+/* Global free-text validation hint. The question mark is deliberately drawn
+   inside the input so adding validation never changes a form's grid/height.
+   Hovering or focusing the input exposes the full rule through its title and
+   aria-description, while invalid input also uses the existing danger colour. */
+input[data-ascii-guard="true"]:not(:disabled):not([readonly]) {
+  padding-right: 36px !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'%3E%3Ccircle cx='9' cy='9' r='8' fill='%236b7280'/%3E%3Ctext x='9' y='13' text-anchor='middle' font-family='Arial' font-size='12' font-weight='700' fill='white'%3E%3F%3C/text%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 11px center;
+  background-size: 18px 18px;
+}
+
+input[data-ascii-invalid="true"]:not(:disabled):not([readonly]) {
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 3px var(--danger-dim) !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'%3E%3Ccircle cx='9' cy='9' r='8' fill='%23dc2626'/%3E%3Ctext x='9' y='13' text-anchor='middle' font-family='Arial' font-size='12' font-weight='700' fill='white'%3E%3F%3C/text%3E%3C/svg%3E");
+}
+
+/* Sign In username/password: keep the ASCII check (red border + tooltip,
+   which catches a Thai keyboard layout) but without the "?" icon. */
+input.login-credential-input[data-ascii-guard="true"] {
+  padding-right: 12px !important;
+  background-image: none !important;
+}
+
+/* Password field with a show/hide eye button inside the right edge. */
+.password-input {
+  position: relative;
+}
+
+.password-input input,
+.password-input input.login-credential-input[data-ascii-guard="true"] {
+  width: 100%;
+  padding-right: 44px !important;
+}
+
+.password-input-toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.password-input-toggle:hover,
+.password-input-toggle:focus-visible {
+  color: var(--text-primary);
+  background: var(--bg-panel-hover);
+}
+
+.password-input-toggle[aria-pressed="true"] {
+  color: var(--jade-bright);
+}
+
+.link-button {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--jade);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.link-button:hover {
+  color: var(--jade-bright);
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: 0.3rem;
+  min-width: 120px;
+  padding: 0.3rem 1.5rem;
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: var(--sans);
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.btn:active:not(:disabled) {
+  background-color: rgba(0, 59, 49, 0.507);
+  transform: scale(0.9);
+}
+
+.mini-btn {
+  appearance: none;
+  border: 1px solid transparent;
+  padding: 0.2rem;
+  min-width: 50px;
+  font-size: 21px;
+  font-weight: 600;
+  font-family: var(--sans);
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
+}
+
+.btn-primary {
+  background: var(--jade);
+  color: #06211d;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--jade-bright);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: var(--border-strong);
+  color: var(--text-secondary);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  border-color: var(--jade-border);
+  color: var(--text-primary);
+}
+
+.btn-ghost.active {
+  border-color: var(--jade-border);
+  color: var(--text-primary);
+  background: var(--bg-input);
+}
+
+.btn-danger-ghost {
+  background: transparent;
+  border-color: var(--border-strong);
+  color: var(--text-secondary);
+}
+
+.btn-danger-ghost:hover:not(:disabled) {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* ปุ่มอันตรายแบบทึบ (ลบบัญชี/ยุบสาขา) - เด่นกว่า .btn-danger-ghost ที่เป็นปุ่ม
+   รองปกติ (เช่น "ออกจากระบบ") ใช้เฉพาะการกระทำที่ย้อนกลับไม่ได้จริงๆ */
+.btn-danger {
+  background: var(--danger, #e05a4e);
+  color: #fff;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #c84537;
+}
+
+/* แถวสมาชิกใน SiteSettingsModal.jsx (คำขอรออนุมัติ/เชิญแล้ว/สมาชิก) - ใช้ซ้ำ
+   3 tab จึงแยกเป็น class แทนที่จะ inline style ซ้ำๆ */
+.member-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+}
+
+.member-row .badge + .badge {
+  margin-left: 6px;
+}
+
+/* Keep Site Settings usable with large teams without allowing the modal to grow
+   beyond the viewport. Each tab scrolls independently after several rows. */
+.site-member-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding-right: 4px;
+}
+
+.site-rename-form {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.site-rename-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.site-rename-controls input {
+  flex: 1;
+  min-width: 0;
+}
+
+.btn-block {
+  width: 100%;
+  justify-content: center;
+}
+
+.btn-refresh {
+  appearance: none;
+  border: 1px solid transparent;
+  font-size: 16px;
+  font-family: var(--sans);
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.btn-refresh:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ---------- Forms ---------- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.field label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.2px;
+}
+
+.field input,
+.field select {
+  background: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: var(--mono);
+  letter-spacing: 0.3px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.field input:focus,
+.field select:focus {
+  border-color: var(--jade);
+  box-shadow: 0 0 0 3px var(--jade-dim);
+}
+
+.field input::placeholder {
+  color: var(--text-muted);
+  font-family: var(--sans);
+}
+
+/* ช่องที่ user ไม่ต้องกรอกเอง (ค่า fixed/auto-fill เช่น Username, SSH key,
+   Cloud Server IP ที่ backend เติมให้) - ให้ดูต่างจากช่องกรอกได้จริงชัดเจน
+   (เส้นประ + พื้นกลืนกับพื้นหลังมากกว่า + ตัวเอียง + cursor not-allowed) กัน
+   user เข้าใจผิดว่าต้องพิมพ์เองแล้วไปแก้ค่าที่ระบบเตรียมไว้ให้ */
+.field input:disabled,
+.field select:disabled {
+  background: var(--bg-panel);
+  border-style: dashed;
+  border-color: var(--border);
+  color: var(--text-muted);
+  font-style: italic;
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+.form-error {
+  background: var(--danger-dim);
+  border: 1px solid rgba(224, 90, 78, 0.4);
+  color: #ff8a7d;
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.dismissible-error {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dismissible-error-message {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dismissible-error-close {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: -5px -7px -5px 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: currentColor;
+  font: inherit;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.dismissible-error-close:hover,
+.dismissible-error-close:focus-visible {
+  background: rgba(224, 90, 78, 0.18);
+  opacity: 1;
+  outline: none;
+}
+
+.dismissible-error-close:focus-visible {
+  box-shadow: 0 0 0 2px rgba(224, 90, 78, 0.35);
+}
+
+/* ---------- Login page ---------- */
+
+.login-screen {
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(0, 179, 154, 0.08), transparent 45%),
+    radial-gradient(circle at 80% 80%, rgba(0, 179, 154, 0.06), transparent 45%),
+    var(--bg-app);
+  padding: 20px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 32px 28px;
+}
+
+.login-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+  text-align: center;
+}
+
+.login-brand .brand-mark {
+  width: 64px;
+  height: 44px;
+  font-size: 20px;
+  border-radius: 10px;
+}
+
+.login-brand h1 {
+  font-size: 17px;
+}
+
+.login-brand p {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+/* Sign In / Sign Up mode switcher (Login.jsx) - reuse .segmented-control
+   (pattern เดิมที่ใช้อยู่ทั่วแอปอยู่แล้ว - เช่น Static Route/Security Profile
+   forms) แทนที่จะประดิษฐ์ toggle ใหม่ ให้เข้าธีมเดียวกันทั้งระบบ - override แค่
+   ให้ label กว้างเท่ากัน 2 อันเต็มความกว้างการ์ด (ปกติ .segmented-control label
+   ขนาดตามเนื้อหา ไม่ได้ตั้งใจให้เต็มความกว้างเหมือนที่นี่ต้องการ) */
+.login-mode-switch {
+  margin-bottom: 24px;
+}
+
+.login-mode-switch .segmented-control {
+  width: 100%;
+}
+
+.login-mode-switch .segmented-control label {
+  flex: 1;
+  text-align: center;
+}
+
+/* CM-12: Sign Up while the backend has sign-up turned off (or its status is unknown) */
+.login-mode-switch .segmented-control input:disabled + label {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.signup-unavailable-note {
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  margin: 8px 0 0;
+  text-align: center;
+}
+
+.google-signup-button {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.site-access-screen {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(0, 179, 154, 0.08), transparent 45%),
+    radial-gradient(circle at 80% 80%, rgba(0, 179, 154, 0.06), transparent 45%),
+    var(--bg-app);
+}
+
+.site-access-card {
+  width: min(100%, 380px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 32px 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+
+.site-access-card .brand-mark {
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  border-radius: 10px;
+  font-size: 20px;
+}
+
+.site-access-card h1 {
+  font-size: 18px;
+}
+
+.site-access-card p,
+.site-access-status {
+  color: var(--text-muted);
+  font-size: 12.5px;
+}
+
+.site-access-widget {
+  width: 100%;
+  min-height: 65px;
+  display: flex;
+  justify-content: center;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: var(--border);
+}
+
+.registration-step-copy {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0 0 18px;
+  text-align: center;
+}
+
+.otp-input {
+  text-align: center;
+  font-size: 21px !important;
+  font-weight: 700;
+  letter-spacing: 0.45em;
+  font-variant-numeric: tabular-nums;
+}
+
+.registration-back {
+  display: block;
+  margin: 16px auto 0;
+  font-size: 12px;
+}
+
+/* Hidden unless Cloudflare needs the user to interact (appearance: interaction-only). */
+.turnstile-inline {
+  display: flex;
+  justify-content: center;
+}
+
+.turnstile-inline:has(iframe) {
+  margin-bottom: 14px;
+}
+
+/* Notice shown when the page switches to Sign In because of an outcome
+   (e.g. "This email is already in use"). Large enough to be read first. */
+.auth-notice {
+  --notice-color: var(--warning);
+  --notice-bg: var(--warning-dim);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 0 18px;
+  padding: 14px 14px 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--notice-color) 55%, transparent);
+  border-left: 4px solid var(--notice-color);
+  border-radius: var(--radius-sm);
+  background: var(--notice-bg);
+  color: var(--text-primary);
+  text-align: left;
+  animation:
+    auth-notice-in var(--motion-normal) var(--ease-standard) both,
+    auth-notice-glow 1.6s var(--ease-standard) 250ms 1;
+}
+
+.auth-notice-success {
+  --notice-color: var(--jade-bright);
+  --notice-bg: var(--jade-dim);
+}
+
+.auth-notice-icon {
+  flex: none;
+  display: flex;
+  margin-top: 1px;
+  color: var(--notice-color);
+}
+
+.auth-notice-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.auth-notice-title {
+  display: block;
+  color: var(--notice-color);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.auth-notice-text {
+  margin: 4px 0 0;
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.auth-notice-close {
+  flex: none;
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0 2px;
+  color: var(--text-secondary);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.auth-notice-close:hover {
+  color: var(--text-primary);
+}
+
+@keyframes auth-notice-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* One soft pulse so the eye is drawn to the notice, then it stays calm. */
+@keyframes auth-notice-glow {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--notice-color) 45%, transparent);
+  }
+  60% {
+    box-shadow: 0 0 0 8px color-mix(in srgb, var(--notice-color) 0%, transparent);
+  }
+  100% {
+    box-shadow: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-notice {
+    animation: none;
+  }
+}
+
+.registration-timer {
+  margin: -6px 0 14px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.registration-timer-footer {
+  margin: 12px 0 0;
+}
+
+.registration-timer.is-expired {
+  color: var(--danger);
+}
+
+.registration-notice {
+  margin: -8px 0 14px;
+  color: var(--jade-bright);
+  font-size: 12px;
+  text-align: center;
+}
+
+.registration-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.link-button:disabled {
+  color: var(--text-muted);
+  cursor: default;
+  text-decoration: none;
+}
+
+.verified-email {
+  overflow: hidden;
+  margin-bottom: 18px;
+  padding: 10px 12px;
+  border: 1px solid rgba(0, 179, 154, 0.35);
+  border-radius: var(--radius-sm);
+  background: var(--jade-dim);
+  color: var(--jade-bright);
+  font-size: 13px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- Devices grid ---------- */
+
+.device-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin: 2rem;
+}
+
+/* user ขอ (2026-08-03 รอบ 2): เปลี่ยนพื้นการ์ดทั้งใบเป็นสีขาวจริงๆ (ไม่ใช่แค่
+   chip รอบ logo แบบรอบก่อน) เพื่อให้ตัดกับ logo แบรนด์สวย - ผลคือตัวหนังสือ/
+   ปุ่มที่ใช้สีจากธีมเข้ม (--text-primary/--text-secondary/--text-muted,
+   .btn-ghost ฯลฯ) ซึ่งเป็นสีอ่อน/ขาวเกือบทั้งหมด จะจมหายไปกับพื้นขาวทันที (ตามที่
+   user กังวลไว้พอดี) - **ไม่แก้ CSS variable ระดับ :root** (index.css) เพราะตัว
+   แปรพวกนั้นใช้ทั้งแอป เปลี่ยนจะกระทบทุกหน้า/ทุก component อื่น - แก้แบบ scoped
+   เฉพาะใน `.device-card` ด้วย descendant selector ทับสีที่จำเป็นเป็นสีเข้ม/สีที่
+   ตัดกับขาวได้แทน จุดอื่นในแอปไม่กระทบเลย */
+.device-card {
+  position: relative;
+  background-image: linear-gradient(rgba(255,255,255,1), rgba(255,255,255,0.7), rgba(255,255,255,0.5));
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  height: 190px;
+  /* a grid item is at least as wide as its longest line by default; with one-line
+     names that widened the 1fr column on phones past the screen. 0 lets it shrink. */
+  min-width: 0;
+  padding: 18px;
+  gap: 10px;
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  /* user ขอ (2026-08-06): "ตัวอักษรไหนสีขาวในการ์ดให้เปลี่ยนเป็นสีดำให้หมด"
+     (ทั้งการ์ดสาขา Sites.jsx และการ์ดอุปกรณ์ DeviceCard.jsx - .device-card
+     class เดียวกันใช้ทั้งคู่) - จุดที่ยังหลุดสีขาวอยู่จริงคือ Sites.jsx's
+     <h3>{site.site_name}</h3> เพราะ index.css กำหนด h1/h2/h3 เป็น
+     var(--text-primary) (#e8eff0 - เกือบขาว ออกแบบไว้สำหรับพื้นเข้มของธีมหลัก)
+     ไว้ระดับ global ไม่มีจุดไหนใน .device-card เคย override ไว้เลย (ตัวอื่นๆ
+     ในการ์ด เช่น .device-name/.device-vendor/.device-meta/badge/ปุ่ม ถูก
+     override เป็นสีเข้มไว้แล้วทั้งหมดจากรอบก่อน) - ตั้ง color เข้มไว้ที่ตัวการ์ด
+     เองแทน (inherit ลงลูกทุกตัวที่ยังไม่มี color เป็นของตัวเอง) กันข้อความสี
+     ขาวหลุดมาอีกในอนาคตด้วย ไม่ใช่แก้เฉพาะ h3 จุดเดียว - selector เฉพาะเจาะจง
+     กว่า (.device-name ฯลฯ) ยังชนะ specificity นี้อยู่ดี ไม่กระทบของเดิม */
+  color: #14181a;
+}
+
+.device-card:hover {
+  border-color: var(--jade);
+  cursor: pointer;
+  transform: scale(1.05);
+  box-shadow: 0 4px 14px rgba(0, 179, 154, 0.3);
+}
+
+.device-card:active {
+  border-color: var(--jade);
+  cursor: pointer;
+  transform: scale(1.05);
+  box-shadow: 0 4px 14px rgba(0, 179, 154, 0.3);
+}
+
+/* user ขอ (2026-08-03 รอบ 3): คลิกการ์ดแล้วให้ "ขยายค้าง" ไม่ใช่แค่ตอน hover/
+   :active (ซึ่งคืนกลับทันทีที่ mouse ออกจากการ์ด/ปล่อยปุ่มเมาส์) - `flipped`
+   เป็น class ที่ DeviceCard.jsx toggle ผ่าน React state จริง เลยต้องค้างอยู่ได้
+   แม้ mouse ไม่ได้ hover/กดค้างแล้ว - ใช้ค่าเดียวกับ :hover/:active ทุกอย่างให้ดู
+   ต่อเนื่องกัน ไม่กระตุก - z-index กันการ์ดที่ขยายถูกการ์ดข้างเคียงใน grid บังทับ */
+.device-card.flipped {
+  border-color: var(--jade);
+  transform: scale(1.05);
+  box-shadow: 0 4px 14px rgba(0, 179, 154, 0.3);
+  z-index: 5;
+}
+
+/* user ชี้แจงรอบ 4 (หลังทำ dropdown ต่อท้ายเนื้อหา และ popup ลอยทับมาก่อนแล้ว
+   ทั้งคู่ไม่ใช่ที่ต้องการ): ต้องการ "card flip" จริงๆ แบบไพ่/การ์ดในเกม - คลิก
+   การ์ดแล้วพลิกเผยด้านหลังที่เป็นปุ่ม action แทนเนื้อหาปกติ โดยกรอบการ์ด/พื้นที่
+   ใน grid คงที่เสมอ (ไม่ขยาย ไม่ดันการ์ดข้างเคียง เพราะไม่ได้เพิ่มเนื้อหาเข้าไป
+   ใหม่ - แค่สลับหน้าที่แสดงบนพื้นที่เดิม) - เทคนิคมาตรฐาน CSS 3D flip card:
+   .device-card-flip-inner เป็น position:relative (หน้า front ที่อยู่ใน-flow
+   เป็นตัวกำหนดความสูงจริงของกล่องนี้) หมุน rotateY(180deg) ตอน .flipped -
+   .device-card-face ทั้ง 2 ใช้ backface-visibility:hidden กันเห็นข้อความกลับ
+   ด้านตอนหมุนผ่านมุม 90deg - back เป็น position:absolute; inset:0 (ซ้อนทับ
+   หน้า front พอดีเป๊ะ ไม่ต้องเดาความสูง) + rotateY(180deg) ล่วงหน้า (หันหลังรอ
+   อยู่ก่อน พอ flip-inner หมุน 180deg ทั้งก้อน จะกลายเป็นหันหน้าเข้าหาผู้ใช้พอดี) */
+/* เจอบั๊กจริง (2026-08-03 - user รายงาน "หน้าแรกกดที่ว่างเพื่อหมุนการ์ดแบบ
+   ตอนแรกไม่ได้"): `.device-grid`'s grid item ถูก stretch เต็มความสูง row
+   โดย default อยู่แล้ว (align-items:stretch เป็นค่าเริ่มต้นของ CSS Grid) ทำให้
+   `.device-card` สูงกว่าเนื้อหาจริงเสมอถ้าการ์ดข้างเคียงในแถวเดียวกันมีเนื้อหา
+   เยอะกว่า (เช่นมี logo/มี hint text) - onClick ย้ายไปอยู่ที่ face-front ตอน
+   แก้บั๊กคลิกพลาดปุ่ม (รอบก่อน) แต่ face-front เดิมสูงแค่เท่าเนื้อหาตัวเอง ไม่ได้
+   สูงเท่ากรอบการ์ดที่ stretch แล้ว เลยมีพื้นที่ว่างด้านล่างที่คลิกไม่โดนอะไรเลย -
+   ตรงกับอาการที่ user รายงานเป๊ะ - แก้ด้วยให้ flip-inner + face-front สูงเต็ม
+   100% ของกรอบการ์ด (การ์ดมีความสูงแน่นอนจาก grid stretch อยู่แล้ว - percentage
+   height คำนวณได้) กันมีพื้นที่ว่างที่คลิกไม่โดน onClick เลย */
+.device-card-flip-inner {
+  position: relative;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.4s ease;
+}
+
+.device-card.flipped .device-card-flip-inner {
+  transform: rotateY(180deg);
+}
+
+.device-card-face {
+  backface-visibility: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.device-card-face-front {
+  height: 100%;
+  /* every card is the same size: text never pushes past the frame (long text is cut
+     with "..." below). Only the front - the back keeps its buttons fully visible. */
+  overflow: hidden;
+}
+
+.device-card-face-back {
+  position: absolute;
+  inset: 0;
+  transform: rotateY(180deg);
+}
+
+/* จุดแดง "ยังไม่เคยเปิดดู" - มุมขวาบนของการ์ด เหนือ logo/ทุกอย่าง (z-index สูง
+   สุดในการ์ด) - box-shadow ขอบขาวเปลี่ยนจาก --bg-panel (เข้ม) เป็นสีขาวของ
+   การ์ดเองแทน ให้จุดแดงยังดูลอยเด่นแยกจากพื้นการ์ดเหมือนเดิม */
+.device-unseen-dot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--danger, #e05a4e);
+  box-shadow: 0 0 0 2px #ffffff;
+  z-index: 2;
+}
+
+/* fixed height (also when empty, for pending devices) so the name and status line up
+   on every card whatever the logo's shape */
+.device-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 64px;
+  flex-shrink: 0;
+}
+
+.device-logo img {
+  object-fit: contain;
+  display: block;
+  max-height: 100%;
+}
+
+.device-logo .cisco {
+  max-width: 55%;
+}
+
+.device-logo .juniper {
+  max-width: 100%;
+}
+
+.device-logo .huawei {
+  max-width: 50%;
+}
+
+.device-info-container {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.device-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* One line per text, cut with "..." (full text in the title tooltip). A flex item
+   does not shrink below its longest word unless min-width is 0 - that is what pushed
+   long names such as BRANCH-SRX-BROWN-A out of the card. */
+.device-card-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.device-card-head > .badge {
+  flex-shrink: 0;
+}
+
+.device-card .device-name,
+.device-card .device-vendor,
+.device-card h3.site-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.device-card h3.site-name {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  color: #14181a;
+}
+
+.device-card .device-meta > div {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.device-card .device-meta span.label,
+.device-card .device-meta .site-org-copy {
+  flex-shrink: 0;
+}
+
+.device-card .device-meta .meta-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.device-card .device-name {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #14181a;
+}
+
+.device-card .device-vendor {
+  font-size: 12px;
+  color: #5c6c70;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+.device-card .device-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12.5px;
+  color: #3c474a;
+  font-family: var(--mono);
+}
+
+.device-card .device-meta span.label {
+  color: #55666a;
+  font-family: var(--sans);
+  margin-right: 6px;
+}
+
+.site-org-copy {
+  margin-left: 8px;
+  padding: 1px 7px;
+  border: 1px solid #55666a;
+  border-radius: 999px;
+  background: transparent;
+  color: #344246;
+  font: inherit;
+  cursor: pointer;
+}
+
+.site-org-copy:hover,
+.site-org-copy:focus-visible {
+  border-color: #006b5f;
+  color: #006b5f;
+  outline: none;
+}
+
+/* ปุ่ม "จัดการอุปกรณ์"/"ลบ" ใน device card เท่านั้น - .btn-ghost ตัวเดิม (ใช้
+   ทั้งแอป) มีแค่ border/text สีอ่อนสำหรับพื้นเข้ม พอมาอยู่บนการ์ดขาวจะกลืนจนมอง
+   ปุ่มไม่เห็นเลย (ตามที่ user รายงาน) override เฉพาะใน scope นี้เป็นสีเข้ม/
+   jade เข้ม (สีแบรนด์เดิมของระบบ แต่เข้มกว่าปกติ - เช็ค contrast ratio จริงแล้ว
+   jade ปกติ (#00b39a) บนพื้นขาวได้แค่ ~2.65:1 อ่านยาก ต้องใช้เฉด jade-dark
+   เข้มกว่านี้แทนเฉพาะบนพื้นขาว) ที่ตัดกับขาวได้ชัดเจน ผ่านเกณฑ์ WCAG AA */
+.device-card .btn-ghost {
+  border-color: #14181a; /* contrast 3.5:1 กับขาว - ผ่านเกณฑ์ UI component boundary (WCAG 1.4.11) */
+  color: #21282b; /* contrast ~15:1 กับขาว */
+}
+
+.device-card .btn-ghost:hover:not(:disabled) {
+  border-color: #006b5f;
+  color: #006b5f; /* jade เข้ม - contrast 6.4:1 กับขาว (jade ปกติแค่ 2.65:1 อ่านยากเกิน) */
+  background: var(--jade-dim);
+}
+
+/* badge สถานะ - "active"/"offline" ใช้สีอ่อน (--jade-bright/--text-secondary)
+   ที่ออกแบบมาให้เด่นบนพื้นเข้ม พอมาอยู่บนขาวจะจางจนอ่านยาก override เฉพาะ 2
+   สถานะนี้ที่มีปัญหาจริง (pending/rejected ใช้ warning/danger ซึ่งอิ่มตัวพออยู่
+   แล้ว อ่านออกได้ทั้งบนพื้นเข้มและพื้นขาว ไม่ต้องแก้เพิ่ม) - active ใช้ jade-dark
+   เฉดเดียวกับปุ่ม hover ด้านบน (jade ปกติอ่านยากเกินบนขาว - ดู comment ที่นั่น) */
+.device-card .badge-active {
+  color: #006b5f;
+}
+
+.device-card .badge-offline {
+  color: #5c6c70;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+
+.badge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.badge-active {
+  background: var(--jade-dim);
+  color: var(--jade-bright);
+}
+
+.badge-pending {
+  background: var(--warning-dim);
+  color: var(--warning);
+}
+
+.badge-offline {
+  background: rgba(147, 165, 170, 0.14);
+  color: var(--text-secondary);
+}
+
+.badge-rejected {
+  background: var(--danger-dim);
+  color: var(--danger);
+}
+
+.badge-expired {
+  background: var(--danger-dim);
+  color: var(--danger);
+}
+
+.empty-state {
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.empty-state h3 {
+  color: var(--text-secondary);
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+
+/* user ขอ (2026-08-06): "ทำกรอบให้ทั้งสาขาที่เป็นเจ้าของและสาขาที่เข้าร่วม" -
+   Sites.jsx เดิมมีแค่หัวข้อ h2 คั่นระหว่าง 2 หมวด ไม่มีกรอบแยกส่วนให้เห็นชัดว่า
+   ไหนคือ Owned/ไหนคือ Joined - ห่อแต่ละหมวด (หัวข้อ + การ์ด/empty-state) ด้วย
+   กรอบเดียวกันทั้งคู่ */
+.site-section {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem 2rem 1rem;
+  margin: 1rem 2rem;
+}
+
+.site-section h2 {
+  font-weight: bold;
+}
+
+.site-section .site-section-header {
+  border-bottom: 2px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 1rem;
+}
+
+/* .device-grid/.empty-state ปกติมี margin 2rem/1rem 2rem ของตัวเอง (ออกแบบไว้
+   ให้ลอยอิสระกลางหน้า - ดู Devices.jsx) พอมาอยู่ใน .site-section ที่มี
+   margin/padding ของตัวเองอยู่แล้วจะซ้อนกันจนเยื้องไม่สมมาตร - ลดเหลือแค่
+   ระยะห่างแนวตั้งจากหัวข้อ ปล่อยให้กรอบ .site-section คุมระยะห่างแนวนอนแทน */
+.site-section .device-grid {
+  margin: 12px 0 20px;
+}
+
+.site-section .empty-state {
+  margin: 12px 0 20px;
+}
+
+/* ---------- Modal ---------- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 10, 11, 0.7);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 40;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 24px;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.modal-header h2 {
+  font-size: 15.5px;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.modal-close:hover {
+  color: var(--text-primary);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.modal-actions .btn {
+  flex: 1;
+}
+
+/* Destructive device confirmation: keep the shared modal layout, but make the
+   irreversible action visually distinct from ordinary forms. */
+.modal-card-danger-confirm {
+  border-color: color-mix(in srgb, var(--danger, #e05a4e) 55%, var(--border-strong));
+}
+
+.modal-header-danger h2 {
+  color: var(--danger, #e05a4e);
+}
+
+.danger-confirm-message {
+  background: #fef2f2;
+  border-left: 4px solid #ef4444;
+  border-radius: 4px;
+  color: #991b1b;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  padding: 0.75rem 1rem;
+}
+
+/* Wide Modal - variant ของ .modal-card ปกติ (380px) สำหรับ modal ที่เนื้อหาเป็น
+   "รายการหลายแถว" ไม่ใช่ฟอร์มสั้น ๆ - แต่ละแถวมีทั้งชื่อสาขา/Org ID และปุ่ม
+   ตอบรับ-ปฏิเสธอยู่บรรทัดเดียวกัน ถ้าใช้ความกว้างปกติข้อความจะตัดบรรทัดจนอ่านยาก
+   ใช้กับ InvitationsModal.jsx (คำเชิญเข้าสาขา) */
+.modal-card-wide {
+  max-width: 760px;
+  padding: 28px 32px;
+}
+
+/* Offline Alert Modal (DeviceDetail.jsx) - variant "dark glassmorphism" ของ
+   .modal-card ปกติ (สี solid var(--bg-panel)) เพราะเป็น modal บังคับตัดสินใจ
+   (ไม่มีปุ่มปิด) เลยให้เด่นกว่า modal ทั่วไปของระบบด้วยกรอบสีเตือน (--warning)
+   + พื้นหลังโปร่งแสงผสม blur แทนพื้นทึบ */
+.modal-card-offline {
+  background: rgba(26, 34, 38, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(224, 168, 62, 0.45);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(224, 168, 62, 0.08) inset;
+  max-width: 440px;
+}
+
+.modal-card-offline .modal-header h2 {
+  color: var(--warning);
+  font-size: 16px;
+}
+
+.modal-card-offline p {
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  line-height: 1.6;
+  margin: 0 0 12px;
+}
+
+/* start checkbox switch */
+.toggle-switch-container .toggleSwitch { 
+   position : relative ;
+   display : inline-block;
+   width : 40px;
+   height : 20px;
+   background-color: #eee;
+   border-radius: 20px;
+   cursor: pointer;
+}
+
+.toggle-switch-container input[type="checkbox"] {
+    display: none;
+}
+
+.toggle-switch-container .toggleSwitch::after {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background-color: rgb(83, 83, 83);
+    top: 1px;
+    left: 1px;
+    transition: all 0.3s;
+}
+
+.toggle-switch-container input[type="checkbox"]:checked + .toggleSwitch::after {
+    background-color: white;
+    left: 20px;
+}
+.toggle-switch-container input[type="checkbox"]:checked + .toggleSwitch {
+    background-color: #004138;
+}
+
+/* user ขอ (2026-08-04): เปลี่ยนจากแสดง loading เฉยๆ ในแท็บ เป็น popup เต็มจอบัง
+   ทั้งหน้า กดอะไรไม่ได้เลยระหว่าง ping ทำงาน (กันคลิกเปลี่ยนหน้า/ยิงคำสั่งอื่นเข้า
+   อุปกรณ์เดียวกันซ้อนระหว่าง backend ถือ DeviceLock ไว้เต็มเวลา ping - ดู
+   HANDOFF.md) - reuse `.modal-overlay`/`.modal-card` เดิมทั้งดีไซน์ (ธีมเดียวกัน
+   ทั้งแอป) แต่**ไม่มี onClick ปิด** ตั้งใจให้กดที่ไหนก็ไม่หายจนกว่า ping จะเสร็จเอง
+   จริงๆ - z-index สูงกว่า `.modal-overlay` ปกติ (40) เผื่อกรณีมี modal อื่นเปิดค้าง
+   อยู่ก่อนแล้ว ให้ popup นี้บังทับได้เสมอ แต่ยังต่ำกว่า toast (1000) เพราะ error
+   toast ควรเห็นได้แม้ popup นี้กำลังเปิดอยู่ */
+.ping-block-overlay {
+  z-index: 50;
+  cursor: not-allowed;
+}
+
+.ping-block-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  cursor: default;
+}
+
+.ping-block-title {
+  font-size: 14.5px;
+  color: var(--text-primary);
+}
+
+.ping-block-warning {
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: var(--warning);
+}
+
+.ping-spinner {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 3px solid var(--border-strong);
+  border-top-color: var(--jade-bright);
+  animation: ping-spin 0.8s linear infinite;
+}
+
+@keyframes ping-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ping-loading-timer {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.ping-result-badge {
+  font-size: 1.1rem;
+  padding: 8px 18px;
+}
+
+/* ---------- Toast (non-blocking success notification - ดู ToastContainer.jsx) ---------- */
+
+.toast-container {
+  position: fixed;
+  top: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000; /* เหนือ modal-overlay (40) เสมอ - เผื่อ save สำเร็จตอน modal ยังไม่ทันปิด */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none; /* ไม่บล็อกคลิกใต้ toast เลย - ผู้ใช้คลิกทำงานต่อได้ทันที */
+}
+
+.toast-item {
+  background: var(--jade, #1f9d6e);
+  color: #fff;
+  padding: 1rem;
+  border-radius: var(--radius-sm, 6px);
+  font-size: 16px;
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  animation: toast-fade-in 0.15s ease-out;
+}
+
+@keyframes toast-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* end checkbonx switch */
+
+/* |==== for mobile apply ====| */
+@media (max-width: 768px) {
+  /* Prevent horizontal screen push / blowout without clipping page horizontally */
+  html, body {
+    max-width: 100vw;
+  }
+
+  .app-shell,
+  .main-content {
+    max-width: 100vw;
+    min-width: 0;
+  }
+
+  /* TopBar layout for mobile */
+  .topbar {
+    flex-wrap: wrap;
+    padding: 0.5rem 1rem;
+  }
+
+  .brand {
+    font-size: 15px;
+    gap: 0.75rem;
+  }
+
+  .brand-mark {
+    margin-left: 0;
+    padding: 0.4rem 0.6rem;
+    font-size: 12px;
+  }
+
+  .topbar-user {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .topbar-element {
+    height: auto;
+    padding: 0.6rem 0.8rem;
+    font-size: 13px;
+  }
+
+  /* Page Header */
+  .page-header {
+    margin: 1rem 0.75rem 0.5rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .page-header h1 {
+    font-size: 1.35rem;
+  }
+
+  .page-header button {
+    margin-left: 0;
+  }
+
+  .page-header-actions,
+  .page-header-buttons,
+  .page-header > div:nth-child(2) {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .device-page-header {
+    padding: 0.75rem 1rem;
+  }
+
+  /* Sites & Grouping Sections */
+  .site-section {
+    margin: 1rem 0.75rem;
+    padding: 1.25rem 1rem 0.75rem;
+    box-sizing: border-box;
+  }
+
+  .site-section .site-section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .site-section .site-section-header h2 {
+    font-size: 1.2rem;
+  }
+
+  /* Device / Site Cards Grid */
+  .device-grid {
+    grid-template-columns: 1fr;
+    margin: 1rem 0.75rem;
+    gap: 14px;
+    box-sizing: border-box;
+  }
+
+  .site-section .device-grid {
+    margin: 12px 0 16px !important;
+    width: 100% !important;
+    box-sizing: border-box;
+  }
+
+  .device-card {
+    width: 100% !important;
+    box-sizing: border-box;
+    /* fixed like on desktop, so every card in the list is the same size */
+    height: 180px;
+    padding: 16px 14px;
+  }
+
+  .device-card .device-name {
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .device-card-head {
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .device-logo {
+    height: 46px;
+    max-height: 46px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .device-logo img {
+    max-height: 44px;
+  }
+
+  .device-logo .cisco {
+    max-width: 55%;
+  }
+
+  .device-logo .juniper {
+    max-width: 85%;
+  }
+
+  .device-logo .huawei {
+    max-width: 50%;
+  }
+
+  .device-info-container {
+    margin-top: 0.5rem;
+    width: 100%;
+  }
+
+  .device-card-face-back {
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .device-card-face-back .btn {
+    width: 100%;
+    min-width: 0;
+    padding: 0.3rem 0.5rem;
+    font-size: 13px;
+  }
+
+  /* Buttons */
+  .btn {
+    min-width: 100px;
+    padding: 0.35rem 1rem;
+    font-size: 13px;
+  }
+
+  /* Forms */
+  .field {
+    margin-bottom: 12px;
+  }
+
+  .field input,
+  .field select {
+    width: 100%;
+  }
+
+  /* Modals */
+  .modal-overlay {
+    padding: 12px;
+  }
+
+  .modal-card {
+    width: 100%;
+    max-width: 380px;
+    padding: 20px 16px;
+  }
+
+  .modal-card-wide {
+    width: 100%;
+    max-width: 100%;
+    padding: 20px 16px;
+  }
+
+  .modal-card-offline {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .modal-actions .btn {
+    width: 100%;
+  }
+
+  .member-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* Toast Notification */
+  .toast-container {
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    transform: none;
+    align-items: center;
+  }
+
+  .toast-item {
+    width: 100%;
+    max-width: 380px;
+    text-align: center;
+    box-sizing: border-box;
+  }
+
+  /* Login page */
+  .login-screen {
+    padding: 16px;
+  }
+
+  .login-card {
+    padding: 24px 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar {
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .brand {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .topbar-user {
+    width: 100%;
+    justify-content: space-around;
+    border-top: 1px solid var(--border);
+    padding-top: 4px;
+  }
+
+  .topbar-element {
+    padding: 0.5rem 0.4rem;
+    font-size: 12px;
+  }
+
+  .page-header h1 {
+    font-size: 1.25rem;
+  }
+
+  .site-section {
+    margin: 0.75rem 0.5rem;
+    padding: 1rem 0.75rem 0.5rem;
+    box-sizing: border-box;
+  }
+
+  .site-section .device-grid {
+    margin: 10px 0 14px !important;
+    width: 100% !important;
+    box-sizing: border-box;
+  }
+
+  .device-grid {
+    margin: 0.75rem 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
+/* |==== end apply mobile ====| */

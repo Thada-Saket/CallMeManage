@@ -1,0 +1,110 @@
+.ipv4-input {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  justify-self: stretch;
+}
+
+.ipv4-input-fields {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: var(--mono);
+  line-height: normal;
+  letter-spacing: 0.3px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ipv4-input-fields:focus-within {
+  border-color: var(--jade);
+  box-shadow: 0 0 0 3px var(--jade-dim);
+}
+
+.ipv4-input-fields.ipv4-input-fields-invalid {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px var(--danger-dim);
+}
+
+.ipv4-input-part {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  max-width: 70px;
+}
+
+/* Override the form's input styles: only the group has a border. */
+.ipv4-input .ipv4-input-fields input[type="text"] {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  text-align: center;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  letter-spacing: inherit;
+  appearance: none;
+}
+
+.ipv4-input-fields input:disabled {
+  opacity: 0.5;
+}
+
+.ipv4-input-separator {
+  color: var(--text-secondary);
+}
+
+.ipv4-input-error {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.ipv4-input-cidr {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ipv4-input-address-box {
+  flex: 1;
+  min-width: 0;
+}
+
+.ipv4-input-prefix-box {
+  flex: 0 0 76px;
+}
+
+.ipv4-input-slash {
+  padding: 0;
+}
+
+@media (max-width: 380px) {
+  .ipv4-input-cidr {
+    gap: 5px;
+  }
+
+  .ipv4-input-prefix-box {
+    flex-basis: 60px;
+  }
+}

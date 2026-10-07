@@ -1,0 +1,336 @@
+/* หน้า Account Settings (pages/AccountSettings.jsx) - ออกแบบใหม่ทั้งหมดตามที่
+   user ขอ (2026-08-06): "หน้าตาเหมือนหน้า User Management ทั่วไป มินิมอล ไม่ต้อง
+   ยึดจากของที่มีอยู่" - ใช้ palette เดิมของทั้งแอป (CSS variable จาก index.css:
+   --bg-panel/--border/--jade/--text-* ฯลฯ) แต่ไม่ reuse .device-card (พื้นขาว
+   ออกแบบไว้เฉพาะการ์ดอุปกรณ์/สาขา) - หน้านี้อยู่บนพื้นเข้มของแอปตามปกติ ใช้
+   scoped class ขึ้นต้นด้วย .account- ทั้งหมด กันชนกับ class อื่นในระบบ */
+
+.account-page {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 640px;
+  height: 90vh;
+  margin: 0 auto;
+  padding: 0 2rem 3rem;
+}
+
+.account-back {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  margin-bottom: 20px;
+  font: inherit;
+  font-size: 16px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: right;
+  align-items: center;
+  gap: 4px;
+}
+
+.account-back:hover {
+  color: var(--jade-bright);
+}
+
+/* ---------- Header: avatar + ชื่อ/อีเมล + role badge ---------- */
+
+.account-header {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding-bottom: 24px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.account-avatar {
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--jade-bright), var(--jade));
+  color: #06211d;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.account-header-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.account-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.account-email {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  word-break: break-word;
+}
+
+/* ---------- Panel ทั่วไป (ข้อมูลบัญชี / สาขาของฉัน / โซนอันตราย) ---------- */
+
+.account-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  margin-bottom: 20px;
+}
+
+.account-panel-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin: 0 0 14px;
+}
+
+/* ---------- ข้อมูลบัญชี: แถว label/value เรียบๆ แบบหน้า user management ทั่วไป ---------- */
+
+.account-info-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.account-info-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.account-info-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.account-info-row:first-child {
+  padding-top: 0;
+}
+
+.account-info-row dt {
+  font-size: 13px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.account-info-row dd {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--text-primary);
+  font-family: var(--mono);
+  text-align: right;
+  word-break: break-word;
+}
+
+/* ---------- สาขาของฉัน: แถวสรุปจำนวน (เป็นเจ้าของ/เข้าร่วม) พร้อมลูกศร
+   toggle ดูรายชื่อสาขาจริง - ค่าเริ่มต้น collapsed (ซ่อนไว้) ---------- */
+
+.account-sites-summary {
+  display: flex;
+  flex-direction: column;
+}
+
+.account-sites-group {
+  border-bottom: 1px solid var(--border);
+}
+
+.account-sites-group:last-child {
+  border-bottom: none;
+}
+
+.account-sites-row {
+  appearance: none;
+  background: none;
+  border: none;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 0;
+  font: inherit;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.account-sites-group:first-child .account-sites-row {
+  padding-top: 0;
+}
+
+/* user รายงาน (2026-08-06): "มองไม่เห็นลูกศร" - เดิมใช้ตัวอักษร Unicode "▸"
+   ขนาด 9px สี --text-muted (#5c6c70) ซึ่งคอนทราสต์กับพื้น --bg-panel
+   (#1a2226) ต่ำเกินไปจนแทบมองไม่เห็นจริง (ยิ่งมี Noto Sans Thai ปนอยู่ใน font
+   stack ยิ่งเสี่ยง glyph นี้ render ไม่เหมือนกันข้ามฟอนต์/เบราว์เซอร์) - เปลี่ยน
+   มาวาดเป็นสามเหลี่ยมด้วย CSS border-trick แทนตัวอักษรไปเลย (มาตรฐานเดียวกับ
+   caret ของ UI toolkit ทั่วไป) รับประกันว่า render เหมือนกันทุกที่ ไม่ขึ้นกับ
+   ฟอนต์/glyph availability - ใช้ --text-secondary (#93a5aa) แทน --text-muted
+   (สว่างกว่า ตัดกับพื้นชัดกว่ามาก) ขนาดใหญ่ขึ้นด้วย (เดิม 9px แทบมองไม่เห็น) */
+.account-sites-arrow {
+  flex-shrink: 0;
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 6px solid var(--text-secondary);
+  transition: transform 0.15s ease;
+}
+
+.account-sites-arrow.expanded {
+  transform: rotate(90deg);
+}
+
+/* label กิน flex:1 ที่เหลือทั้งหมด - ดันตัวเลขไปชิดขอบขวาสุดของกรอบเสมอ (มุม
+   ที่ห่างจากลูกศร/ชื่อหัวข้อที่สุด ตามที่ user ระบุ) */
+.account-sites-label {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.account-sites-count {
+  font-size: 13.5px;
+  font-family: var(--mono);
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.account-sites-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 12px 19px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.account-sites-list li {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  font-family: var(--mono);
+}
+
+.account-sites-list li.account-sites-empty {
+  font-style: italic;
+  color: var(--text-muted);
+  font-family: var(--sans);
+}
+
+.account-sites-pagination {
+  display: flex;
+  justify-content: flex-end;
+  padding: 4px 0 10px;
+}
+
+.account-sites-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  color: var(--danger, #e05a4e);
+  font-size: 13px;
+}
+
+.account-sites-loading-indicator {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ---------- โซนอันตราย ---------- */
+
+.account-panel-danger {
+  border-color: rgba(224, 90, 78, 0.35);
+  background: var(--danger-dim);
+}
+
+.account-panel-danger .account-panel-title {
+  color: var(--danger, #e05a4e);
+}
+
+.account-danger-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.account-danger-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.account-danger-desc {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  max-width: 380px;
+}
+
+@media (max-width: 560px) {
+  .account-page {
+    padding: 0 1rem 2rem;
+  }
+
+  .account-header {
+    flex-wrap: wrap;
+  }
+
+  .account-danger-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .account-danger-row .btn {
+    align-self: stretch;
+  }
+}
+
+/* |==== for mobile apply ====| */
+@media (max-width: 768px) {
+  .account-page {
+    height: auto;
+    min-height: calc(100svh - 60px);
+    justify-content: flex-start;
+    padding: 1rem 1rem 2.5rem;
+    max-width: 100%;
+  }
+
+  .account-header {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .account-panel {
+    padding: 16px 14px;
+    margin-bottom: 14px;
+  }
+
+  .account-danger-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .account-danger-row .btn {
+    width: 100%;
+  }
+}
+/* |==== end apply mobile ====| */
+

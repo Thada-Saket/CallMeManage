@@ -1,0 +1,56 @@
+/* System Setting > User Info - ทุก rule อยู่ใต้ .user-info-page ไม่กระทบหน้าอื่น
+   ฟอร์มใช้ .interface-configuration-form เดิม ; tooltip ใช้ .field-help เดิมใน App.css */
+
+.user-info-page .user-info-input {
+  width: 100%;
+  min-width: 0;
+}
+
+.user-info-page .user-info-input input,
+.user-info-page .user-info-input select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.user-info-page .user-info-field-error {
+  color: #ff8a7d;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.user-info-page .field-label-with-hint label {
+  padding: 0;
+}
+
+/* มือถือ: label อยู่คอลัมน์ซ้าย tooltip ที่เปิดทางขวาจะล้นจอ - ย้ายไปเปิดใต้ label แทน
+   โดยยึดกับกล่อง label (ไม่ใช่ปุ่ม ?) ให้อยู่ใน viewport เสมอ */
+@media (max-width: 600px) {
+  .user-info-page .field-label-with-hint {
+    position: relative;
+    justify-content: flex-start;
+  }
+
+  /* mobile.css ยืด label เต็มแถว ทำให้ ? หลุดไปขอบขวา - ให้ ? อยู่ติด label เหมือน desktop */
+  .user-info-page .field-label-with-hint label {
+    width: auto;
+  }
+
+  .user-info-page .field-label-with-hint .field-help {
+    position: static;
+  }
+
+  /* กว้างเท่าแถวของฟอร์ม (ซึ่งอยู่ใน viewport อยู่แล้ว) ไม่ล้นขอบจอ */
+  .user-info-page .field-label-with-hint .field-help-tooltip {
+    left: 0;
+    right: 0;
+    top: calc(100% + 6px);
+    transform: none;
+    width: auto;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .user-info-page .field-label-with-hint .field-help-tooltip::before {
+    display: none;
+  }
+}

@@ -1,0 +1,32 @@
+# Backend runtime dependencies (FastAPI + NETCONF call-home + Postgres + Redis)
+# ติดตั้งด้วย: pip install -r requirements.txt
+
+fastapi==0.136.1
+uvicorn==0.46.0
+python-multipart==0.0.28
+
+# Database (Postgres, async) + migrations
+sqlmodel==0.0.38
+sqlalchemy==2.0.49
+asyncpg==0.31.0
+alembic==1.18.4
+
+# NETCONF call-home transport
+asyncssh==2.24.1
+cryptography==50.0.2
+
+# Auth
+python-jose==3.5.0
+passlib==1.7.4
+argon2-cffi==25.1.0
+google-auth>=2.0,<3.0
+# google-auth's transport for verifying Google ID tokens (not installed by google-auth itself)
+requests==2.34.2
+
+# Settings
+pydantic==2.13.4
+pydantic-settings==2.14.1
+email-validator>=2.0,<3.0
+
+# Redis (JWT denylist, rate limiting, stats cache, distributed lock - ดู planning/redisPlan.md ข้อ 5)
+redis==7.4.0
