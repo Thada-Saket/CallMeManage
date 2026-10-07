@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { loadTurnstileScript } from "../utils/turnstile";
-import { getClientConfig } from "../utils/clientConfig";
+import { clientConfigProblem, getClientConfig } from "../utils/clientConfig";
 
 /**
  * Single-use Turnstile token for one protected action (e.g. login).
@@ -25,8 +25,10 @@ export default function TurnstileWidget({ action, onToken, onError, resetSignal 
       let sitekey = "";
       try {
         sitekey = (await getClientConfig()).turnstileSiteKey;
-      } catch {
-        // reported below as "not configured"
+      } catch (err) {
+        // the server could not be asked - say so instead of "not configured"
+        if (active) callbacksRef.current.onError?.(clientConfigProblem(err));
+        return;
       }
       if (!active) return;
       if (!sitekey) {

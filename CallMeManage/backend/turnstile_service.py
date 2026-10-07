@@ -78,7 +78,12 @@ def _verify_sync(token: str, remote_ip: str | None, expected_action: str) -> Non
     expected_hostname = settings.TURNSTILE_EXPECTED_HOSTNAME.strip().casefold()
     actual_hostname = str(result.get("hostname") or "").strip().casefold()
     if expected_hostname and actual_hostname != expected_hostname:
-        raise TurnstileRejected("Complete the bot verification again", code="TURNSTILE_HOSTNAME_MISMATCH")
+        # e.g. the site was opened by IP while SITE_URL names the domain: tell the user where
+        # the check works instead of a "try again" that can never succeed
+        raise TurnstileRejected(
+            f"Bot verification only works at {expected_hostname}. Open the website there",
+            code="TURNSTILE_HOSTNAME_MISMATCH",
+        )
 
     # An omitted action is not equivalent to the expected action. Requiring an
     # exact match prevents a token minted for a different widget/flow from

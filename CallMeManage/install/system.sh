@@ -9,8 +9,10 @@ install_system_packages() {
     step "System packages"
     # an existing PostgreSQL server of any version (e.g. postgresql-18 from PGDG) counts:
     # never add Ubuntu's default version next to it
+    # dpkg-query exits 1 when nothing matches (a fresh machine); with pipefail that ended
+    # the installer silently right here, so "nothing found" must count as success
     local existing_pg
-    existing_pg="$(dpkg-query -W -f='${Package} ${Status}\n' 'postgresql-[0-9]*' 2>/dev/null \
+    existing_pg="$( { dpkg-query -W -f='${Package} ${Status}\n' 'postgresql-[0-9]*' 2>/dev/null || true; } \
         | awk '/install ok installed/ && $1 ~ /^postgresql-[0-9]+$/ {print $1; exit}')"
     local missing=() package
     for package in "${APT_PACKAGES[@]}"; do

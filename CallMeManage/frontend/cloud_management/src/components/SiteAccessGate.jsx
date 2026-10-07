@@ -3,7 +3,7 @@ import DismissibleError from "./DismissibleError";
 import { clearSiteAccessToken } from "../api/api_client";
 import { verifySiteAccess } from "../api/api_site_access";
 import { loadTurnstileScript } from "../utils/turnstile";
-import { getClientConfig } from "../utils/clientConfig";
+import { clientConfigProblem, getClientConfig } from "../utils/clientConfig";
 import { siteAccessValid } from "../utils/siteAccess";
 
 export default function SiteAccessGate({ children }) {
@@ -35,7 +35,7 @@ export default function SiteAccessGate({ children }) {
     let active = true;
     getClientConfig()
       .then((value) => { if (active) setConfig(value); })
-      .catch(() => { if (active) setError("The server is not reachable. Reload the page to try again"); });
+      .catch((err) => { if (active) setError(clientConfigProblem(err)); });
     return () => { active = false; };
   }, []);
 

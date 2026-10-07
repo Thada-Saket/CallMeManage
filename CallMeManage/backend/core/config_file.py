@@ -29,5 +29,13 @@ def read_config_values(path: Path | None = None) -> dict[str, str]:
         if not stripped or stripped.startswith("#") or "=" not in stripped:
             continue
         key, value = stripped.split("=", 1)
-        values[key.strip()] = value.strip()
+        values[key.strip()] = _clean_value(value)
     return values
+
+
+def _clean_value(raw: str) -> str:
+    # same rules as python-dotenv, which the settings loader uses
+    value = raw.strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+        return value[1:-1]
+    return value.split(" #", 1)[0].split("\t#", 1)[0].strip()

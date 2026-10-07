@@ -15,9 +15,18 @@ function readConfig(path) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith("#") || !trimmed.includes("=")) continue;
     const index = trimmed.indexOf("=");
-    values[trimmed.slice(0, index).trim()] = trimmed.slice(index + 1).trim();
+    values[trimmed.slice(0, index).trim()] = cleanValue(trimmed.slice(index + 1));
   }
   return values;
+}
+
+// Same rules as the backend's reader (python-dotenv): "value" or 'value' loses its quotes,
+// otherwise " # ..." at the end is a comment.
+function cleanValue(raw) {
+  const value = raw.trim();
+  const quoted = value.match(/^(["'])(.*)\1$/);
+  if (quoted) return quoted[2];
+  return value.replace(/\s+#.*$/, "").trim();
 }
 
 // A reverse proxy written as `ProxyPass /cmm https://host:8080/cmm/` (trailing slash on one
