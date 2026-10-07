@@ -35,9 +35,8 @@ uninstall_callmemanage() {
     [[ "$redis_pw" == yes ]] && say "               the Redis password"
     [[ "$built_files" == yes ]] && say "               .venv, node_modules, website build, logs"
     [[ "$keys" == yes ]] && say "               tools/keys (call-home key, certificate)"
-    local answer
-    answer="$(ask "Type uninstall to continue (anything else cancels)")"
-    [[ "$answer" == "uninstall" ]] || { say "  Cancelled - nothing was changed."; return 0; }
+    say ""
+    yes_no "Remove everything listed above now?" n || { say "  Cancelled - nothing was changed."; return 0; }
 
     step "Services"
     local unit
