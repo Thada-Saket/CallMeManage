@@ -56,6 +56,11 @@ TLS_KEY_FILE=
 CALLHOME_INTERFACE=
 CALLHOME_ADDRESS=
 
+# Which address of this server waits for devices to call home (port CALLHOME_PORT):
+#   0.0.0.0 = every interface (default)   or one IPv4 address of this machine
+# Chosen by the installer from a list of interfaces; change it with --configure or here.
+CALLHOME_LISTEN_ADDRESS=
+
 # Where devices download their config file when added (do not add /bootstrap at the end)
 #   Empty (recommended) = straight from this machine: https://<call-home IP>:<BACKEND_PORT>
 #     No DNS needed, and devices must reach this machine directly for call-home anyway.

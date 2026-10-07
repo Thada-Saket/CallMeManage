@@ -57,7 +57,8 @@ from vendor_translators.response_normalizer import normalize, normalize_capabili
 # message-id ของ metadata probe (แยกจาก token probe 20000+ และ identity probe 1000+)
 _metadata_message_ids = itertools.count(30000, 10)
 
-HOST = "0.0.0.0"
+# CALLHOME_LISTEN_ADDRESS from the config file: 0.0.0.0 (all interfaces) or one IPv4 of this machine
+HOST = load_environment().CALLHOME_LISTEN_ADDRESS
 PORT = load_environment().CALLHOME_PORT
 # time for fetch cpu/ram information from device
 STATS_POLL_INTERVAL = 10

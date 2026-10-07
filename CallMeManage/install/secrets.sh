@@ -106,6 +106,40 @@ choose_callhome_address() {
     done
 }
 
+# Which address waits for devices to call home (port CALLHOME_PORT). Every entry is one IPv4;
+# the interface name is only a label. Default: all interfaces.
+choose_callhome_listen_address() {
+    local force="${1:-no}" port
+    port="$(conf_get CALLHOME_PORT)"
+    step "Call-home listening address (port ${port:-4334})"
+    if [[ "$force" != "force" ]] && ! conf_unset CALLHOME_LISTEN_ADDRESS; then
+        skip "already chosen: $(conf_get CALLHOME_LISTEN_ADDRESS) (change with --configure)"
+        return
+    fi
+    mapfile -t rows < <(ip -4 -o addr show scope global | awk '{split($4, a, "/"); print $2" "a[1]}')
+    say "  Which address of this server waits for devices to call home?"
+    say "    0) all interfaces (0.0.0.0)   [default]"
+    local index=1 row iface address
+    for row in "${rows[@]}"; do
+        read -r iface address <<<"$row"
+        say "    $index) $iface ($address)"
+        index=$((index + 1))
+    done
+    local choice
+    while true; do
+        choice="$(ask "Choose [0-${#rows[@]}, Enter = 0]")"
+        if [[ -z "$choice" || "$choice" == "0" ]]; then
+            conf_set CALLHOME_LISTEN_ADDRESS "0.0.0.0"; break
+        elif [[ "$choice" =~ ^[0-9]+$ ]] && (( choice >= 1 && choice <= ${#rows[@]} )); then
+            read -r iface address <<<"${rows[$((choice - 1))]}"
+            conf_set CALLHOME_LISTEN_ADDRESS "$address"; break
+        else
+            warn "choose a number from the list"
+        fi
+    done
+    say "  Listening on $(conf_get CALLHOME_LISTEN_ADDRESS)"
+}
+
 current_callhome_ip() {
     local address iface
     address="$(conf_get CALLHOME_ADDRESS)"

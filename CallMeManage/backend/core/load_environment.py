@@ -72,6 +72,9 @@ class Setting(BaseSettings):
     # CALLHOME_ADDRESS wins when set; otherwise the IPv4 of CALLHOME_INTERFACE is used.
     CALLHOME_INTERFACE: str = "tailscale0"
     CALLHOME_ADDRESS: str | None = None
+    # Where this server waits for devices to call home (port CALLHOME_PORT):
+    # 0.0.0.0 = every interface (default), or one IPv4 address of this machine.
+    CALLHOME_LISTEN_ADDRESS: str = "0.0.0.0"
     # Where devices download their bootstrap file, without the trailing /bootstrap.
     # Empty = straight to this machine: https://<call-home address>:<BACKEND_PORT>.
     # Behind a reverse proxy at /cmm: https://<site>/cmm/api (devices then need DNS).
@@ -180,6 +183,14 @@ class Setting(BaseSettings):
             return str(ipaddress.IPv4Address(value.strip()))
         except ValueError as exc:
             raise ValueError("CALLHOME_ADDRESS must be an IPv4 address (devices cannot use a hostname)") from exc
+
+    @field_validator("CALLHOME_LISTEN_ADDRESS")
+    @classmethod
+    def validate_callhome_listen_address(cls, value: str) -> str:
+        try:
+            return str(ipaddress.IPv4Address(value.strip()))
+        except ValueError as exc:
+            raise ValueError("CALLHOME_LISTEN_ADDRESS must be 0.0.0.0 (all interfaces) or one IPv4 address of this machine") from exc
 
     @field_validator("BOOTSTRAP_BASE_URL")
     @classmethod

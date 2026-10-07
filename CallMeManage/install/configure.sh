@@ -61,6 +61,30 @@ configure_site() {
     say "  Website: ${site:-https://<this machine>:${port:-8080}}$root"
 }
 
+# Where devices download their config file when added. Empty (default) = straight from this
+# machine at https://<call-home IP>:<BACKEND_PORT>. Enter keeps the current value, - clears it.
+configure_bootstrap() {
+    step "Bootstrap download address for devices"
+    local port
+    port="$(conf_get BACKEND_PORT)"
+    say "  Leave it empty (recommended): devices download straight from https://<call-home IP>:${port:-8000}"
+    say "  Or a URL through a reverse proxy, without /bootstrap, e.g. https://www.example.ac.th/cmm/api"
+    say "  (devices then need DNS, and the proxy an RSA certificate - many Cisco IOS-XE cannot use ECDSA)"
+    local current value
+    current="$(conf_get BOOTSTRAP_BASE_URL)"
+    while true; do
+        value="$(ask "Bootstrap URL${current:+ [$current - Enter keeps it, - clears it]} (Enter = empty)")"
+        [[ -z "$value" ]] && value="$current"
+        [[ "$value" == "-" ]] && value=""
+        value="${value%/}"
+        value="${value%/bootstrap}"
+        if [[ -z "$value" || "$value" =~ ^https://[^/[:space:]]+(/[^[:space:]]*)?$ ]]; then break; fi
+        warn "must start with https:// (or press Enter to leave it empty)"
+    done
+    conf_set BOOTSTRAP_BASE_URL "$value"
+    say "  Devices download from: ${value:-https://<call-home IP>:${port:-8000}}/bootstrap/..."
+}
+
 # Asks for SITE_URL when a feature needs it and it is still empty. Returns 1 when left empty.
 need_site_url() {
     [[ -n "$(conf_get SITE_URL)" ]] && return 0

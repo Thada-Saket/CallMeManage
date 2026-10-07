@@ -5,7 +5,8 @@
 #
 #   sudo ./install_service.sh               install, or update after `git pull` (safe to run again:
 #                                           existing things are skipped, answers are kept)
-#   sudo ./install_service.sh --configure   choose the call-home address and website address again
+#   sudo ./install_service.sh --configure   choose the call-home addresses, website address and
+#                                           bootstrap URL again
 #        ./install_service.sh --check       check the config file only
 #   DRY_RUN=1 ./install_service.sh          show what would be done, change nothing
 #
@@ -57,7 +58,9 @@ fi
 if [[ "$MODE" == "--configure" ]]; then
     [[ -f "$CONF_FILE" ]] || die "$CONF_FILE not found - run the full install first"
     choose_callhome_address force
+    choose_callhome_listen_address force
     configure_site
+    configure_bootstrap
     configure_external_services
     check_config || true
     build_frontend_if_needed
@@ -76,6 +79,7 @@ create_config_file
 setup_postgresql
 setup_redis
 choose_callhome_address
+choose_callhome_listen_address
 create_ssh_keys
 create_certificate
 install_backend
@@ -86,6 +90,7 @@ install_frontend
 # (change them with `sudo callmemanage config`, `callmemanage setup ...` or --configure).
 if [[ ! -f "$BUILT_ROOT_FILE" ]]; then
     configure_site
+    configure_bootstrap
     configure_external_services
 fi
 create_first_account

@@ -38,6 +38,17 @@ def where(key: str, numbers: dict[str, int]) -> str:
     return f" (line {numbers[key]})" if key in numbers else ""
 
 
+def is_local_address(address: str) -> bool:
+    # only an address of this machine can be bound (port 0 = any free port, closed at once)
+    import socket
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+            probe.bind((address, 0))
+        return True
+    except OSError:
+        return False
+
+
 def readable_file(label: str, value: str, problems: list[str]) -> None:
     path = Path(value)
     path = path if path.is_absolute() else ROOT / path
@@ -91,6 +102,15 @@ def main() -> int:
         if not CLOUD_SERVER_IP:
             problems.append(f"call-home address: interface '{settings.CALLHOME_INTERFACE}' has no IPv4 "
                             "and CALLHOME_ADDRESS is empty - run: sudo ./install_service.sh --configure")
+
+        listen = settings.CALLHOME_LISTEN_ADDRESS
+        if listen != "0.0.0.0":
+            if not is_local_address(listen):
+                problems.append(f"CALLHOME_LISTEN_ADDRESS {listen} is not an address of this machine any more "
+                                "(changed by DHCP?) - choose again: sudo ./install_service.sh --configure")
+            elif CLOUD_SERVER_IP and CLOUD_SERVER_IP != listen:
+                warnings.append(f"devices are told to call home to {CLOUD_SERVER_IP}, but call-home only listens on "
+                                f"{listen} - they cannot connect unless a NAT forwards one to the other")
 
         if not settings.TURNSTILE_ENABLED:
             warnings.append("Cloudflare is off - no bot check before the website or on login (rate limits only). "
