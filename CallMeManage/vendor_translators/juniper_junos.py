@@ -25,7 +25,6 @@ from pydantic import StrictInt, validate_call
 from typing import Awaitable, Callable, Literal
 
 from vendor_translators.juniper_acl import (
-    build_juniper_term_xml,
     build_juniper_replace_acl_payload,
     build_juniper_replace_interface_bindings_payload,
 )
@@ -5481,7 +5480,7 @@ def remove_ntp_server(
 ''')
 
 def commit():
-    return open_rpc_tag(F'''<commit/>''')
+    return open_rpc_tag('''<commit/>''')
 
 def get_capability_schema():
     return open_rpc_tag('''
@@ -5495,12 +5494,12 @@ def get_capability_schema():
 ''')
 
 def reboot():
-    return open_rpc_tag(F'''
+    return open_rpc_tag('''
       <request-reboot/>
     ''')
 
 def get_local_user():
-    return open_rpc_tag(f'''
+    return open_rpc_tag('''
      <get-config>
       <source>
         <running/>

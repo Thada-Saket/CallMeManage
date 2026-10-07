@@ -141,7 +141,7 @@ function buildJuniperInterfaceRows(juniperOspf, ifaceRows) {
 // เหมือนเดิม เพราะ Junos operational RPC (get-route-information/get-interface-
 // information) เป็นคนละ RPC verb กับ get-config เลยรวมเป็น request เดียวไม่ได้
 // แบบ Cisco ที่ทุกอย่างผ่าน <get><filter type="subtree"> เหมือนกันหมด) ----------
-function OspfPage({ devId, vendor, ospfResult, routesPayload, ifaceRows, busy, onRefresh, readError = "", onDismissReadError }) {
+function OspfPage({ devId, vendor, ospfResult, routesPayload, ifaceRows, onRefresh, readError = "", onDismissReadError }) {
   const isJuniper = vendor === "juniper";
   const [formOpen, setFormOpen] = useState(false); // toggle "Enable OSPF" - ใช้ร่วมกันทั้ง 2 ยี่ห้อ
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);

@@ -7,15 +7,12 @@
 # - Recovery CLI: คืนคำสั่งสำหรับผู้ใช้วางเองที่อุปกรณ์ แสดงครั้งเดียว ไม่เก็บลง DB/Bootstrap payload
 # ไฟล์นี้ไม่มี DB/UI logic ไม่ log/print secret (token/hash/IP/fingerprint) และไม่คืน token ใน exception
 import itertools
-from typing import Optional
-from xml.etree import ElementTree as ET
 
 from backend.callhome_token_probe import (
     CALLHOME_PARENT_NAME,
     _child_text,
     _children,
     _descendants,
-    _local,
     _same_ip,
     _same_port,
     parse_reply,

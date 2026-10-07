@@ -12,7 +12,6 @@ import conn_socket (กัน import วน) และทดสอบได้�
 """
 from datetime import datetime, timezone
 from typing import Awaitable, Callable
-from xml.etree import ElementTree as ET
 
 from tools.safe_xml import safe_fromstring
 from backend.translator_service import module_for_vendor

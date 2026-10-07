@@ -460,7 +460,7 @@ export default function Interfaces({ devId, vendor, model }) {
           network: pool.network,
         }, { allowFailure: true });
       }
-    } catch (cleanupErr) {
+    } catch {
       try {
         await sleep(POST_INTERFACE_COMMIT_DELAY_MS);
         await runDeviceCommand(devId, "remove_dhcp_pool", {

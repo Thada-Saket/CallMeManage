@@ -1,5 +1,4 @@
 import { runDeviceCommand } from "../../../api/api_devices";
-import { splitInterfaceName } from "../../../utils/interfaceName";
 
 // หา interface ที่มี "ip nat inside"/"outside" อยู่ตอนนี้ - อ่านจาก
 // get_switchport_information (Cisco เท่านั้น) ที่ normalize_switchport_layer

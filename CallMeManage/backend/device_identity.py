@@ -1,5 +1,4 @@
 import itertools
-from xml.etree import ElementTree as ET
 
 
 from tools.safe_xml import safe_fromstring

@@ -1,7 +1,6 @@
 """ |======= Redis Session Initial =======| """
 
 import redis.asyncio as redis
-from redis.exceptions import RedisError
 
 from backend.core.load_environment import load_environment
 

@@ -17,7 +17,7 @@ from backend.model.models import (
     Site_Member,
     generate_timestamp,
 )
-from typing import List, Optional, Tuple
+from typing import List, Optional
 from backend.schema.schema import DeviceUpdate
 from backend.device_lifecycle import device_lifecycle
 from backend.device_metadata_probe import MAX_FIELD_LENGTH, MAX_NAME_LENGTH, safe_display_value

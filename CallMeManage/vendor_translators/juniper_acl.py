@@ -7,6 +7,7 @@ from __future__ import annotations
 import hashlib
 import ipaddress
 import re
+from typing import Any
 from xml.etree import ElementTree as ET
 from tools.safe_xml import safe_fromstring
 from xml.sax.saxutils import escape
@@ -869,7 +870,6 @@ def build_juniper_replace_acl_payload(
         expected_revision=revision,
     )
     name = validated["name"]
-    eff_mode = validated["mode"]
 
     # When reference_config is provided, perform term-level atomic patch with Brownfield safety
     if reference_config:

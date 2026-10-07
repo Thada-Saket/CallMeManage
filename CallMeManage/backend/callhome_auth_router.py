@@ -16,12 +16,11 @@ from enum import Enum
 from hashlib import sha256
 from typing import Callable, Optional, Union
 
-from backend.callhome_auth_mode import TOKEN, get_auth_mode, validate_mode
+from backend.callhome_auth_mode import get_auth_mode, validate_mode
 from backend.callhome_token_probe import PROBE_STEPS, ProbeStatus, read_token_marker
 from backend.crud.dev_crud.crud_device_enrollment import (
     find_devices_by_fingerprint,
     get_device_for_enrollment,
-    get_pending_enrollment_by_token_hash,
     get_pending_enrollments_by_token_hashes,
 )
 from backend.enrollment_token_service import hash_enrollment_token, validate_enrollment_token

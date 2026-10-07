@@ -2,7 +2,7 @@
 import secrets
 from typing import List, Optional, Tuple, Literal
 
-from sqlalchemy import func, or_
+from sqlalchemy import func
 from sqlalchemy.orm import selectinload
 from sqlmodel import delete, select
 from sqlalchemy.exc import IntegrityError

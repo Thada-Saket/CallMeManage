@@ -25,8 +25,8 @@ from tools.net_input_policy import (
     validate_psk,
 )
 
-from pydantic import StrictInt, validate_call, ValidationError, Field
-from typing import Awaitable, Callable, Literal, Annotated
+from pydantic import StrictInt, validate_call
+from typing import Awaitable, Callable, Literal
 
 
 NS_RPC = "urn:ietf:params:xml:ns:netconf:base:1.0"
@@ -1319,23 +1319,7 @@ def remove_dhcp_relay(interface_type: str, interface_id: str, helper_ip: str):
     '''))
 
 def get_dns_information():
-    return open_rpc_tag(F'''
-        <get>
-            <filter type="subtree">
-                <native xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-native">
-                    <ip>
-                        <dns/>
-                        <domain/>
-                        <name-server/>
-                    </ip>
-                </native>
-            </filter>
-        </get>
-    ''')
-
-
-def get_dns_information():
-    return open_rpc_tag(F'''
+    return open_rpc_tag('''
         <get>
             <filter type="subtree">
                 <native xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-native">
@@ -1436,7 +1420,7 @@ def set_dns_config(
 
 # ========= RIP Routing =========
 def get_rip_information():
-    return open_rpc_tag(F'''
+    return open_rpc_tag('''
 <get>
     <filter type="subtree">
         <native xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-native">
@@ -1591,7 +1575,7 @@ def set_rip_redistribute_static(enabled: bool = True) -> str:
 
 # ========= OSPF Routing =========
 def get_ospf_information():
-    return open_rpc_tag(F'''
+    return open_rpc_tag('''
 <get>
     <filter type="subtree">
         <native xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-native">
@@ -2787,7 +2771,7 @@ def replace_acl_interface_bindings(
             )
         elif intf in inbound_to_remove:
             dir_snippets.append(
-                f'<in xmlns:nc="urn:ietf:params:xml:ns:netconf:base:1.0" nc:operation="remove"/>'
+                '<in xmlns:nc="urn:ietf:params:xml:ns:netconf:base:1.0" nc:operation="remove"/>'
             )
 
         if intf in outbound_to_add:
@@ -2796,7 +2780,7 @@ def replace_acl_interface_bindings(
             )
         elif intf in outbound_to_remove:
             dir_snippets.append(
-                f'<out xmlns:nc="urn:ietf:params:xml:ns:netconf:base:1.0" nc:operation="remove"/>'
+                '<out xmlns:nc="urn:ietf:params:xml:ns:netconf:base:1.0" nc:operation="remove"/>'
             )
 
         if dir_snippets:
@@ -4540,7 +4524,7 @@ def set_ip_routing(
     '''))
 
 def get_switchport_information():
-    return open_rpc_tag(f'''
+    return open_rpc_tag('''
     <get>
         <filter type="subtree">
             <native xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-native">
@@ -5850,7 +5834,7 @@ def remove_ntp_server(
 # ''')
 
 def get_rpc_library():
-    return open_rpc_tag(f'''
+    return open_rpc_tag('''
     <get>
         <filter type="subtree">
             <netconf-state xmlns="urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring">
@@ -5861,7 +5845,7 @@ def get_rpc_library():
 ''')
 
 def get_dna_lic():
-    return open_rpc_tag(f'''
+    return open_rpc_tag('''
     <get-config>
         <source>
             <running/>
@@ -5899,7 +5883,7 @@ def get_boot_license():
 ''')
 
 def reboot():
-    return open_rpc_tag(f'''
+    return open_rpc_tag('''
     <reload xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-rpc">
         <force>true</force>
         <reason>Forced reboot requested by controller</reason>
@@ -5907,7 +5891,7 @@ def reboot():
     ''')
 
 def get_local_user():
-    return open_rpc_tag(f'''
+    return open_rpc_tag('''
      <get-config>
     <source>
       <running/>
@@ -6033,7 +6017,7 @@ def delete_local_user(username: str):
     '''))
 
 def factory_reset():
-    return open_rpc_tag(f'''
+    return open_rpc_tag('''
         <factory-reset xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-rpc">
             <all/>
         </factory-reset>

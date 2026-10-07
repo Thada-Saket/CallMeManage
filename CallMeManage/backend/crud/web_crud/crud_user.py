@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Optional
 
 # sql tools
-from sqlmodel import select, or_, delete, update
+from sqlmodel import select, delete, update
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlmodel.ext.asyncio.session import AsyncSession

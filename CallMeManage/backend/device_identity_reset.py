@@ -30,7 +30,7 @@ from backend.callhome_identity_writer import (
 )
 from backend.conn_socket import callhome_service
 from backend.core.connect_database import AsyncSessionFactory
-from backend.core.redis_lock import DeviceLock, DeviceLockBusy
+from backend.core.redis_lock import DeviceLock
 from backend.crud.dev_crud.crud_dev_history import create_history
 from backend.crud.dev_crud.crud_device_enrollment import (
     get_enrollment_by_device_id,

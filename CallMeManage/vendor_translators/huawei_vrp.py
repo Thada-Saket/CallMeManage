@@ -251,7 +251,7 @@ def get_device_version():
     ''')
 
 def get_ntp():
-    return open_rpc_tag(f'''
+    return open_rpc_tag('''
         <get>
           <filter type="subtree">
             <ntp xmlns="http://www.huawei.com/netconf/vrp/huawei-ntp"/>
@@ -322,7 +322,7 @@ def get_mac_table_information():
 </rpc>'''
 
 def get_lcs():
-    return open_rpc_tag(f'''
+    return open_rpc_tag('''
       <get>
         <filter type="subtree">
           <lcs xmlns="http://www.huawei.com/netconf/vrp/huawei-lcs">
@@ -1043,7 +1043,7 @@ def remove_static_route(
 # ietf-yang-library
 
 def get_ntp_information():
-    return open_rpc_tag(f'''
+    return open_rpc_tag('''
     <get>
       <filter type="subtree">
         <ntp xmlns="http://www.huawei.com/netconf/vrp/huawei-ntp"/>
@@ -1125,7 +1125,7 @@ def get_capability_schema():
 ''')
 
 def reboot():
-    return open_rpc_tag(f'''
+    return open_rpc_tag('''
     <reboot xmlns="http://www.huawei.com/netconf/vrp/huawei-devm">
       <saveConfig>true</saveConfig>
     </reboot>
@@ -1253,7 +1253,7 @@ def delete_local_user(username: str):
     '''))
 
 def factory_reset():
-    return open_rpc_tag(f'''
+    return open_rpc_tag('''
         <delete-config>
           <target>
             <startup/>

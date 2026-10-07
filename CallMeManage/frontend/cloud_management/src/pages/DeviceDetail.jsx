@@ -45,18 +45,6 @@ import {
 import { DeviceCapabilityContext, hiddenCommandsFrom, hiddenOptionsFrom } from "../hooks/deviceCapability";
 import { parseIpRouting, showCiscoRouteModeItem } from "../utils/ciscoRouteMode";
 
-// dev_status ที่ backend ส่งมาตอนนี้คือสถานะ connection จริง (ดู
-// backend/api/device_router.py's _live_status) ไม่ใช่แค่ "เคย claim หรือยัง" อีก
-// ต่อไป - "active" ตรงกับ session ที่ยังต่ออยู่จริง (แสดง "Online" ให้ผู้ใช้เข้าใจ
-// ง่ายกว่า) "online" เก็บไว้เป็น alias เผื่ออนาคตเปลี่ยนชื่อค่าฝั่ง backend
-const STATUS_LABEL = {
-  active: { text: "Online", cls: "badge-active" },
-  online: { text: "Online", cls: "badge-active" },
-  pending: { text: "Pending", cls: "badge-pending" },
-  offline: { text: "Offline", cls: "badge-offline" },
-  rejected: { text: "Rejected", cls: "badge-rejected" },
-};
-
 // เทียบเท่า basic_info.jsx/Devices.jsx (10 วิ) - GET /devices/{id} query DB เบาๆ
 // ไม่ใช่ NETCONF RPC เลย poll ถี่ขนาดนี้ได้อย่างปลอดภัย ทำให้ badge สถานะ +
 // Offline Alert Modal/read-only lock/banner อัปเดตเองแบบ real-time (ทั้งตอนหลุด
@@ -647,12 +635,6 @@ export default function DeviceDetail() {
     } finally {
       setSubmitting(false);
     }
-  }
-
-  function handleSelectConfigCommand(name) {
-    setSelectedCommand(name);
-    setCommandResult(null);
-    setCommandError("");
   }
 
   function handleSubmitConfigCommand(parameters) {

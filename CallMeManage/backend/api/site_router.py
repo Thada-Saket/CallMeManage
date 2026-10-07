@@ -33,8 +33,6 @@ from backend.crud.web_crud.crud_site import (
     rename_site,
     transfer_ownership,
     update_site_member,
-
-    get_site_member
 )
 from backend.crud.web_crud.crud_user import get_user_by_email
 

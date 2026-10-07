@@ -1,6 +1,5 @@
 import copy
 import hashlib
-from typing import Any
 from xml.etree import ElementTree as ET
 from tools.safe_xml import safe_fromstring
 from xml.sax.saxutils import escape

@@ -54,8 +54,6 @@ export default function AclInterfaceBindingModal({
     );
   }
 
-  const isUnbindingAll = inbound.length === 0 && outbound.length === 0;
-
   async function handleSubmit(e) {
     e.preventDefault();
     setSubmitting(true);

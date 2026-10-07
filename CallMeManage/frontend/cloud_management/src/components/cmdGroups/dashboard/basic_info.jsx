@@ -1,7 +1,6 @@
 import DismissibleError from "../../DismissibleError";
 import { useEffect, useState } from "react";
 import { getDeviceStats } from "../../../api/api_devices";
-import { Reload_Result } from "../../commandResult/reload_command_result";
 
 // 10 วิ - ตรงกับ backend's STATS_POLL_INTERVAL (conn_socket.py's
 // _poll_stats_loop) พอดี - endpoint /devices/{id}/stats อ่านจาก cache ที่
@@ -85,7 +84,7 @@ export default function BasicInfo({ devId, device, presentUsers, currentUser }) 
           </tr>
           <tr>
             <td>Device Vendor</td>
-            <td>{(device?.dev_vendor).toUpperCase() || "-"}</td>
+            <td>{device?.dev_vendor?.toUpperCase() || "-"}</td>
           </tr>
           <tr>
             <td>Device IP</td>

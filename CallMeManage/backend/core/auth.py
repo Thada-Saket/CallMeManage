@@ -84,7 +84,7 @@ async def is_token_revoked(payload: dict) -> bool:
         print(f"[!] Redis token service is unavailable: {exc}")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Authorization failed",
+            detail="Authorization failed",
         )
 
 # ล้าง access token เมื่อค่าที่กรอกเข้ามาไม่ใช่ payload ว่างหรือหมดอายุแล้ว

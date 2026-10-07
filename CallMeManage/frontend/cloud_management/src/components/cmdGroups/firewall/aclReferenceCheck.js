@@ -1,11 +1,4 @@
 import { runDeviceCommand } from "../../../api/api_devices.js";
-import { parseInterfaceAclBindings } from "./aclInterfaceBindings.js";
-import { findCiscoAclZbfUsage } from "./ciscoZbfParser.js";
-
-function ensureArray(value) {
-  if (value === undefined || value === null) return [];
-  return Array.isArray(value) ? value : [value];
-}
 
 export const MAX_ACL_SEQUENCE = 2147483647;
 

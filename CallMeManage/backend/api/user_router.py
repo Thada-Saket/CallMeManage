@@ -8,7 +8,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from backend.core.security_audit import audit_security_event
 from backend.api.user_deps import get_current_user, rate_limit_by_user
 from backend.core.connect_database import get_session
-from backend.crud.web_crud.crud_site import count_owned_sites, list_user_invitations, respond_to_invitation
+from backend.crud.web_crud.crud_site import list_user_invitations, respond_to_invitation
 from backend.crud.web_crud.crud_user import delete_user_full, get_user_by_email
 from backend.model.models import User_Table
 from backend.schema.site_schema import InvitationRead

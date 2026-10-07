@@ -9,8 +9,7 @@ import re
 from xml.etree import ElementTree as ET
 
 from tools.safe_xml import safe_fromstring
-from hashlib import sha1
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 
 from backend.core.load_environment import load_environment
 from backend.core.connect_database import AsyncSessionFactory
@@ -34,7 +33,6 @@ from backend.callhome_auth_mode import enforce_startup_mode
 from backend.callhome_auth_router import (
     CallhomeAuthRouter,
     FingerprintReconnect,
-    NotFingerprintRoute,
     PendingEnrollmentCandidate,
     QUARANTINE_RPC_TIMEOUT,
     QUARANTINE_TOTAL_TIMEOUT,
@@ -149,13 +147,14 @@ SILENCE_CUTOFF_SECONDS = 90
 # ทั้งก้อนเสมอ (ดู _register_session) ไม่มีทางเหลือค้างข้าม session
 CISCO_NAT_QUARANTINE_SECONDS = 25
 
-def load_auth_keys() -> list:
+def load_auth_keys() -> asyncssh.SSHKey | None:
     key_path = load_environment().SSH_KEY_PATH
     try:
-        keys = asyncssh.read_private_key(str(key_path))
+        return asyncssh.read_private_key(str(key_path))
     except Exception as e:
+        # None = no key is offered to devices (public_key_auth_requested returns None)
         print(f"WARNING: could not load rsa key: {e}")
-    return keys
+        return None
 
 MNG_USER = load_environment().MNG_USER
 SSH_KEY = load_auth_keys()

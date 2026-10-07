@@ -1,7 +1,6 @@
 """ |======= API Device Management =======| """
 
 # python tools
-import ipaddress
 import json
 import re
 from xml.etree import ElementTree as ET
@@ -48,7 +47,6 @@ from backend.crud.dev_crud.crud_device_enrollment import get_pending_expirations
 from backend.crud.dev_crud.crud_dev_info import (
     delete_device_full,
     get_device,
-    get_first_owned_site,
     list_devices_for_user,
 )
 from backend.crud.dev_crud.crud_dev_config_object import (
@@ -2060,7 +2058,6 @@ async def run_device_command(
                     dev_id, build_payload("juniper", "get_security_policy_information", {})
                 )
                 from vendor_translators.juniper_security_policy import find_juniper_security_policy
-                import xml.etree.ElementTree as ET
 
                 from_zone = body.parameters.get("from_zone", "")
                 to_zone = body.parameters.get("to_zone", "")
@@ -2671,7 +2668,7 @@ async def reset_device_identity_endpoint(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc))
     except DeviceInconsistentStateError as exc:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc))
-    except Exception as exc:
+    except Exception:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Device identity reset failed")
     audit_security_event("device.identity_reset", "SUCCEEDED", request=http_request,
                          actor_id=current_user.usr_id, dev_id=dev_id)

@@ -28,7 +28,7 @@ export function isPasswordValid(password) {
 }
 
 // คืนข้อความ error หรือ null ; เรียกเมื่อเปิด toggle เท่านั้น
-export function validateLocalAdmin({ vendor, username, password, reservedUsername }) {
+export function validateLocalAdmin({ username, password, reservedUsername }) {
   const name = (username || "").trim();
   if (!name) return "Enter the Local Administrator Username.";
   if (!USERNAME_PATTERN.test(name)) {
