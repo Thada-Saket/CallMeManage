@@ -70,6 +70,7 @@ if [[ "$MODE" == "--configure" ]]; then
     configure_site
     configure_bootstrap
     configure_external_services
+    configure_signup
     check_config || true
     build_frontend_if_needed
     restart_services || true
@@ -100,6 +101,7 @@ if [[ ! -f "$BUILT_ROOT_FILE" ]]; then
     configure_site
     configure_bootstrap
     configure_external_services
+    configure_signup
 fi
 create_first_account
 

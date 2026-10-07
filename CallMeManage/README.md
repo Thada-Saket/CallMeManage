@@ -24,7 +24,9 @@ again) and only asks:
 5. Where devices download their config (`BOOTSTRAP_BASE_URL`) - press Enter to leave it empty
    (recommended: straight from this machine)
 6. Whether to set up Cloudflare / Email / Google now (optional - the system works without them)
-7. The first website account: username, email, password
+7. Whether people may create their own account (Sign Up) - off by default; it needs Email
+   or Google
+8. The first website account: username, email, password
 
 When it finishes, the system runs as Linux services: it starts on boot and restarts after a
 crash. Website at `https://<machine>:8080` · API and bootstrap files at `:8000` · device

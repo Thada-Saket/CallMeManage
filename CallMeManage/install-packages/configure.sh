@@ -249,6 +249,27 @@ configure_external_services() {
     return 0
 }
 
+# SIGNUP_ENABLED: may people create their own account? Asked after the external services,
+# because sign-up only works through email codes or Google.
+configure_signup() {
+    step "Sign-up on the website"
+    say "  May people create their own account with the Sign Up button?"
+    say "  No = only an admin creates accounts (sudo callmemanage user add)."
+    local default=n
+    [[ "$(conf_get SIGNUP_ENABLED)" =~ ^([Tt]rue|[Yy]es|[Oo]n|1)$ ]] && default=y
+    if yes_no "Allow sign-up?" "$default"; then
+        conf_set SIGNUP_ENABLED true
+        say "  Sign-up is ON - anyone who can open the website can create an account."
+        if [[ ! "$(conf_get EMAIL_ENABLED)" =~ ^([Tt]rue|[Yy]es|[Oo]n|1)$ && ! "$(conf_get GOOGLE_ENABLED)" =~ ^([Tt]rue|[Yy]es|[Oo]n|1)$ ]]; then
+            warn "sign-up needs email (for the code) or Google sign-in, and both are off - nobody can"
+            warn "finish signing up until one is on: sudo callmemanage setup email (or google)"
+        fi
+    else
+        conf_set SIGNUP_ENABLED false
+        say "  Sign-up is OFF - create accounts with: sudo callmemanage user add"
+    fi
+}
+
 create_first_account() {
     step "First website account"
     if [[ "${DRY_RUN:-0}" == "1" ]]; then say "  (dry-run) ask for username, email and password"; return; fi
