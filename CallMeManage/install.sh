@@ -3,12 +3,14 @@
 # /etc/callmemanage/callmemanage.conf and runs the system as services that start on boot:
 # the website (FRONTEND_PORT, default 8080) and the backend (API 8000, device call-home 4334).
 #
-#   sudo ./install_service.sh               install, or update after `git pull` (safe to run again:
-#                                           existing things are skipped, answers are kept)
-#   sudo ./install_service.sh --configure   choose the call-home addresses, website address and
-#                                           bootstrap URL again
-#        ./install_service.sh --check       check the config file only
-#   DRY_RUN=1 ./install_service.sh          show what would be done, change nothing
+#   sudo ./install.sh               install, or update after `git pull` (safe to run again:
+#                                   existing things are skipped, answers are kept)
+#   sudo ./install.sh --configure   choose the call-home addresses, website address and
+#                                   bootstrap URL again
+#   sudo ./install.sh --uninstall   same as sudo ./uninstall.sh: remove the services, command and
+#                                   config file (asks about the database and keys) to start over
+#        ./install.sh --check       check the config file only
+#   DRY_RUN=1 ./install.sh          show what would be done, change nothing
 #
 # Afterwards everything is done with the callmemanage command (callmemanage help).
 set -euo pipefail
@@ -18,21 +20,22 @@ DRY_RUN="${DRY_RUN:-0}"
 MODE="${1:-install}"
 APP_USER="${APP_USER:-${SUDO_USER:-$(id -un)}}"
 
-source "$PROJECT_ROOT/install/lib.sh"
-source "$PROJECT_ROOT/install/system.sh"
-source "$PROJECT_ROOT/install/database.sh"
-source "$PROJECT_ROOT/install/secrets.sh"
-source "$PROJECT_ROOT/install/backend.sh"
-source "$PROJECT_ROOT/install/frontend.sh"
-source "$PROJECT_ROOT/install/configure.sh"
-source "$PROJECT_ROOT/install/service.sh"
+source "$PROJECT_ROOT/install-packages/lib.sh"
+source "$PROJECT_ROOT/install-packages/system.sh"
+source "$PROJECT_ROOT/install-packages/database.sh"
+source "$PROJECT_ROOT/install-packages/secrets.sh"
+source "$PROJECT_ROOT/install-packages/backend.sh"
+source "$PROJECT_ROOT/install-packages/frontend.sh"
+source "$PROJECT_ROOT/install-packages/configure.sh"
+source "$PROJECT_ROOT/install-packages/service.sh"
+source "$PROJECT_ROOT/install-packages/uninstall.sh"
 
 check_config() {
     step "Checking $CONF_FILE"
     if [[ -x "$VENV_DIR/bin/python" ]]; then
         as_app_user "cd '$PROJECT_ROOT' && '$VENV_DIR/bin/python' tools/env_check.py"
     else
-        warn ".venv not created yet - run: sudo ./install_service.sh"
+        warn ".venv not created yet - run: sudo ./install.sh"
         return 1
     fi
 }
@@ -42,17 +45,22 @@ case "$MODE" in
         check_config
         exit $?
         ;;
-    install|--configure) ;;
+    install|--configure|--uninstall) ;;
     *)
-        die "unknown option '$MODE' (use --configure or --check)"
+        die "unknown option '$MODE' (use --configure, --uninstall or --check)"
         ;;
 esac
 
 if [[ "$DRY_RUN" != "1" && "${EUID}" -ne 0 ]]; then
-    die "run with sudo: sudo ./install_service.sh $([[ "$MODE" == install ]] || echo "$MODE")"
+    die "run with sudo: sudo ./install.sh $([[ "$MODE" == install ]] || echo "$MODE")"
 fi
 if [[ "$DRY_RUN" != "1" && "$APP_USER" == "root" ]]; then
     die "run through sudo from the user that owns the project (the app must not run as root)"
+fi
+
+if [[ "$MODE" == "--uninstall" ]]; then
+    uninstall_callmemanage
+    exit 0
 fi
 
 if [[ "$MODE" == "--configure" ]]; then

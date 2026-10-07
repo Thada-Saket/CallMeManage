@@ -1,4 +1,4 @@
-# System packages and Node.js (sourced by install_service.sh). Anything present is skipped.
+# System packages and Node.js (sourced by install.sh). Anything present is skipped.
 
 APT_PACKAGES=(python3 python3-pip python3-venv postgresql postgresql-contrib redis-server
               openssl curl ca-certificates gnupg)

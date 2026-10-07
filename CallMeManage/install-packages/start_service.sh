@@ -6,15 +6,16 @@
 # Logs are appended to logs/backend.log and logs/frontend.log (rotated daily). Ctrl+C stops both.
 set -euo pipefail
 
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# this script lives in install-packages/; the project is one level up
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$PROJECT_ROOT"
 export CALLMEMANAGE_CONF="${CALLMEMANAGE_CONF:-/etc/callmemanage/callmemanage.conf}"
 
 if [[ "${EUID}" -eq 0 ]]; then
-    echo "Do not start the system as root; run ./start_service.sh as the project user." >&2
+    echo "Do not start the system as root; run ./install-packages/start_service.sh as the project user." >&2
     exit 1
 fi
-[[ -x .venv/bin/python ]] || { echo "Not installed yet - run: sudo ./install_service.sh" >&2; exit 1; }
+[[ -x .venv/bin/python ]] || { echo "Not installed yet - run: sudo ./install.sh" >&2; exit 1; }
 if systemctl is-active --quiet callmemanage-backend.service callmemanage-frontend.service 2>/dev/null; then
     echo "CallMe Manage already runs as a service (it holds the ports) - stop it first: sudo callmemanage stop" >&2
     exit 1

@@ -18,7 +18,7 @@ juniper.pcapng
 zHuawei/*
 _not-include
 
-# install_service.sh outputs
+# install.sh outputs
 .venv/
 frontend/cloud_management/dist/
 __pycache__/

@@ -1,4 +1,4 @@
-# Config file, keys, certificate and call-home address (sourced by install_service.sh).
+# Config file, keys, certificate and call-home address (sourced by install.sh).
 # Nothing that already exists is overwritten.
 
 # openssl 3.0 (Ubuntu 24.04) has no -quiet: hide its progress dots, show the output only on failure
@@ -13,8 +13,8 @@ create_config_file() {
     if [[ -f "$CONF_FILE" ]]; then
         skip "exists (only empty values are filled)"
     else
-        todo "create from callmemanage.conf.example"
-        run install -m 0640 -o root -g "$APP_GROUP" "$PROJECT_ROOT/callmemanage.conf.example" "$CONF_FILE"
+        todo "create from install-packages/callmemanage.conf.example"
+        run install -m 0640 -o root -g "$APP_GROUP" "$PROJECT_ROOT/install-packages/callmemanage.conf.example" "$CONF_FILE"
         if [[ -f "$LEGACY_ENV_FILE" ]]; then migrate_legacy_env; fi
     fi
     if conf_unset JWT_SECRET_KEY; then todo "generate JWT_SECRET_KEY"; conf_set JWT_SECRET_KEY "$(random_secret 32)"; else skip "JWT_SECRET_KEY"; fi

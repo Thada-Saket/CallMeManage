@@ -1,5 +1,5 @@
 # Step-by-step setup of the website address and the external services, shared by
-# install_service.sh and `callmemanage setup ...` (sourced, not run directly).
+# install.sh and `callmemanage setup ...` (sourced, not run directly).
 # Each wizard asks everything first, tests what it can, and writes the config file only
 # at the end - an aborted wizard changes nothing.
 

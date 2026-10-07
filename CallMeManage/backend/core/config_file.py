@@ -1,7 +1,7 @@
 """ |======= Where the configuration file lives =======|
 
 All settings (ports, certificate, keys of external services, database URLs ...) are in
-one file, /etc/callmemanage/callmemanage.conf, written by install_service.sh and edited
+one file, /etc/callmemanage/callmemanage.conf, written by install.sh and edited
 with `sudo callmemanage config`. It lives outside the project folder, so `git pull`
 never touches it.
 

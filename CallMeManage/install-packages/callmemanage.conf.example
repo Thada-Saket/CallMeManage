@@ -52,7 +52,7 @@ TLS_KEY_FILE=
 
 # The IP devices call home to (Cisco/Huawei accept IPv4 only), chosen by the installer:
 # CALLHOME_ADDRESS (a fixed IPv4) wins, otherwise the IPv4 of CALLHOME_INTERFACE.
-# Change it with: sudo ./install_service.sh --configure
+# Change it with: sudo ./install.sh --configure
 CALLHOME_INTERFACE=
 CALLHOME_ADDRESS=
 

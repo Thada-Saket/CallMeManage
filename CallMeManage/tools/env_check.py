@@ -65,7 +65,7 @@ def main() -> int:
     shown = os.environ.get("CALLMEMANAGE_CONF_SHOWN") or str(path)
     problems, warnings = [], []
     if not path.is_file():
-        print(f"[x] {path} not found - run: sudo ./install_service.sh")
+        print(f"[x] {path} not found - run: sudo ./install.sh")
         return 1
     if not os.access(path, os.R_OK):
         print(f"[x] {path} is not readable by this user - run the check with: sudo callmemanage check")
@@ -101,13 +101,13 @@ def main() -> int:
         from backend.cli_generator import CLOUD_SERVER_IP
         if not CLOUD_SERVER_IP:
             problems.append(f"call-home address: interface '{settings.CALLHOME_INTERFACE}' has no IPv4 "
-                            "and CALLHOME_ADDRESS is empty - run: sudo ./install_service.sh --configure")
+                            "and CALLHOME_ADDRESS is empty - run: sudo ./install.sh --configure")
 
         listen = settings.CALLHOME_LISTEN_ADDRESS
         if listen != "0.0.0.0":
             if not is_local_address(listen):
                 problems.append(f"CALLHOME_LISTEN_ADDRESS {listen} is not an address of this machine any more "
-                                "(changed by DHCP?) - choose again: sudo ./install_service.sh --configure")
+                                "(changed by DHCP?) - choose again: sudo ./install.sh --configure")
             elif CLOUD_SERVER_IP and CLOUD_SERVER_IP != listen:
                 warnings.append(f"devices are told to call home to {CLOUD_SERVER_IP}, but call-home only listens on "
                                 f"{listen} - they cannot connect unless a NAT forwards one to the other")

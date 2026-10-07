@@ -138,7 +138,7 @@ async def health():
     return {"status": "ok"}
 
 
-# Entry point of the callmemanage-backend service and of start_service.sh. Host, port and
+# Entry point of the callmemanage-backend service and of install-packages/start_service.sh. Host, port and
 # certificate come from the config file (BIND_HOST, BACKEND_PORT, TLS_CERT_FILE, TLS_KEY_FILE).
 # One worker only: device sessions live in this process's memory.
 if __name__ == "__main__":

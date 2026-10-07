@@ -1,5 +1,5 @@
 # Backend runtime dependencies (FastAPI + NETCONF call-home + Postgres + Redis)
-# ติดตั้งด้วย: pip install -r requirements.txt
+# ติดตั้งด้วย: pip install -r install-packages/requirements.txt
 
 fastapi==0.136.1
 uvicorn==0.46.0

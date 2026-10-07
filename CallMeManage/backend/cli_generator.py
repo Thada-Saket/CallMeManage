@@ -29,7 +29,7 @@ def _required(data: dict, *fields: str):
 
 ADMIN_USERNAME = load_environment().MNG_USER
 def _callhome_address() -> str | None:
-    # set by install_service.sh: a fixed IPv4 (CALLHOME_ADDRESS) or an interface whose IPv4 is used
+    # set by install.sh: a fixed IPv4 (CALLHOME_ADDRESS) or an interface whose IPv4 is used
     settings = load_environment()
     return settings.CALLHOME_ADDRESS or get_interface_ip(settings.CALLHOME_INTERFACE)
 

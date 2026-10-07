@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # callmemanage - manage an installed CallMe Manage (installed as /usr/local/bin/callmemanage
-# by install_service.sh). Run `callmemanage help` for the commands.
+# by install.sh). Run `callmemanage help` for the commands.
 set -euo pipefail
 
 PROJECT_ROOT="${CALLMEMANAGE_PROJECT:-$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)}"
 APP_USER="${CALLMEMANAGE_USER:-$(stat -c %U "$PROJECT_ROOT")}"
 DRY_RUN=0
 
-source "$PROJECT_ROOT/install/lib.sh"
-source "$PROJECT_ROOT/install/secrets.sh"
-source "$PROJECT_ROOT/install/configure.sh"
-source "$PROJECT_ROOT/install/service.sh"
+source "$PROJECT_ROOT/install-packages/lib.sh"
+source "$PROJECT_ROOT/install-packages/secrets.sh"
+source "$PROJECT_ROOT/install-packages/configure.sh"
+source "$PROJECT_ROOT/install-packages/service.sh"
 
 usage() {
     cat <<EOF
@@ -33,6 +33,11 @@ CallMe Manage - config file: $CONF_FILE
   sudo callmemanage user passwd <name>   set a new password (username or email)
 
   sudo callmemanage start | stop | restart
+  sudo callmemanage uninstall            remove services, command and config (asks about data)
+
+  Same with systemctl:  systemctl start|stop|restart callmemanage
+                        systemctl status callmemanage.slice      (both at once)
+                        systemctl status callmemanage-backend    (or -frontend, one at a time)
 EOF
 }
 
@@ -161,8 +166,9 @@ case "${1:-help}" in
     setup)   cmd_setup "${2:-}" ;;
     disable) cmd_disable "${2:-}" ;;
     user)    cmd_user "${2:-}" "${3:-}" ;;
-    start)   require_root callmemanage start; systemctl start callmemanage.target ;;
-    stop)    require_root callmemanage stop; systemctl stop callmemanage.target ;;
+    start)   require_root callmemanage start; systemctl start "$GROUP_UNIT" ;;
+    stop)    require_root callmemanage stop; systemctl stop "$GROUP_UNIT" ;;
+    uninstall) require_root callmemanage uninstall; exec "$PROJECT_ROOT/install.sh" --uninstall ;;
     restart) require_root callmemanage restart; restart_services ;;
     help|-h|--help) usage ;;
     *) usage; exit 1 ;;

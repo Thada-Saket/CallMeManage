@@ -1,5 +1,5 @@
-# Frontend packages (React, Vite, ...) (sourced by install_service.sh).
-# The build itself is build_frontend in install/service.sh.
+# Frontend packages (React, Vite, ...) (sourced by install.sh).
+# The build itself is build_frontend in install-packages/service.sh.
 
 install_frontend() {
     step "Frontend packages (npm ci: React, Vite, ...)"

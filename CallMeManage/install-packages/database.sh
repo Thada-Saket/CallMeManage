@@ -1,4 +1,4 @@
-# Local PostgreSQL database/user and Redis connection (sourced by install_service.sh).
+# Local PostgreSQL database/user and Redis connection (sourced by install.sh).
 # Already-configured DB_URL / REDIS_URL in the config file are left alone (e.g. an existing remote DB).
 # Passwords are always chosen by the user - never generated - and may contain any character:
 # they are percent-encoded inside DB_URL / REDIS_URL and never pass through a command line.

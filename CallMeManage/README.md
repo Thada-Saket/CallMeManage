@@ -7,7 +7,7 @@ Manage Cisco / Juniper / Huawei network devices through NETCONF call-home.
 ```bash
 git clone https://github.com/Thada-Saket/Multi-Vendors-Cloud-Configuration-via-Netconf.git
 cd Multi-Vendors-Cloud-Configuration-via-Netconf
-sudo ./install_service.sh
+sudo ./install.sh
 ```
 
 The installer sets up everything (anything already present is skipped, so it is safe to run
@@ -30,7 +30,7 @@ When it finishes, the system runs as Linux services: it starts on boot and resta
 crash. Website at `https://<machine>:8080` · API and bootstrap files at `:8000` · device
 call-home at `:4334`
 
-**Updating:** `git pull`, then `sudo ./install_service.sh` again (no questions are asked
+**Updating:** `git pull`, then `sudo ./install.sh` again (no questions are asked
 twice; your settings are kept)
 
 ## After installing
@@ -49,13 +49,23 @@ so `git pull` never touches it). The file explains every setting and where to ge
 | `callmemanage logs` | Follow the log |
 | `callmemanage help` | Every command |
 
-The services can also be controlled with systemctl:
+The services can also be controlled with systemctl. One name controls both the backend and
+the website; each can still be checked on its own:
 
 ```bash
-sudo systemctl start | stop | restart callmemanage.target
-systemctl status 'callmemanage*'
-journalctl -u 'callmemanage*' -f
+sudo systemctl start | stop | restart callmemanage
+systemctl status callmemanage.slice           # both at once (a stopped one is missing from the list)
+systemctl status callmemanage-backend         # or callmemanage-frontend
+journalctl -u callmemanage-backend -u callmemanage-frontend -f
 ```
+
+`systemctl status callmemanage` only says whether the group was started; use the slice or
+`callmemanage status` to see if both are really running.
+
+**Uninstall / start over:** `sudo ./uninstall.sh` (same as `sudo ./install.sh --uninstall`
+or `sudo callmemanage uninstall`) removes the services, the command and the config file (a root-only backup is kept
+in `/root`). It asks before deleting the database, the Redis password, the built files and the
+call-home key - all kept by default. PostgreSQL, Redis and Node.js stay installed.
 
 After editing the file by hand, run `sudo callmemanage apply` (not only a restart): it checks
 the file first and rebuilds the website when `ROOT_PATH` changed.
@@ -91,7 +101,7 @@ the file first and rebuilds the website when `ROOT_PATH` changed.
 ## For developers
 
 ```bash
-cp callmemanage.conf.example callmemanage.conf      # then fill in DB_URL / REDIS_URL / JWT_SECRET_KEY
+cp install-packages/callmemanage.conf.example callmemanage.conf   # then fill in DB_URL / REDIS_URL / JWT_SECRET_KEY
 export CALLMEMANAGE_CONF=$PWD/callmemanage.conf
-./start_service.sh        # runs in the terminal (instead of the services) and writes logs/
+./install-packages/start_service.sh   # runs in the terminal (instead of the services) and writes logs/
 ```

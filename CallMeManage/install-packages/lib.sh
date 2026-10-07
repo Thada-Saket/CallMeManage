@@ -1,4 +1,4 @@
-# Shared helpers for install_service.sh and the callmemanage command (sourced, not run directly).
+# Shared helpers for install.sh and the callmemanage command (sourced, not run directly).
 # PROJECT_ROOT, APP_USER and DRY_RUN are set by the caller.
 
 FRONTEND_DIR="$PROJECT_ROOT/frontend/cloud_management"
