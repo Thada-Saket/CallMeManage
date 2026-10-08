@@ -50,6 +50,8 @@ so `git pull` never touches it). The file explains every setting and where to ge
 | `sudo callmemanage disable turnstile` / `email` / `google` | Turn that service off |
 | `sudo callmemanage user add` | Create a website account |
 | `sudo callmemanage user passwd <name>` | Set a new password for a user who forgot it |
+| `sudo callmemanage user list` | List website accounts |
+| `sudo callmemanage user delete <name>` | Delete an account and the sites it owns (same as Delete Account on the website) |
 | `callmemanage logs` | Follow the log |
 | `callmemanage help` | Every command |
 

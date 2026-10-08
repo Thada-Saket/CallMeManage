@@ -181,9 +181,9 @@ async def update_user_password(session: AsyncSession, user: User_Table, new_pass
 # การันตีว่าถ้า preview ขึ้นว่า "พบผู้ใช้" แล้วกดเชิญ จะต้องเจอ user คนเดิมเสมอ ไม่มีทางไม่ตรงกัน
 
 
-# DELETE /users/me - router เช็ค count_owned_sites(session, usr_id) == 0 มา
-# ก่อนแล้วเท่านั้นถึงจะเรียกฟังก์ชันนี้ - ลบตรงๆ ได้เลยไม่ต้องไล่ลบ child
-# table เองทีละตารางเหมือน delete_device_full เพราะ FK ทุกตัวที่ชี้มาที่
+# DELETE /users/me และ `sudo callmemanage user delete` - ลบ site ทุกแห่งที่ user
+# เป็นเจ้าของพร้อมอุปกรณ์/ประวัติของ site นั้นก่อน แล้วลบ user - แถวอื่นที่เหลือ
+# ไม่ต้องไล่ลบ child table เองทีละตารางเหมือน delete_device_full เพราะ FK ทุกตัวที่ชี้มาที่
 # user_table (site_member/device_history/device_access/
 # device_config_object/bootstrap_token) ถูกตั้ง ondelete=CASCADE หรือ
 # SET NULL ไว้ที่ระดับ DB แล้ว (ดู alembic migration

@@ -31,6 +31,8 @@ CallMe Manage - config file: $CONF_FILE
 
   sudo callmemanage user add             create a website account
   sudo callmemanage user passwd <name>   set a new password (username or email)
+  sudo callmemanage user list            list website accounts
+  sudo callmemanage user delete <name>   delete an account, like "Delete Account" on the website
 
   sudo callmemanage start | stop | restart
   sudo callmemanage uninstall            remove services, command and config (asks about data)
@@ -126,7 +128,24 @@ cmd_user() {
             [[ -n "${2:-}" ]] || die "usage: sudo callmemanage user passwd <username or email>"
             # the name travels in the environment, not inside the shell command
             USER_IDENTIFIER="$2" as_app_user "cd '$PROJECT_ROOT' && '$VENV_DIR/bin/python' tools/reset_password.py \"\$USER_IDENTIFIER\"" ;;
-        *) die "usage: sudo callmemanage user add | passwd <username or email>" ;;
+        list)   as_project_python tools/list_users.py ;;
+        delete)
+            [[ -n "${2:-}" ]] || die "usage: sudo callmemanage user delete <username or email>"
+            local rc=0
+            USER_IDENTIFIER="$2" as_app_user "cd '$PROJECT_ROOT' && '$VENV_DIR/bin/python' tools/delete_user.py \"\$USER_IDENTIFIER\"" || rc=$?
+            # 3 = devices were deleted: their call-home connections stay open in the backend
+            # until it restarts (the script runs in its own process and cannot close them)
+            if [[ $rc -eq 3 ]]; then
+                say "Devices of the deleted sites may still be connected to the running backend."
+                if yes_no "Restart CallMe Manage now to drop those connections?" y; then
+                    restart_services
+                else
+                    say "Later: sudo callmemanage restart"
+                fi
+                return 0
+            fi
+            return "$rc" ;;
+        *) die "usage: sudo callmemanage user add | list | passwd <username or email> | delete <username or email>" ;;
     esac
 }
 
