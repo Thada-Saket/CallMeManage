@@ -55,13 +55,32 @@ function parseWanCidr(raw) {
 // ความถูกต้องจริง เพราะฝั่ง browser ข้ามได้ด้วยการยิง API ตรง)
 //
 // บังคับเฉพาะโหมด "new" เท่านั้น - โหมด existing ไม่ได้สร้าง console user เลย
+// Cisco/Huawei วาง password ลง CLI แบบ plain - ห้ามช่องว่าง/ตัวอักษรนอก ASCII/อักขระที่ทำให้
+// บรรทัด CLI พัง (ตรงกับ tools/console_user_policy.py)
 const CONSOLE_PASSWORD_RULES = [
-  { label: "At least 8 characters long", test: (v) => v.length >= 8 },
+  { label: "8-25 characters long", test: (v) => v.length >= 8 && v.length <= 25 },
+  { label: "No spaces, non-English characters, or ? \" ' \\ `", test: (v) => !/[^\x21-\x7E]|[?"'\\`]/.test(v) },
   { label: "Contains lowercase letter (a-z)", test: (v) => /[a-z]/.test(v) },
   { label: "Contains uppercase letter (A-Z)", test: (v) => /[A-Z]/.test(v) },
   { label: "Contains number (0-9)", test: (v) => /[0-9]/.test(v) },
   { label: "Contains special character (!@#$%^&* etc.)", test: (v) => /[^A-Za-z0-9]/.test(v) },
 ];
+
+// นโยบายชื่อ console user - ต้องตรงกับ validate_console_username ใน tools/console_user_policy.py
+// (Huawei CE12800 ไม่รับ local-user สั้นกว่า 6 ตัว จึงบังคับขั้นต่ำเฉพาะ Huawei)
+function consoleUsernameRules(vendor, reservedUsername) {
+  return [
+    vendor === "huawei"
+      ? { label: "6-32 characters long", test: (v) => v.length >= 6 && v.length <= 32 }
+      : { label: "1-32 characters long", test: (v) => v.length >= 1 && v.length <= 32 },
+    { label: "Starts with a letter or number", test: (v) => /^[A-Za-z0-9]/.test(v) },
+    { label: "Only letters, numbers, period (.), underscore (_), hyphen (-)", test: (v) => /^[A-Za-z0-9._-]*$/.test(v) },
+    {
+      label: reservedUsername ? `Not "${reservedUsername}" (used by the system)` : "Not the system management username",
+      test: (v) => !reservedUsername || v.toLowerCase() !== reservedUsername.toLowerCase(),
+    },
+  ];
+}
 
 // (bug 12) นโยบายชื่ออุปกรณ์ - ต้องตรงกับ tools/hostname_policy.py ฝั่ง backend เสมอ
 // ถ้าแก้ที่นี่ต้องไปแก้ที่นั่นด้วย (ที่นั่นเป็นตัวจริงที่บังคับใช้ ที่นี่มีไว้เพื่อ UX)
@@ -437,6 +456,11 @@ export default function CliGenerator() {
     passed: rule.test(values.consolePass),
   }));
   const consolePasswordValid = consolePasswordChecks.every((check) => check.passed);
+  const consoleUsernameChecks = consoleUsernameRules(values.vendor, adminUsername).map((rule) => ({
+    label: rule.label,
+    passed: rule.test(values.consoleUser.trim()),
+  }));
+  const consoleUsernameValid = consoleUsernameChecks.every((check) => check.passed);
   // Local Administrator: แสดง/ใช้เฉพาะ Existing Device และเมื่อเปิด toggle
   const localAdminEnabled = isExisting && values.addLocalAdmin;
   const localAdminPasswordChecks = passwordChecks(values.localAdminPass);
@@ -512,10 +536,11 @@ export default function CliGenerator() {
     // prevent error - console user ไม่ผ่านนโยบายรหัสผ่าน (เฉพาะ vendor/โหมดที่สร้าง user นี้จริง)
     if (consoleUserRequired) {
       if (!values.consoleUser.trim()) return setError("Enter the Device CLI Username.");
-      // CE12800 ไม่รับ local-user ที่ชื่อสั้นกว่า 6 ตัวอักษร; จำกัดเฉพาะ Huawei
-      // เพื่อไม่เปลี่ยนกฎ username ของ Cisco/Juniper ที่ใช้งานอยู่
-      if (isHuawei && values.consoleUser.trim().length < 6) {
-        return setError("Huawei console username must be at least 6 characters long");
+      // CE12800 ไม่รับ local-user ที่ชื่อสั้นกว่า 6 ตัวอักษร - กฎนี้อยู่ใน consoleUsernameRules
+      // แล้ว (เฉพาะ Huawei) พร้อมกฎ charset ที่กันชื่อแทรกคำสั่งลง CLI
+      if (!consoleUsernameValid) {
+        const unmet = consoleUsernameChecks.filter((c) => !c.passed).map((c) => c.label);
+        return setError(`Device CLI Username does not meet requirements: ${unmet.join(", ")}`);
       }
       if (!consolePasswordValid) {
         const unmet = consolePasswordChecks.filter((c) => !c.passed).map((c) => c.label);
@@ -878,25 +903,51 @@ export default function CliGenerator() {
                 </div>
               )}
 
-              {!isExisting && !isHuawei && (
+              {!isExisting && (
                 <div className="field">
-                  <label>IP Mode</label>
+                  <div className="field-label-with-hint">
+                    <label>IP Mode</label>
+                    <HelpHint label="Explain IP modes">
+                      {isSwitch || isHuawei ? (
+                        <>
+                          <strong>How the switch gets the IP it uses to contact the server</strong>
+                          {!isHuawei && (
+                            <span><b>DHCP:</b> the switch gets an IP automatically from a DHCP server on the uplink network (usually the router). Choose this if your network already gives out IPs automatically.</span>
+                          )}
+                          <span><b>Static:</b> you enter the IP address, gateway and DNS yourself. Choose this if there is no DHCP server, or the switch needs a fixed management IP.</span>
+                          {isHuawei && (
+                            <span>Huawei switches support <b>Static</b> only.</span>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <strong>How the WAN port gets its IP to reach the internet and this server</strong>
+                          <span><b>DHCP:</b> the WAN port gets an IP automatically from the ISP modem or upstream router. Choose this for most internet links that give out IPs automatically.</span>
+                          <span><b>Static:</b> you enter the IP address, gateway and DNS yourself. Choose this if your ISP or network admin gave you a fixed IP.</span>
+                        </>
+                      )}
+                    </HelpHint>
+                  </div>
                   <div className="segmented-control">
-                    <input
-                      type="radio"
-                      id="cli-wan-dhcp"
-                      name="cli-wan-mode"
-                      value="dhcp"
-                      checked={values.wanMode === "dhcp"}
-                      onChange={(event) => setField("wanMode", event.target.value)}
-                    />
-                    <label htmlFor="cli-wan-dhcp">DHCP</label>
+                    {!isHuawei && (
+                      <>
+                        <input
+                          type="radio"
+                          id="cli-wan-dhcp"
+                          name="cli-wan-mode"
+                          value="dhcp"
+                          checked={values.wanMode === "dhcp"}
+                          onChange={(event) => setField("wanMode", event.target.value)}
+                        />
+                        <label htmlFor="cli-wan-dhcp">DHCP</label>
+                      </>
+                    )}
                     <input
                       type="radio"
                       id="cli-wan-static"
                       name="cli-wan-mode"
                       value="static"
-                      checked={values.wanMode === "static"}
+                      checked={isHuawei || values.wanMode === "static"}
                       onChange={(event) => setField("wanMode", event.target.value)}
                     />
                     <label htmlFor="cli-wan-static">Static</label>
@@ -907,7 +958,15 @@ export default function CliGenerator() {
               {usesBootstrapPlan && (
                 <>
                   <div className="field">
-                    <label>Bootstrap Interface Type</label>
+                    <div className="field-label-with-hint">
+                      <label>Bootstrap Interface Type</label>
+                      <HelpHint label="Explain bootstrap interface types">
+                        <strong>Where the switch puts its IP to call home to the server</strong>
+                        <span>This is the link that goes up to the router or the internet. The switch uses it to contact the server for the first time.</span>
+                        <span><b>Layer 3 Interface:</b> one physical port becomes a routed port (it stops working as a normal switch port), and the IP is set directly on it, e.g. GigabitEthernet1/0/1. Choose this when one port connects straight to the router and carries nothing else.</span>
+                        <span><b>VLAN Interface:</b> a virtual interface for a VLAN (Cisco <i>Vlan</i>, Juniper <i>irb</i>, Huawei <i>Vlanif</i>). The IP belongs to the VLAN, so any port in that VLAN can reach it, and the ports still work as normal switch ports. Choose this for a normal switch setup.</span>
+                      </HelpHint>
+                    </div>
                     <div className="segmented-control">
                       <input
                         type="radio"
@@ -932,7 +991,14 @@ export default function CliGenerator() {
 
                   {isBootstrapVlan && (
                     <div className="field">
-                      <label>VLAN Mode</label>
+                      <div className="field-label-with-hint">
+                        <label>VLAN Mode</label>
+                        <HelpHint label="Explain VLAN modes">
+                          <strong>How the uplink port (toward the router / server) carries VLANs</strong>
+                          <span><b>Access:</b> the port belongs to one VLAN only and sends traffic without VLAN tags. Choose this when the other end is a normal router or modem port.</span>
+                          <span><b>Trunk:</b> the port carries several VLANs, each marked with a VLAN tag (802.1Q). Choose this when the other end is also a trunk, such as a router sub-interface or another switch. The VLAN you enter below is allowed through it.</span>
+                        </HelpHint>
+                      </div>
                       <div className="segmented-control">
                         <input
                           type="radio"
@@ -958,7 +1024,14 @@ export default function CliGenerator() {
 
                   {isBootstrapAccess && (
                     <div className="field">
-                      <label>Access VLAN</label>
+                      <div className="field-label-with-hint">
+                        <label>Access VLAN</label>
+                        <HelpHint label="Explain access VLAN options">
+                          <strong>Which VLAN the switch IP and uplink port use</strong>
+                          <span><b>Default (VLAN 1):</b> uses VLAN 1, which every port is already in on a new switch. No port settings are changed. Just plug the uplink cable into any port.</span>
+                          <span><b>Specific:</b> uses another VLAN that you choose, such as a management VLAN. The system creates that VLAN, puts the port you select into it, and sets the IP on that VLAN. The VLAN must match the one on the router side.</span>
+                        </HelpHint>
+                      </div>
                       <div className="segmented-control">
                         <input
                           type="radio"
@@ -984,7 +1057,18 @@ export default function CliGenerator() {
 
                   {showBootstrapVlanId && (
                     <div className="field">
-                      <label htmlFor="bootstrap-vlan-id">VLAN ID *</label>
+                      <div className="field-label-with-hint">
+                        <label htmlFor="bootstrap-vlan-id">VLAN ID *</label>
+                        <HelpHint label="Explain VLAN ID">
+                          <strong>The VLAN that carries traffic to the server</strong>
+                          {isBootstrapTrunk ? (
+                            <span>The trunk port lets this VLAN through, and the switch IP is set on it. Use the same VLAN ID as on the router or upstream switch, otherwise the switch cannot reach the server.</span>
+                          ) : (
+                            <span>The selected port joins this VLAN, and the switch IP is set on it. Use the same VLAN as the router side.</span>
+                          )}
+                          <span>Allowed range: 1-4094.</span>
+                        </HelpHint>
+                      </div>
                       <input
                         id="bootstrap-vlan-id"
                         type="number"
@@ -1116,7 +1200,15 @@ export default function CliGenerator() {
 
               {values.vendor === "juniper" && !isExisting && (
                 <div className="field">
-                  <label htmlFor="cli-root-passwd">Root Password *</label>
+                  <div className="field-label-with-hint">
+                    <label htmlFor="cli-root-passwd">Root Password *</label>
+                    <HelpHint label="Explain Juniper root password">
+                      <strong>Password for Juniper&apos;s built-in root account</strong>
+                      <span><b>What it is:</b> root is the main admin account that every Juniper device has.</span>
+                      <span><b>Why it is required:</b> a new Juniper device will not save (commit) any configuration until the root password is set. Without it, the generated CLI cannot be applied.</span>
+                      <span>The password is put in the CLI only as an encrypted hash, never as plain text. Keep it safe. It is your last way to log in if every other account fails.</span>
+                    </HelpHint>
+                  </div>
                   <input
                     id="cli-root-passwd"
                     type="password"
@@ -1130,13 +1222,31 @@ export default function CliGenerator() {
 
               {consoleUserRequired && (
                 <div className="field">
-                  <label>Device CLI Username *</label>
+                  <div className="field-label-with-hint">
+                    <label>Device CLI Username *</label>
+                    <HelpHint
+                      label="Explain Device CLI Username"
+                      invalid={Boolean(values.consoleUser) && !consoleUsernameValid}
+                    >
+                      <strong>A backup admin account on the device</strong>
+                      <span><b>Why:</b> this system manages the device with an SSH key. If the key or the connection to the server stops working, you can still log in to the console or SSH with this username and the password below, so you are never locked out.</span>
+                      <span><b>Requirements:</b></span>
+                      <ul className="field-help-list">
+                        {consoleUsernameChecks.map((check) => (
+                          <li key={check.label} className={check.passed ? "hint-rule-pass" : "hint-rule-fail"}>
+                            <span aria-hidden="true">{check.passed ? "✓" : "○"}</span> {check.label}
+                          </li>
+                        ))}
+                      </ul>
+                    </HelpHint>
+                  </div>
                   <input 
                     type="text" 
                     value={values.consoleUser} 
                     placeholder="username"
                     onChange={(event) => setField("consoleUser", event.target.value)}
                     minLength={isHuawei ? 6 : undefined}
+                    maxLength={32}
                     required
                   />
                 </div>

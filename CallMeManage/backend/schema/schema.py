@@ -12,6 +12,7 @@ from tools.hostname_policy import validate_hostname
 from backend.interface_policy import validate_bootstrap_port, validate_cli_interfaces
 from tools.net_input_policy import validate_domain_name
 from tools.local_admin_policy import validate_local_admin_password, validate_local_admin_username
+from tools.console_user_policy import validate_console_password, validate_console_username
 from backend.core.load_environment import load_environment
 
 
@@ -370,24 +371,13 @@ class CliGenerateRequest(SQLModel):
             return self
         # ยังไม่กรอกมา: ปล่อยให้ _required() ใน cli_generator เป็นคนบอกว่าขาด field ไหน
         # (จะได้ error รวมกับ field อื่นที่ขาดในข้อความเดียว ไม่แยกกันคนละที่)
-        if not self.console_password:
-            return self
-
-        value = self.console_password
-        unmet = []
-        if len(value) < 8:
-            unmet.append("be at least 8 characters long")
-        if not re.search(r"[a-z]", value):
-            unmet.append("contain lowercase letter (a-z)")
-        if not re.search(r"[A-Z]", value):
-            unmet.append("contain uppercase letter (A-Z)")
-        if not re.search(r"[0-9]", value):
-            unmet.append("contain a number (0-9)")
-        if not re.search(r"[^A-Za-z0-9]", value):
-            unmet.append("contain special character (!@#$%^&* etc.)")
-
-        if unmet:
-            raise ValueError("Console password must: " + ", ".join(unmet))
+        # กฎอยู่ที่ tools/console_user_policy.py (ใช้ร่วมกับ cli_generator) - Cisco/Huawei
+        # วาง username/password ลงข้อความ CLI ตรง ๆ จึงต้องกันขึ้นบรรทัดใหม่/ช่องว่าง/`?`
+        # ด้วย ไม่ใช่แค่ความแข็งแรงของรหัส (newline เคยผ่านกฎ "special character" ได้)
+        if self.console_username and self.console_username.strip():
+            validate_console_username(self.vendor, self.console_username, load_environment().MNG_USER)
+        if self.console_password:
+            validate_console_password(self.console_password)
         return self
 
     # (bug 12) เดิม hostname เป็น Optional[str] เปล่า ๆ ไม่มี constraint ใด ๆ เลย

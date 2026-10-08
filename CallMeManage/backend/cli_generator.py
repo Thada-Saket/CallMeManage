@@ -15,6 +15,7 @@ from cryptography.hazmat.primitives.serialization import (
 from backend.core.load_environment import load_environment
 from backend.enrollment_token_service import validate_enrollment_token
 from backend.interface_policy import validate_bootstrap_port, validate_cli_interfaces
+from tools.console_user_policy import validate_console_password, validate_console_username
 from tools.local_admin_policy import validate_local_admin_password, validate_local_admin_username
 from tools.random_passwd import rand_passwd
 from tools.server_interface_ip import get_interface_ip
@@ -115,6 +116,13 @@ def _ensure_local_admin_not_in_payload(boilerplate: str, secrets_: list) -> None
 def _chunk(text: str, width: int) -> list[str]:
     return [text[i : i + width] for i in range(0, len(text), width)]
 
+# console user ถูกวางลงข้อความ CLI ตรง ๆ (Cisco/Huawei แบบ plain) - ตรวจซ้ำที่นี่แม้ schema
+# ตรวจแล้ว (defence in depth เหมือน _local_admin) กันขึ้นบรรทัดใหม่กลายเป็นคำสั่งใหม่
+def _validate_console_user(vendor: str, data: dict) -> None:
+    data["console_username"] = validate_console_username(vendor, data["console_username"], ADMIN_USERNAME)
+    validate_console_password(data["console_password"])
+
+
 # |======= แผนขา bootstrap ของ switch (ใช้ร่วมกันทุกยี่ห้อ) =======|
 #
 # เดิมมีแต่ Huawei ที่เลือกได้ว่าจะวาง IP bootstrap ไว้ที่ไหน ส่วน Cisco/Juniper
@@ -200,6 +208,7 @@ def generate_cisco(data: dict, enrollment_token: str | None = None) -> dict:
         if not is_switch:
             required.append("wan_interface")
         _required(data, *required)
+        _validate_console_user("cisco", data)
 
     # ใช้ .get() ไม่ใช่ data[...] เพราะโหมด existing ไม่บังคับส่ง wan_interface มาแล้ว
     # (ไม่มีจุดไหนในโหมดนั้นใช้ค่านี้จริง - ดู comment ด้านบน) ถ้าใช้ [] จะได้ KeyError
@@ -419,6 +428,7 @@ def generate_juniper(data: dict, enrollment_token: str | None = None) -> dict:
         if not is_switch:
             required.append("wan_interface")
         _required(data, *required)
+        _validate_console_user("juniper", data)
         sha512_pwd = _hash_password_sha512(data["root_passwd"])
         # console user (บัญชีสำรองกัน console ล็อกตาย - แนวเดียวกับ Cisco ที่ออกคำสั่ง
         # `username X privilege 15 secret Y`) - ใช้ _hash_password_sha512 ตัวเดียวกับ
@@ -696,8 +706,7 @@ def generate_huawei(data: dict, enrollment_token: str | None = None) -> str:
             "wan_gateway",
             "bootstrap_interface_type",
         )
-        if len(data["console_username"].strip()) < 6:
-            raise ValueError("Huawei Console Username must be at least 6 characters long")
+        _validate_console_user("huawei", data)
         try:
             ipaddress.IPv4Interface(f"{data['wan_ip']}/{data['wan_mask']}")
         except ValueError as exc:
