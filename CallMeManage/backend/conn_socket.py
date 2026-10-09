@@ -62,6 +62,9 @@ PORT = load_environment().CALLHOME_PORT
 STATS_POLL_INTERVAL = 10
 # shutdown: how long to wait for call-home connections to close (see stop())
 STOP_WAIT_SECONDS = 5
+# อุปกรณ์ปิดช่อง NETCONF (เช่น Cisco ตอนแก้ NAT) แล้ว call-home กลับมาเอง - คำสั่งที่มาระหว่างนั้น
+# รอ session ใหม่ได้นานสุดเท่านี้แทนที่จะไปชนท่อที่ตายแล้วได้ "Channel closed" (ดู _live_session)
+RECONNECT_WAIT_SECONDS = 90
 
 # (bug 53) timeout ของ stats poll ต้อง "สั้นกว่ารอบ poll" เสมอ
 #
@@ -241,6 +244,10 @@ MAX_UNKNOWN_REPLY_DISCARDS = 5
 # ยังทำงานเหมือนเดิม (asyncio.TimeoutError เป็น alias ของ TimeoutError ตั้งแต่ 3.11)
 class NetconfSilent(TimeoutError):
     """อุปกรณ์ไม่ส่งข้อมูลใดกลับมาเลยจนหมดเวลา"""
+
+
+class _SessionDropped(Exception):
+    """ช่องของ session นี้ถูกปิดระหว่างรอ lock - ยังไม่ได้ส่งอะไร ให้ send_payload ส่งบน session ใหม่"""
 
 
 class NetconfDesync(RuntimeError):
@@ -588,6 +595,7 @@ class CallhomeService:
     def __init__(self):
         self.listener = None
         self.sessions = {}
+        self._dropped = {}  # dev_id -> (connection ที่ช่องถูกปิด, deadline) - ดู _live_session
         self.stats = {}  # dev_id -> {cpu_percent, memory_percent, uptime, model, polled_at} ล่าสุด (ดู _poll_stats_loop)
         self._stats_task = None
         # (dynamic feature ขั้นที่ 3) dev_id -> (connection, task) ของงานตรวจความสามารถ ดู _start_capability_probe
@@ -907,18 +915,50 @@ class CallhomeService:
         session = self.sessions.get(dev_id)
         return session.get("connection") if session else None
 
-    # อุปกรณ์ปิดช่อง NETCONF แต่ SSH อาจยังเปิดค้าง (มันจะไม่ call-home ใหม่เอง) - ปิด connection
-    # เก่าถ้ายังเป็นตัวปัจจุบัน แล้วรอจนมี session ใหม่ (connection คนละตัว) เข้ามาแทน
-    async def wait_for_reconnect(self, dev_id: str, old_connection, timeout: float) -> bool:
-        if old_connection is not None and self.session_connection(dev_id) is old_connection:
-            await self.close_session(dev_id, reason="อุปกรณ์ปิดช่อง NETCONF ระหว่างคำสั่ง - รอ call-home ใหม่")
-        deadline = time.monotonic() + timeout
-        while time.monotonic() < deadline:
-            current = self.session_connection(dev_id)
-            if current is not None and current is not old_connection:
-                return True
+    # อุปกรณ์ปิดช่อง NETCONF แต่ SSH อาจยังเปิดค้าง (มันจะไม่ call-home ใหม่เองจนกว่าเราปิด) -
+    # จดไว้ว่า connection นี้ใช้ไม่ได้แล้ว ปิดทิ้ง แล้วให้ทุกคำสั่งที่ตามมารอ session ใหม่ (_live_session)
+    def _mark_dropped(self, dev_id: str, connection, wait: float = RECONNECT_WAIT_SECONDS) -> None:
+        current = self.session_connection(dev_id)
+        if connection is None or (current is not None and current is not connection):
+            return  # มี session ใหม่แทนแล้ว (ส่วน current เป็น None = ปิดไปแล้ว ยังต้องรอตัวใหม่)
+        self._dropped[dev_id] = (connection, time.monotonic() + wait)
+        try:
+            connection.close()
+            print(f"[-] {dev_id} ปิดช่อง NETCONF - ปิด connection เก่า รอ call-home ใหม่")
+        except Exception as exc:
+            print(f"[!] Failed to close call-home connection for {dev_id}: {exc}")
+
+    # session ที่ใช้ส่งคำสั่งได้จริง - ถ้าช่องของ session ปัจจุบันเพิ่งถูกปิด รอจนอุปกรณ์ call-home กลับมา
+    # (ปกติ 30-40 วิ) แทนการส่งลงท่อที่ตายแล้ว เพราะผู้ใช้เห็น "Channel closed" ทั้งที่อุปกรณ์กำลังกลับมา
+    async def _live_session(self, dev_id: str):
+        while (dropped := self._dropped.get(dev_id)) is not None:
+            old_connection, deadline = dropped
+            session = self.sessions.get(dev_id)
+            if session is not None and session.get("connection") is not old_connection:
+                if self._dropped.get(dev_id) is dropped:
+                    self._dropped.pop(dev_id, None)
+                return session
+            if time.monotonic() >= deadline:
+                if self._dropped.get(dev_id) is dropped:
+                    self._dropped.pop(dev_id, None)
+                if session is not None and session.get("connection") is old_connection:
+                    raise ConnectionError("Device does not have a live Call Home session")
+                break
             await asyncio.sleep(1)
-        return False
+        session = self.sessions.get(dev_id)
+        if not session:
+            raise ConnectionError("Device does not have a live Call Home session")
+        return session
+
+    # คำสั่งเขียน NAT ของ Cisco (device_router.py) - รอให้อุปกรณ์กลับมาก่อนตอบผู้ใช้
+    async def wait_for_reconnect(self, dev_id: str, old_connection, timeout: float) -> bool:
+        if old_connection is not None and dev_id not in self._dropped:
+            self._mark_dropped(dev_id, old_connection, timeout)
+        try:
+            await self._live_session(dev_id)
+        except ConnectionError:
+            return False
+        return self.session_connection(dev_id) is not old_connection
 
     def revoke_session(self, dev_id: str, connection=None) -> bool:
         """เพิกถอน Call Home session ของ dev_id
@@ -1112,7 +1152,7 @@ class CallhomeService:
 
     async def _poll_one_stat(self, dev_id: str):
         session = self.sessions.get(dev_id)
-        if not session:
+        if not session or dev_id in self._dropped:
             return
 
         # (bug 53) ยังอยู่ในช่วงถอยห่าง - ไม่ยิงคำสั่งใหม่ทับของเก่า
@@ -1349,11 +1389,29 @@ class CallhomeService:
     async def send_payload(
         self, dev_id: str, payload: str, timeout: float | None = None, nat_quarantine: bool = False,
     ) -> str:
-        session = self.sessions.get(dev_id)
-        if not session:
-            raise ConnectionError("Device does not have a live Call Home session")
-        payload = self._prepare_payload(session, payload)
+        while True:
+            session = await self._live_session(dev_id)
+            try:
+                return await self._send_on_session(
+                    dev_id, session, self._prepare_payload(session, payload), timeout, nat_quarantine
+                )
+            except _SessionDropped:
+                continue  # ช่องถูกปิดระหว่างรอคิว lock - ส่งบน session ใหม่แทน (ยังไม่ได้ส่งอะไรลงท่อ)
+            except ConnectionError as exc:
+                if str(exc) == "Channel closed":
+                    self._mark_dropped(dev_id, session.get("connection"))
+                raise
+            except asyncssh.misc.ConnectionLost:
+                self._mark_dropped(dev_id, session.get("connection"))
+                raise
+
+    async def _send_on_session(
+        self, dev_id: str, session, payload: str, timeout: float | None, nat_quarantine: bool,
+    ) -> str:
         async with session["lock"]:
+            dropped = self._dropped.get(dev_id)
+            if dropped is not None and dropped[0] is session.get("connection"):
+                raise _SessionDropped()
             expected_id = _extract_message_id(payload)
             session["process"].stdin.write(payload.rstrip() + NETCONF_END)
             read_kwargs = {"timeout": timeout} if timeout is not None else {}

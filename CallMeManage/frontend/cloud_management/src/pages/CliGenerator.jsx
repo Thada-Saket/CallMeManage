@@ -1491,7 +1491,7 @@ export default function CliGenerator() {
                               View Configuration Payload
                             </button>
                           )}
-                          <button type="button" className="btn btn-ghost" onClick={() => handleCopySegment(stepId, step.commands)}>
+                          <button type="button" className="btn btn-primary" onClick={() => handleCopySegment(stepId, step.commands)}>
                             {copiedSegments[stepId] ? "Copied" : "Copy"}
                           </button>
                         </div>
@@ -1513,7 +1513,7 @@ export default function CliGenerator() {
                   <p className="cli-generator-step-hint">
                     Copy all commands and paste them into the device console. The device then connects to the server.
                   </p>
-                  <button type="button" className="btn btn-ghost" onClick={handleCopy}>
+                  <button type="button" className="btn btn-primary" onClick={handleCopy}>
                     {copied ? "Copied" : "Copy"}
                   </button>
                 </div>
@@ -1548,7 +1548,7 @@ export default function CliGenerator() {
                   </div>
                   <div className="cli-generator-segment-header">
                     <h3>Configuration payload</h3>
-                    <button type="button" className="btn btn-ghost" onClick={handleCopyBoilerplate}>
+                    <button type="button" className="btn btn-primary" onClick={handleCopyBoilerplate}>
                       {copiedBoilerplate ? "Copied" : "Copy"}
                     </button>
                   </div>
