@@ -160,6 +160,19 @@ CISCO_NAT_WRITE_COMMANDS = frozenset({
 # Juniper ได้ด้วย จึงต้องเช็ค vendor ทุกจุดเสมอ ห้ามพึ่งแค่ชื่อคำสั่ง)
 CISCO_NAT_QUARANTINE_COMMANDS = CISCO_NAT_READ_COMMANDS | CISCO_NAT_WRITE_COMMANDS
 
+# Cisco IOS XE ปิดช่อง NETCONF ทิ้งตอน apply คำสั่งเขียน NAT (เปิด/ปิด NAT ก็เป็น) แทนที่จะตอบ
+# rpc-reply - หน้าเว็บเคยขึ้น "Channel closed" ทั้งที่ config ลงไปแล้ว ทำให้ผู้ใช้ตกใจ ตอนนี้ปิด
+# session เก่าแล้วรอให้อุปกรณ์ call-home กลับมาเงียบ ๆ (ปกติ 30-40 วิ) ก่อนตอบว่าสำเร็จ
+# ผู้ใช้เห็นแค่ปุ่ม Save หมุนนานขึ้น ส่วนรายการ NAT ที่โหลดใหม่หลังบันทึกเป็นตัวยืนยันผลจริง
+CISCO_NAT_RECONNECT_WAIT_SECONDS = 90
+
+
+def _netconf_channel_dropped(exc: BaseException) -> bool:
+    # ConnectionError อื่น (เช่น "Device does not have a live Call Home session") ไม่ใช่เคสนี้
+    return isinstance(exc, asyncssh.misc.ConnectionLost) or (
+        isinstance(exc, ConnectionError) and str(exc) == "Channel closed"
+    )
+
 
 def _command_reply_timeout(vendor: str, command: str) -> float | None:
     if vendor == "cisco" and command in CISCO_NAT_EXTENDED_TIMEOUT_COMMANDS:
@@ -1792,6 +1805,8 @@ async def run_device_command(
     # แล้ว (2 RPC เล็กแทนที่จะยิงซ้ำผ่าน payload ตัวเดียวด้านล่างเหมือนคำสั่งอื่น)
     precomputed_reply = None
     nat_dashboard_acl_missing = False
+    # ตั้งเมื่อ Cisco ตัดช่อง NETCONF ระหว่างคำสั่งเขียน NAT (ดู CISCO_NAT_RECONNECT_WAIT_SECONDS)
+    nat_dropped_connection = None
 
     try:
         # Redis distributed lock (device:lock:<dev_id>, NX PX 10000) คู่กับ
@@ -2363,12 +2378,21 @@ async def run_device_command(
                 # ยังจำกัดเฉพาะ CISCO_NAT_EXTENDED_TIMEOUT_COMMANDS เท่านั้น
                 # (_command_reply_timeout คืน None ให้คำสั่งอื่นในกลุ่มนี้ = ใช้
                 # default 20 วิเหมือนเดิมทุกประการ ไม่มีการเพิ่ม timeout แบบกว้างๆ)
-                reply = await callhome_service.send_payload(
-                    dev_id,
-                    payload,
-                    timeout=_command_reply_timeout(device.dev_vendor, command),
-                    nat_quarantine=True,
-                )
+                connection_before = callhome_service.session_connection(dev_id)
+                try:
+                    reply = await callhome_service.send_payload(
+                        dev_id,
+                        payload,
+                        timeout=_command_reply_timeout(device.dev_vendor, command),
+                        nat_quarantine=True,
+                    )
+                except (ConnectionError, asyncssh.misc.ConnectionLost) as exc:
+                    if command not in CISCO_NAT_WRITE_COMMANDS or not _netconf_channel_dropped(exc):
+                        raise
+                    # รอนอก DeviceLock (ด้านล่าง) - lock มีอายุแค่ 10 วิ
+                    nat_dropped_connection = connection_before
+                    reply = ""
+                    print(f"[*] {dev_id} closed NETCONF during '{command}' - waiting for call-home")
             else:
                 reply = await callhome_service.send_payload(dev_id, payload)
     except DeviceLockBusy as exc:
@@ -2537,6 +2561,21 @@ async def run_device_command(
     # **ไม่เปลี่ยน HTTP status และไม่เปลี่ยนรูปร่าง response** - ยังคืน 200 พร้อม
     # {ok:false, errors:[...]} เหมือนเดิมทุกประการ ฝั่ง frontend จึงไม่ต้องแก้อะไรเลย
     # ที่เปลี่ยนคือ "ไม่เขียนลงฐานข้อมูล" อย่างเดียว
+    if nat_dropped_connection is not None:
+        if not await callhome_service.wait_for_reconnect(
+            dev_id, nat_dropped_connection, CISCO_NAT_RECONNECT_WAIT_SECONDS
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={
+                    "code": "NETCONF_WRITE_OUTCOME_UNKNOWN",
+                    "message": (
+                        "The device restarted its management connection while applying this NAT change "
+                        "and has not reconnected yet. Wait until it is online, then refresh to check the result."
+                    ),
+                },
+            )
+
     rejected = reply_rejected(reply)
 
     if not rejected:
@@ -2563,6 +2602,10 @@ async def run_device_command(
         # ให้เห็นใน log ฝั่ง server ว่าทำไมประวัติถึงไม่มีแถวนี้ - ไม่งั้นเวลาไล่ปัญหา
         # ทีหลังจะงงว่าผู้ใช้บอกว่ากดแล้วแต่ประวัติไม่ขึ้น
         print(f"[!] {dev_id} ปฏิเสธคำสั่ง '{command}' - ไม่บันทึกลงประวัติ (bug 99)")
+
+    if nat_dropped_connection is not None:
+        # ไม่มี rpc-reply ให้ normalize - อุปกรณ์กลับมาแล้ว รายการที่หน้าเว็บโหลดใหม่คือผลจริง
+        return DeviceCommandResult(command=command, normalized=True, result={"ok": True})
 
     try:
         result = normalize(device.dev_vendor, command, reply)

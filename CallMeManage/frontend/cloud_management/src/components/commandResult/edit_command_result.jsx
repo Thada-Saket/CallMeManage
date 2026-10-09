@@ -33,6 +33,8 @@ function Edit_Result({
   deleteLabel = "Delete",
   deletingLabel = "Deleting...",
   confirmLabel = "Delete",
+  // ข้อความใต้ปุ่มระหว่างลบ (เช่น Cisco NAT ที่อุปกรณ์ต่อใหม่ชั่วครู่ ทำให้รอนาน)
+  deletingHint = "",
 }) {
   return (
     <>
@@ -89,6 +91,7 @@ function Edit_Result({
                 {deleting ? deletingLabel : confirmLabel}
               </button>
             </div>
+            {deleting && deletingHint && <p className="nat-reconnect-hint" role="status">{deletingHint}</p>}
           </div>
         </div>
       )}

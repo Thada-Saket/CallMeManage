@@ -1,4 +1,5 @@
 import DismissibleError from "../../DismissibleError";
+import { NAT_RECONNECT_HINT } from "./natReconnectHint";
 import { useEffect, useState } from "react";
 import { runDeviceCommand, validateDeviceCommand } from "../../../api/api_devices";
 import getDeviceInformation from "../../../hooks/getDeviceInformation";
@@ -308,6 +309,7 @@ export default function NatStaticFormModal({ devId, vendor, mode = "create", edi
           Cancel
         </button>
       </div>
+      {submitting && vendor === "cisco" && <p className="nat-reconnect-hint" role="status">{NAT_RECONNECT_HINT}</p>}
     </form>
   );
 }

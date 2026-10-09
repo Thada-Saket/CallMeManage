@@ -887,6 +887,23 @@ class CallhomeService:
         except Exception as exc:
             print(f"[!] Failed to close call-home connection for {dev_id}: {exc}")
 
+    def session_connection(self, dev_id: str):
+        session = self.sessions.get(dev_id)
+        return session.get("connection") if session else None
+
+    # อุปกรณ์ปิดช่อง NETCONF แต่ SSH อาจยังเปิดค้าง (มันจะไม่ call-home ใหม่เอง) - ปิด connection
+    # เก่าถ้ายังเป็นตัวปัจจุบัน แล้วรอจนมี session ใหม่ (connection คนละตัว) เข้ามาแทน
+    async def wait_for_reconnect(self, dev_id: str, old_connection, timeout: float) -> bool:
+        if old_connection is not None and self.session_connection(dev_id) is old_connection:
+            await self.close_session(dev_id, reason="อุปกรณ์ปิดช่อง NETCONF ระหว่างคำสั่ง - รอ call-home ใหม่")
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            current = self.session_connection(dev_id)
+            if current is not None and current is not old_connection:
+                return True
+            await asyncio.sleep(1)
+        return False
+
     def revoke_session(self, dev_id: str, connection=None) -> bool:
         """เพิกถอน Call Home session ของ dev_id
         - เทียบ identity ของ connection (แบบ bug 59): ถ้า connection ระบุไว้ และไม่ตรงกับ session ปัจจุบัน -> คืน False

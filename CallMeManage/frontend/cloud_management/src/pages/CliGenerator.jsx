@@ -775,6 +775,26 @@ export default function CliGenerator() {
       : "badge-pending";
   const enrollmentStep = enrollmentOnline ? 3 : 2;
 
+  // ปิดท้ายใต้ขั้นสุดท้าย - ผู้ใช้เลื่อนลงมาถึงตรงนี้อยู่แล้วตอนวางคำสั่งเสร็จ จึงบอกว่าออกจากหน้าได้
+  // และมีปุ่มไปต่อ ; ป้ายสถานะใช้ค่าเดียวกับการ์ดด้านบน (polling ชุดเดิม ไม่เช็คเพิ่ม)
+  const doneCard = pendingDevice && (
+    <div className="cli-generator-done">
+      <div className="cli-generator-done-text">
+        <strong>Done pasting?</strong>
+        <span>You can leave this page. The device shows up on Devices by itself once it connects.</span>
+      </div>
+      <span className={`badge ${enrollmentStatusClass}`}>{enrollmentStatusText}</span>
+      <div className="cli-generator-done-actions">
+        <button type="button" className="btn btn-primary" onClick={() => navigate(devicesUrl(siteId))}>
+          Back to Devices
+        </button>
+        <button type="button" className="btn btn-ghost" onClick={handleGenerateAnother}>
+          + Enroll another device
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="app-shell">
       <TopBar />
@@ -1485,6 +1505,7 @@ export default function CliGenerator() {
                     </div>
                   );
                 })}
+                {doneCard}
               </>
             ) : cliText ? (
               <>
@@ -1497,6 +1518,7 @@ export default function CliGenerator() {
                   </button>
                 </div>
                 <AutoSizeTextarea readOnly value={cliText} onClick={(event) => event.target.select()} />
+                {doneCard}
               </>
             ) : (
               <div className="config-placeholder">Fill in the configuration on the left and click Generate to produce CLI commands.</div>

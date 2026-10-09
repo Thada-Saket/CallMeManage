@@ -196,6 +196,40 @@
   font-weight: 700;
 }
 
+/* กล่องปิดท้ายใต้ขั้นสุดท้าย: บอกว่าวางครบแล้วออกจากหน้าได้ + ปุ่มไปต่อ */
+.cli-generator-done {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  margin-top: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--jade-border);
+  border-radius: var(--radius);
+  background: var(--jade-dim);
+}
+
+.cli-generator-done-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 260px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.cli-generator-done-text strong {
+  color: var(--text-primary);
+}
+
+.cli-generator-done-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1 1 100%;
+}
+
 .cli-generator-step-hint {
   margin: 2px 0 0;
   font-size: 12.5px;

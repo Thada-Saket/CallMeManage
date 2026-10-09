@@ -1896,3 +1896,11 @@ input.login-credential-input[data-ascii-guard="true"] {
   }
 }
 /* |==== end apply mobile ====| */
+
+/* Cisco NAT: บอกว่ารอนานเป็นเรื่องปกติ (อุปกรณ์ต่อใหม่ชั่วครู่) - ดู natReconnectHint.js */
+.nat-reconnect-hint {
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}

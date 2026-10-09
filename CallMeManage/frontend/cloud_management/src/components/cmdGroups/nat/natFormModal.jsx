@@ -1,4 +1,5 @@
 import DismissibleError from "../../DismissibleError";
+import { NAT_RECONNECT_HINT } from "./natReconnectHint";
 import { useEffect, useState } from "react";
 import { runDeviceCommand, validateDeviceCommand } from "../../../api/api_devices";
 import getDeviceInformation from "../../../hooks/getDeviceInformation";
@@ -708,6 +709,7 @@ function CiscoNatForm({
           {submitting ? "Sending..." : "Apply"}
         </button>
       </div>
+      {submitting && <p className="nat-reconnect-hint" role="status">{NAT_RECONNECT_HINT}</p>}
     </form>
   );
 }
