@@ -60,6 +60,8 @@ HOST = load_environment().CALLHOME_LISTEN_ADDRESS
 PORT = load_environment().CALLHOME_PORT
 # time for fetch cpu/ram information from device
 STATS_POLL_INTERVAL = 10
+# shutdown: how long to wait for call-home connections to close (see stop())
+STOP_WAIT_SECONDS = 5
 
 # (bug 53) timeout ของ stats poll ต้อง "สั้นกว่ารอบ poll" เสมอ
 #
@@ -643,7 +645,21 @@ class CallhomeService:
         await self._cancel_all_capability_probes()
         if self.listener:
             self.listener.close()
-            await self.listener.wait_closed()
+            # Python 3.12+: wait_closed() รอจน "ทุก connection" ปิด ไม่ใช่แค่ socket ที่ listen -
+            # call-home ของอุปกรณ์เปิดค้างตลอด จึงรอไม่จบจน systemd ฆ่าทิ้งที่ 90 วิ (stop/restart/
+            # install.sh ช้าจนนึกว่าค้าง) ปิดทุก session เองก่อน แล้วรอไม่เกิน STOP_WAIT_SECONDS
+            # (เผื่อ connection ที่ยังไม่เข้า sessions เช่นกำลัง enroll) - อุปกรณ์จะ call-home กลับเองหลังเริ่มใหม่
+            for session in list(self.sessions.values()):
+                connection = session.get("connection")
+                if connection is not None:
+                    try:
+                        connection.close()
+                    except Exception as exc:
+                        print(f"[!] Failed to close call-home connection on shutdown: {exc}")
+            try:
+                await asyncio.wait_for(self.listener.wait_closed(), STOP_WAIT_SECONDS)
+            except asyncio.TimeoutError:
+                print(f"[!] Call-home connections still open after {STOP_WAIT_SECONDS}s - stopping anyway")
 
     # (bug 42) บังคับตัด call-home connection ของอุปกรณ์ที่ระบุทันที - ใช้ตอนลบอุปกรณ์
     # ออกจากระบบ (delete_device_full / delete_user_full) เพราะการลบแถวใน database

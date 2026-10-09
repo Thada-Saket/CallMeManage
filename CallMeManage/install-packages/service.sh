@@ -93,6 +93,8 @@ ExecStartPre=$VENV_DIR/bin/python tools/env_check.py
 ExecStart=$VENV_DIR/bin/python app.py
 Restart=on-failure
 RestartSec=5
+# a normal stop takes a few seconds; never sit on systemd's 90-second default
+TimeoutStopSec=20
 # lets the service use ports below 1024 (e.g. 443) without running as root
 AmbientCapabilities=CAP_NET_BIND_SERVICE
 NoNewPrivileges=yes
