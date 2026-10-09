@@ -22,6 +22,7 @@ import {
 import { cliGeneratorUrl, devicesUrl } from "../utils/deviceEnrollmentRoutes";
 import { acceptsDomainNameInput, DOMAIN_NAME_MAX_LENGTH } from "../utils/domainNameInput";
 import AutoSizeTextarea from "../components/common/AutoSizeTextarea";
+import { cliStepHint } from "../utils/cliStepHints";
 
 // แปลงวินาทีคงเหลือของ bootstrap download link ให้อยู่ในรูป mm:ss
 function formatBootstrapRemaining(totalSeconds) {
@@ -1447,15 +1448,23 @@ export default function CliGenerator() {
 
             {renderedSteps.length > 0 ? (
               <>
+                <p className="cli-generator-steps-intro">
+                  Copy each step in order and paste it into the device console. Wait for one step to finish before pasting the next.
+                </p>
                 {renderedSteps.map((step, index) => {
                   const stepId = step.id || `step-${index}`;
                   const isLoadStep = Boolean(step.can_view_payload && boilerplateText);
+                  const hint = cliStepHint(step.id);
                   return (
                     <div key={stepId} className="cli-generator-segment">
                       <div className="cli-generator-segment-header">
-                        <h3>
-                          {step.label || <>Part {index + 1}</>}
-                        </h3>
+                        <div className="cli-generator-step-title">
+                          <span className="cli-generator-step-number" aria-label={`Step ${index + 1}`}>{index + 1}</span>
+                          <div>
+                            <h3>{step.label || <>Part {index + 1}</>}</h3>
+                            {hint && <p className="cli-generator-step-hint">{hint}</p>}
+                          </div>
+                        </div>
                         <div className="cli-generator-segment-actions">
                           {isLoadStep && (
                             <button type="button" className="btn btn-inspect" onClick={() => setShowBoilerplate(true)}>
@@ -1479,12 +1488,15 @@ export default function CliGenerator() {
               </>
             ) : cliText ? (
               <>
-                <AutoSizeTextarea readOnly value={cliText} onClick={(event) => event.target.select()} />
-                <div className="cli-generator-output-actions">
+                <div className="cli-generator-segment-header">
+                  <p className="cli-generator-step-hint">
+                    Copy all commands and paste them into the device console. The device then connects to the server.
+                  </p>
                   <button type="button" className="btn btn-ghost" onClick={handleCopy}>
                     {copied ? "Copied" : "Copy"}
                   </button>
                 </div>
+                <AutoSizeTextarea readOnly value={cliText} onClick={(event) => event.target.select()} />
               </>
             ) : (
               <div className="config-placeholder">Fill in the configuration on the left and click Generate to produce CLI commands.</div>
@@ -1512,13 +1524,13 @@ export default function CliGenerator() {
                       &times;
                     </button>
                   </div>
-                 
-                  <AutoSizeTextarea readOnly value={boilerplateText} onClick={(event) => event.target.select()} />
-                  <div className="cli-generator-output-actions">
+                  <div className="cli-generator-segment-header">
+                    <h3>Configuration payload</h3>
                     <button type="button" className="btn btn-ghost" onClick={handleCopyBoilerplate}>
                       {copiedBoilerplate ? "Copied" : "Copy"}
                     </button>
                   </div>
+                  <AutoSizeTextarea readOnly value={boilerplateText} onClick={(event) => event.target.select()} />
                 </div>
               </div>
             )}

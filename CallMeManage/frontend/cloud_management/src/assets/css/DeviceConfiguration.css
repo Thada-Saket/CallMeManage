@@ -115,13 +115,6 @@
   box-sizing: border-box;
 }
 
-.cli-generator-output-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 10px;
-}
-
 /* ระยะห่างระหว่างท่อนมากกว่าระยะภายในท่อน เพื่อให้เห็นว่าอะไรเป็นกลุ่มเดียวกัน */
 .cli-generator-segment {
   margin-bottom: 28px;
@@ -172,6 +165,42 @@
   font-weight: 600;
   letter-spacing: 0.3px;
   color: var(--text-primary);
+}
+
+/* บอกลำดับการวาง: ข้อความนำก่อนขั้นแรก + เลขในวงกลมหน้าหัวข้อ + คำอธิบายว่าขั้นนั้นทำอะไร */
+.cli-generator-steps-intro {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.cli-generator-step-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.cli-generator-step-number {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--jade);
+  color: #06211d;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.cli-generator-step-hint {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-secondary);
 }
 
 /* ข้อความเตือนให้ commit initial network configuration ก่อน download bootstrap */
@@ -670,13 +699,8 @@
     justify-content: flex-end;
   }
 
-  .cli-generator-output-actions {
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .cli-generator-output-actions .btn {
-    width: 100%;
+  .cli-generator-segment-header > .btn {
+    align-self: flex-end;
   }
 
   .cli-generator-enrollment-device {
