@@ -235,6 +235,13 @@
    เด่นกว่ากล่องสถานะใน CLI Output ตั้งใจ เพราะผู้ใช้อาจเลื่อนอยู่ช่วงคำสั่งยาว ๆ
    ไม่เห็นป้ายสถานะ · ปุ่ม Open Device พาเข้าหน้าอุปกรณ์ได้ทันที */
 .cli-generator-online-alert {
+  /* user ขอให้ค้างบนจอตลอด เลื่อนหน้าลงไปช่วงคำสั่งยาว ๆ ก็ยังเห็น - sticky ติดขอบบน
+     ของ viewport (หน้าเลื่อนที่ระดับ window ไม่มี container ไหนตั้ง overflow ครอบ)
+     z-index ต่ำกว่า modal-overlay (40) และ toast (1000) · พื้นทึบ --bg-panel ใต้สีเขียว
+     โปร่ง กันเนื้อหาที่เลื่อนผ่านด้านหลังโผล่ทะลุจนอ่านข้อความไม่ออก */
+  position: sticky;
+  top: 12px;
+  z-index: 30;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -243,8 +250,10 @@
   padding: 14px 18px;
   border: 1px solid var(--jade);
   border-radius: var(--radius);
-  background: var(--jade-selected, rgba(0, 179, 154, 0.32));
-  box-shadow: 0 4px 14px rgba(0, 179, 154, 0.25);
+  background:
+    linear-gradient(var(--jade-selected, rgba(0, 179, 154, 0.32)), var(--jade-selected, rgba(0, 179, 154, 0.32))),
+    var(--bg-panel);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 179, 154, 0.25);
   animation: cli-online-alert-in 0.25s ease-out;
 }
 

@@ -48,7 +48,7 @@ export default function DnsForm({ values, setValue, onApply, applying, error, on
 
       {showDnsServerToggle && (
         <div className="interface-configuration-form-field">
-          <label className="data-label">IP DNS Server</label>
+          <label className="data-label">Enable DNS Server (Router act as DNS server)</label>
           <div className="toggle-switch-container">
             <input
               type="checkbox"
@@ -62,7 +62,7 @@ export default function DnsForm({ values, setValue, onApply, applying, error, on
       )}
 
       <div className="interface-configuration-form-field">
-        <label className="data-label">IP Domain Lookup</label>
+        <label className="data-label">Enable Domain Lookup</label>
         <div className="toggle-switch-container">
           <input
             type="checkbox"
@@ -75,7 +75,7 @@ export default function DnsForm({ values, setValue, onApply, applying, error, on
       </div>
 
       <div className="interface-configuration-form-field-third">
-        <label className="data-label">IP Domain Name</label>
+        <label className="data-label">Domain Name</label>
         <input
           type="text"
           placeholder="example.com"

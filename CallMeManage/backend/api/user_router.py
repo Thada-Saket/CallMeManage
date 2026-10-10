@@ -8,7 +8,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from backend.core.security_audit import audit_security_event
 from backend.api.user_deps import get_current_user, rate_limit_by_user
 from backend.core.connect_database import get_session
-from backend.crud.web_crud.crud_site import list_user_invitations, respond_to_invitation
+from backend.crud.web_crud.crud_site import list_user_invitations, list_user_join_requests, respond_to_invitation
 from backend.crud.web_crud.crud_user import delete_user_full, get_user_by_email
 from backend.model.models import User_Table
 from backend.schema.site_schema import InvitationRead
@@ -57,6 +57,25 @@ async def list_my_invitations_route(
     session: AsyncSession = Depends(get_session),
 ):
     memberships = await list_user_invitations(session, current_user.usr_id)
+    return [
+        InvitationRead(
+            site_id=m.site.site_id,
+            org_id=m.site.org_id,
+            site_name=m.site.site_name,
+            role=m.role,
+            joined_date=m.joined_date,
+        )
+        for m in memberships
+    ]
+
+# api ดึงรายการคำขอเข้าร่วมสาขาที่ส่งไปแล้วและยังรออนุมัติ status="pending" - ใช้ schema
+# เดียวกับคำเชิญ (field ชุดเดียวกัน: site/org/role/วันที่) ยกเลิกคำขอใช้ DELETE /sites/{id}/leave
+@router.get("/me/join-requests", response_model=List[InvitationRead])
+async def list_my_join_requests_route(
+    current_user: User_Table = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    memberships = await list_user_join_requests(session, current_user.usr_id)
     return [
         InvitationRead(
             site_id=m.site.site_id,

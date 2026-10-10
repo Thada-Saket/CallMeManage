@@ -20,6 +20,12 @@ export function getMyInvitations() {
   return request("/users/me/invitations");
 }
 
+// คำขอเข้าร่วม site ที่ส่งไปแล้วยังรออนุมัติ (pending) - แสดงในกระดิ่งแจ้งเตือนหน้า
+// Sites.jsx คู่กับคำเชิญ (Joined Sites แสดงเฉพาะที่อนุมัติแล้ว) ยกเลิกใช้ leaveSiteMember
+export function getMyJoinRequests() {
+  return request("/users/me/join-requests");
+}
+
 // ตอบรับคำเชิญเข้าร่วม site เรียกใช้ใน Site.jsx
 export function acceptInvitation(siteId) {
   return request(`/users/me/invitations/${siteId}/accept`, { method: "PATCH" });

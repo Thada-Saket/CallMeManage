@@ -36,30 +36,40 @@ function Edit_Result({
   // ข้อความใต้ปุ่มระหว่างลบ (เช่น Cisco NAT ที่อุปกรณ์ต่อใหม่ชั่วครู่ ทำให้รอนาน)
   deletingHint = "",
 }) {
+  // user ขอ: ยังไม่ได้เลือกแถว config = ไม่แสดงปุ่ม Edit/Delete เลย (เดิมโชว์เป็นปุ่ม
+  // disabled ค้างไว้) - ใช้ selectedLabel เป็นตัวบอกว่ามีแถวที่เลือกอยู่ เพราะทุก
+  // caller ส่ง "" มาเมื่อไม่ได้เลือกอะไรอยู่แล้ว · เลือกแล้วแต่แถวนั้นแก้/ลบไม่ได้
+  // (canEdit/canDelete=false) ยังโชว์เป็น disabled พร้อม tooltip เหตุผลเหมือนเดิม
+  // ผู้ใช้จะได้รู้ว่าทำไมกดไม่ได้ ไม่ใช่ปุ่มหายไปเฉย ๆ
+  const hasSelection = Boolean(selectedLabel);
   return (
     <>
       <div className="command-action-buttons">
         <button type="button" className="btn btn-primary" onClick={onNew}>
           New
         </button>
-        <button
-          type="button"
-          className="btn btn-ghost"
-          disabled={!canEdit}
-          onClick={onEditClick}
-          title={!canEdit ? editDisabledReason : undefined}
-        >
-          Edit
-        </button>
-        <button
-          type="button"
-          className="btn btn-ghost"
-          disabled={!canDelete}
-          onClick={onOpenDeleteConfirm}
-          title={!canDelete ? deleteDisabledReason : undefined}
-        >
-          {deleteLabel}
-        </button>
+        {hasSelection && (
+          <>
+            <button
+              type="button"
+              className="btn btn-edit"
+              disabled={!canEdit}
+              onClick={onEditClick}
+              title={!canEdit ? editDisabledReason : undefined}
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              className="btn btn-delete"
+              disabled={!canDelete}
+              onClick={onOpenDeleteConfirm}
+              title={!canDelete ? deleteDisabledReason : undefined}
+            >
+              {deleteLabel}
+            </button>
+          </>
+        )}
       </div>
 
       <Reload_Result loading={refreshing} onRefresh={onRefresh}/>

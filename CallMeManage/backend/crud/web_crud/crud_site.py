@@ -166,10 +166,18 @@ async def list_joined_site_memberships(
     skip: int = 0,
     limit: int = 12,
 ) -> List[Site_Member]:
+    # เฉพาะที่อนุมัติแล้ว (approved) - คำขอเข้าร่วมที่ยังรออนุมัติ (pending) และคำเชิญที่
+    # ยังไม่ตอบ (invited) ไม่ใช่ site ที่เข้าใช้งานได้ หน้า Sites ย้ายไปแสดงในกระดิ่ง
+    # แจ้งเตือนแทน (list_user_join_requests / list_user_invitations) - กรองที่ query
+    # ไม่ใช่ฝั่ง browser เพราะแบ่งหน้าที่ database ถ้ากรองทีหลังบางหน้าจะได้การ์ดไม่ครบ
     statement = (
         select(Site_Member)
         .join(Site_Table, Site_Member.site_id == Site_Table.site_id)
-        .where(Site_Member.usr_id == usr_id, Site_Table.site_owner_id != usr_id)
+        .where(
+            Site_Member.usr_id == usr_id,
+            Site_Table.site_owner_id != usr_id,
+            Site_Member.status == "approved",
+        )
         .options(selectinload(Site_Member.site))
         .order_by(Site_Member.joined_date.asc(), Site_Member.site_id.asc())
         .offset(skip)
@@ -335,11 +343,16 @@ async def count_owned_sites(session: AsyncSession, usr_id: str) -> int:
 
 # นับจำนวนสาขาที่เข้าร่วมทั้งหมด (ไม่รวมสาขาที่ตนเองเป็นเจ้าของ)
 async def count_joined_site_memberships(session: AsyncSession, usr_id: str) -> int:
+    # นับเฉพาะ approved ให้ตรงกับ list_joined_site_memberships
     statement = (
         select(func.count())
         .select_from(Site_Member)
         .join(Site_Table, Site_Member.site_id == Site_Table.site_id)
-        .where(Site_Member.usr_id == usr_id, Site_Table.site_owner_id != usr_id)
+        .where(
+            Site_Member.usr_id == usr_id,
+            Site_Table.site_owner_id != usr_id,
+            Site_Member.status == "approved",
+        )
     )
     result = await session.exec(statement)
     return result.first() or 0
@@ -382,6 +395,19 @@ async def list_user_invitations(session: AsyncSession, usr_id: str) -> List[Site
     statement = (
         select(Site_Member)
         .where(Site_Member.usr_id == usr_id, Site_Member.status == "invited")
+        .options(selectinload(Site_Member.site))
+        .order_by(Site_Member.joined_date.asc())
+    )
+    result = await session.exec(statement)
+    return result.all()
+
+
+# คำขอเข้าร่วม site ที่ผู้ใช้ส่งเองและยังรอเจ้าของ/admin อนุมัติ (status="pending") -
+# หน้า Sites แสดงในกระดิ่งแจ้งเตือนคู่กับคำเชิญ (ยกเลิกคำขอใช้ DELETE /sites/{id}/leave เดิม)
+async def list_user_join_requests(session: AsyncSession, usr_id: str) -> List[Site_Member]:
+    statement = (
+        select(Site_Member)
+        .where(Site_Member.usr_id == usr_id, Site_Member.status == "pending")
         .options(selectinload(Site_Member.site))
         .order_by(Site_Member.joined_date.asc())
     )

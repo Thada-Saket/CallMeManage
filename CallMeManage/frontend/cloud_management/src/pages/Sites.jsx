@@ -14,8 +14,8 @@ import SiteSettingsModal from "../components/SiteSettingsModal";
 import { Pagination } from "../components/Pagination";
 
 // import api functions
-import { listMySites } from "../api/api_sites";
-import { acceptInvitation, getMyInvitations, rejectInvitation } from "../api/api_users";
+import { leaveSiteMember, listMySites } from "../api/api_sites";
+import { acceptInvitation, getMyInvitations, getMyJoinRequests, rejectInvitation } from "../api/api_users";
 import LeaveSiteModal from "../components/LeaveSiteModal";
 import InvitationsModal from "../components/InvitationsModal";
 import { copyText } from "../utils/copyText";
@@ -177,6 +177,7 @@ export default function Sites() {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [manageSite, setManageSite] = useState(null);
   const [invitations, setInvitations] = useState([]);
+  const [joinRequests, setJoinRequests] = useState([]);
   const [busyInviteSiteId, setBusyInviteSiteId] = useState(null);
   const [showInvitationsModal, setShowInvitationsModal] = useState(false);
   const refreshRequestId = useRef(0);
@@ -191,9 +192,10 @@ export default function Sites() {
 
   async function refresh(nextOwnedPage = ownedPage, nextJoinedPage = joinedPage) {
     const requestId = ++refreshRequestId.current;
-    const [sitesResult, invitationsResult] = await Promise.allSettled([
+    const [sitesResult, invitationsResult, joinRequestsResult] = await Promise.allSettled([
       listMySites(nextOwnedPage, nextJoinedPage),
       getMyInvitations(),
+      getMyJoinRequests(),
     ]);
     if (requestId !== refreshRequestId.current) return;
 
@@ -215,6 +217,9 @@ export default function Sites() {
     }
     if (invitationsResult.status === "fulfilled") {
       setInvitations(invitationsResult.value);
+    }
+    if (joinRequestsResult.status === "fulfilled") {
+      setJoinRequests(joinRequestsResult.value);
     }
   }
 
@@ -277,6 +282,20 @@ export default function Sites() {
     }
   }
 
+  // ยกเลิกคำขอเข้าร่วมที่ยังรออนุมัติ - endpoint เดียวกับปุ่ม "Cancel Request" บน
+  // การ์ดเดิม (การ์ด pending ย้ายมาอยู่ในกระดิ่งแจ้งเตือนแล้ว)
+  async function handleCancelJoinRequest(siteId) {
+    setBusyInviteSiteId(siteId);
+    try {
+      await leaveSiteMember(siteId);
+      await refresh();
+    } catch (err) {
+      setError(err.detail || "Failed to cancel request");
+    } finally {
+      setBusyInviteSiteId(null);
+    }
+  }
+
   function handleOpen(siteId) {
     navigate(`/devices?site_id=${encodeURIComponent(siteId)}`);
   }
@@ -323,6 +342,27 @@ export default function Sites() {
             <h1>Site Management</h1>
           </div>
           <div className="page-header-buttons">
+            {/* กระดิ่งแจ้งเตือน: คำเชิญเข้า site + คำขอเข้าร่วมที่รออนุมัติ - เลขแดงนับเฉพาะ
+                คำเชิญ (สิ่งที่ผู้ใช้ต้องตอบ) · มีคำเชิญค้าง = กระดิ่งสั่นเป็นจังหวะให้สังเกตเห็น */}
+            <button
+              type="button"
+              className={`site-notification-bell${invitations.length > 0 ? " has-pending" : ""}`}
+              onClick={() => setShowInvitationsModal(true)}
+              aria-label={invitations.length > 0
+                ? `${invitations.length} pending site ${invitations.length === 1 ? "invitation" : "invitations"}`
+                : "Site notifications"}
+              title={invitations.length > 0
+                ? `You have ${invitations.length} pending site ${invitations.length === 1 ? "invitation" : "invitations"}`
+                : "Site notifications"}
+            >
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+              </svg>
+              {invitations.length > 0 && (
+                <span className="site-notification-badge">{invitations.length > 99 ? "99+" : invitations.length}</span>
+              )}
+            </button>
             <button type="button" className="btn btn-ghost" onClick={() => setShowJoinModal(true)}>
               Search & Join Site
             </button>
@@ -333,6 +373,18 @@ export default function Sites() {
         </div>
 
         {error && <DismissibleError message={error} onDismiss={() => setError("")} />}
+
+        {invitations.length > 0 && (
+          <div className="site-invitations-alert" role="status">
+            <span className="site-invitations-alert-count">{invitations.length > 99 ? "99+" : invitations.length}</span>
+            <span className="site-invitations-alert-text">
+              You have <strong>{invitations.length}</strong> pending site {invitations.length === 1 ? "invitation" : "invitations"} waiting for your response
+            </span>
+            <button type="button" className="btn btn-primary" onClick={() => setShowInvitationsModal(true)}>
+              View Invitations
+            </button>
+          </div>
+        )}
 
         {data === null && !error && <div className="center-loading">Loading...</div>}
 
@@ -377,6 +429,8 @@ export default function Sites() {
               )}
             </section>
 
+            {/* แสดงเฉพาะ site ที่อนุมัติแล้ว - backend กรอง pending/invited ออก (ย้ายไปอยู่
+            ในกระดิ่งแจ้งเตือนด้านบน) */}
             {/* หมวดนี้ backend กรอง site ที่ตัวเองเป็นเจ้าของออกให้แล้ว (ดู
             list_joined_site_memberships ใน crud_site.py - เจอบั๊กจริงว่า
             สาขาที่เป็นเจ้าของโผล่ซ้ำที่นี่ด้วย ตั้งแต่ create_site() เริ่มเพิ่ม
@@ -425,28 +479,6 @@ export default function Sites() {
           </>
         )}
 
-        {/* แถบสรุปคำเชิญ - ย้ายมาไว้ล่างสุดต่อจาก Joined Site และแสดงตลอดเวลาแม้ไม่มีคำเชิญ
-            อยู่นอกบล็อก {data && ...} เพราะคำเชิญมาคนละ API กับรายการสาขา จึงยังแสดงได้
-            แม้ตอนที่รายการสาขายังโหลดไม่เสร็จ - ความสูงคงที่ 1 บรรทัดเสมอไม่ว่าจะมีคำเชิญ
-            กี่รายการ รายละเอียด/ปุ่มตอบรับ-ปฏิเสธ อยู่ใน InvitationsModal */}
-        <div className="site-invitations-summary">
-          <span>
-            {invitations.length > 0 ? (
-              <>
-                You have <strong>{invitations.length}</strong> pending site {invitations.length === 1 ? "invitation" : "invitations"}
-              </>
-            ) : (
-              "No pending site invitations"
-            )}
-          </span>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => setShowInvitationsModal(true)}
-          >
-            View Invitations
-          </button>
-        </div>
       </main>
 
       {showCreateModal && (
@@ -476,9 +508,11 @@ export default function Sites() {
       {showInvitationsModal && (
         <InvitationsModal
           invitations={invitations}
+          joinRequests={joinRequests}
           busyInviteSiteId={busyInviteSiteId}
           onAccept={handleAcceptInvitation}
           onReject={handleRejectInvitation}
+          onCancelRequest={handleCancelJoinRequest}
           onClose={() => setShowInvitationsModal(false)}
         />
       )}

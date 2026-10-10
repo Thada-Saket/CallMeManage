@@ -239,19 +239,21 @@
     box-sizing: border-box;
   }
 
-  /* --- 3.5 Site Invitations Summary Bar --- */
-  .site-invitations-summary {
-    flex-direction: column;
-    align-items: stretch;
-    margin: 0.75rem 0.5rem;
-    gap: 10px;
-    text-align: center;
+  /* --- 3.5 Site Invitations Alert --- */
+  .site-invitations-alert {
+    flex-wrap: wrap;
+    margin: 0 0.5rem 0.75rem;
     box-sizing: border-box;
   }
 
-  .site-invitations-summary .btn {
+  .site-invitations-alert .btn {
     width: 100%;
     min-height: 44px;
+  }
+
+  .site-notification-bell {
+    width: 44px;
+    height: 44px;
   }
 
   /* --- 3.6 Cards & Grid --- */
