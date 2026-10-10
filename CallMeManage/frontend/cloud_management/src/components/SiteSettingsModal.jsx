@@ -16,6 +16,13 @@ import { lookupUserByEmail } from "../api/api_users";
 // SiteMemberModal.jsx - ขยายเป็น "Site Settings" เต็มรูปแบบตาม spec ข้อ 3.3:
 // เชิญสมาชิกด้วยอีเมล + จัดการ role + โอนกรรมสิทธิ์ + ยุบสาขา (2 อย่างหลัง
 // เฉพาะ isOwner - Site Admin ทำแทนไม่ได้ ตรงกับ guard ฝั่ง backend)
+// แจ้งผลสำเร็จด้านบน (ToastContainer ระดับ App) แบบเดียวกับตอนสร้าง site
+// (Sites.jsx's handleCreated) - 3 วินาทีเท่ากัน ลบแล้ว modal ปิดทันที toast ที่ค้าง
+// ไว้นานกว่าค่า default 1 วินาทีจึงเป็นสิ่งเดียวที่บอกผู้ใช้ว่าลบสำเร็จ
+function notifySiteSuccess(message) {
+  window.dispatchEvent(new CustomEvent("toast:success", { detail: { message, duration: 3000 } }));
+}
+
 export default function SiteSettingsModal({ site, isOwner, onClose, onSiteChanged }) {
   const [savedSiteName, setSavedSiteName] = useState(site.site_name);
   const [siteNameDraft, setSiteNameDraft] = useState(site.site_name);
@@ -138,6 +145,7 @@ export default function SiteSettingsModal({ site, isOwner, onClose, onSiteChange
       const updatedSite = await renameSite(site.site_id, cleanedName);
       setSavedSiteName(updatedSite.site_name);
       setSiteNameDraft(updatedSite.site_name);
+      notifySiteSuccess(`Site renamed to "${updatedSite.site_name}" successfully`);
       await onSiteChanged?.();
     } catch (err) {
       setRenameError(err.detail || "Failed to rename site");
@@ -224,6 +232,7 @@ export default function SiteSettingsModal({ site, isOwner, onClose, onSiteChange
     setDeleting(true);
     try {
       await deleteSite(site.site_id);
+      notifySiteSuccess(`Site "${savedSiteName}" deleted successfully`);
       onSiteChanged?.();
       onClose();
     } catch (err) {

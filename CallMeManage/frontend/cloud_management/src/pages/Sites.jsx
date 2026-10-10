@@ -68,6 +68,12 @@ function SiteCard({ site, badge, canEnter, onEnter, onCopyOrgId, onManageMembers
     onManageMembers(site);
   }
 
+  function handleCopyClick(event) {
+    event.stopPropagation();
+    setFlipped(false);
+    onCopyOrgId(site.org_id);
+  }
+
   function handleLeaveClick(event) {
     event.stopPropagation();
     setFlipped(false);
@@ -94,6 +100,7 @@ function SiteCard({ site, badge, canEnter, onEnter, onCopyOrgId, onManageMembers
       role="button"
       tabIndex={0}
       aria-label={`${site.site_name} site actions`}
+      title={flipped ? undefined : "Click to show site actions"}
       aria-expanded={flipped}
     >
       <div className="device-card-flip-inner">
@@ -115,18 +122,16 @@ function SiteCard({ site, badge, canEnter, onEnter, onCopyOrgId, onManageMembers
             <div>
               <span className="label">Org ID :</span>
               <span className="meta-value" title={site.org_id}>{site.org_id}</span>
-              <button
-                type="button"
-                className="site-org-copy"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onCopyOrgId(site.org_id);
-                }}
-                aria-label={`Copy Org ID ${site.org_id}`}
-              >
-                Copy
-              </button>
             </div>
+          </div>
+          {/* บอกผู้ใช้ว่าการ์ดนี้กดเพื่อพลิกดูปุ่ม action ด้านหลังได้ - เดิมมีแค่
+              ขอบเขียว/ขยายตอน hover ซึ่งไม่ได้บอกว่าคลิกแล้วจะเกิดอะไร */}
+          <div className="site-card-flip-hint" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 12a9 9 0 1 1-3-6.7" />
+              <polyline points="21 3 21 9 15 9" />
+            </svg>
+            Click for actions
           </div>
         </div>
 
@@ -153,19 +158,10 @@ function SiteCard({ site, badge, canEnter, onEnter, onCopyOrgId, onManageMembers
                   : "Leave Site"}
             </button>
           )}
-          <button
-            type="button"
-            className="btn btn-ghost btn-block"
-            onClick={(event) => {
-              // ต้อง stopPropagation ตอนนี้ (เดิมไม่ต้องเพราะ onClick ของการ์ด
-              // อยู่แค่ที่ face-front - sibling ไม่ใช่ ancestor ของปุ่มนี้ ไม่
-              // เคย bubble ไปเจอกัน) - ย้าย onClick ไปที่ .device-card ชั้นนอก
-              // สุดแล้ว ถ้าไม่กันไว้จะโดน toggle ซ้อนทับจาก outer handler ทันที
-              event.stopPropagation();
-              setFlipped(false);
-            }}
-          >
-            Back
+          {/* แทนที่ปุ่ม "Back" เดิม (ซ้ำกับการคลิกการ์ด/คลิกนอกการ์ดที่พลิกกลับ
+              อยู่แล้ว) - ย้าย Copy จากหน้า front มาเป็นปุ่มเต็มความกว้างตรงนี้ */}
+          <button type="button" className="btn btn-ghost btn-block" onClick={handleCopyClick}>
+            Copy Org ID
           </button>
         </div>
       </div>

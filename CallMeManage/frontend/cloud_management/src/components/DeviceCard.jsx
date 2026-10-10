@@ -146,12 +146,18 @@ export default function DeviceCard({ device, siteRole, onDeleted, onChanged }) {
   const canReconnect = ["active", "online", "offline", "unresponsive"].includes(device.dev_status);
   const canManageSite = siteRole === "owner" || siteRole === "admin";
   const canResetIdentity = siteRole === "owner";
+  // ปุ่ม "Back" ถูกเอาออกแล้ว (ซ้ำกับการคลิกการ์ด/คลิกนอกการ์ดที่พลิกกลับอยู่แล้ว)
+  // การ์ด pending ที่ผู้ใช้ไม่มีสิทธิ์จัดการ site จึงไม่เหลือปุ่มด้านหลังเลย - ไม่
+  // ให้พลิกไปเจอหน้าว่าง
+  const hasBackActions = !isPending || canManageSite;
 
   return (
     <div
       className={`device-card${flipped ? " flipped" : ""}`}
       ref={cardRef}
-      onClick={() => setFlipped((prev) => !prev)}
+      onClick={() => {
+        if (hasBackActions) setFlipped((prev) => !prev);
+      }}
     >
       {!device.dev_viewed && <span className="device-unseen-dot" title="Unviewed device" />}
       <div className="device-card-flip-inner">
@@ -221,22 +227,6 @@ export default function DeviceCard({ device, siteRole, onDeleted, onChanged }) {
               )}
             </>
           )}
-          <button
-            type="button"
-            className="btn btn-ghost btn-block"
-            onClick={(event) => {
-              // ต้อง stopPropagation ตอนนี้ (เดิมไม่ต้องเพราะ onClick ของการ์ด
-              // อยู่แค่ที่ face-front ซึ่งเป็น sibling ไม่ใช่ ancestor ของปุ่มนี้
-              // เลย ไม่เคย bubble ไปเจอกัน) - ย้าย onClick ไปที่ .device-card
-              // ชั้นนอกสุดแล้ว (ดู comment ด้านบน) ถ้าไม่กันไว้ setFlipped(false)
-              // ที่นี่จะโดน toggle ซ้อนทับจาก outer handler ทันทีในรอบ event
-              // เดียวกัน กลายเป็นพลิกกลับไปหน้า back ทันทีที่กด "Back"
-              event.stopPropagation();
-              setFlipped(false);
-            }}
-          >
-            Back
-          </button>
         </div>
       </div>
 

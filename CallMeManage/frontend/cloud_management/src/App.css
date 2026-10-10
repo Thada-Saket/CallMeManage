@@ -1087,6 +1087,39 @@ input.login-credential-input[data-ascii-guard="true"] {
   transform: rotateY(180deg);
 }
 
+/* คำใบ้ "Click for actions" มุมขวาล่างของ site card (Sites.jsx) - จางไว้ตอนปกติ
+   ไม่แย่งสายตาจากข้อมูลการ์ด แล้วชัดขึ้นเป็นสีธีมตอน hover/focus ให้รู้ว่าการ์ด
+   กดพลิกได้ · อยู่ใน face-front จึงหายไปพร้อมหน้า front ตอนพลิก */
+.site-card-flip-hint {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #7a8a8e;
+  opacity: 0.7;
+  transition: color 0.2s ease, opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.device-card:hover .site-card-flip-hint,
+.device-card:focus-visible .site-card-flip-hint {
+  color: #006b5f;
+  opacity: 1;
+}
+
+.device-card:hover .site-card-flip-hint svg,
+.device-card:focus-visible .site-card-flip-hint svg {
+  transform: rotate(-90deg);
+}
+
+.site-card-flip-hint svg {
+  transition: transform 0.3s ease;
+}
+
 /* จุดแดง "ยังไม่เคยเปิดดู" - มุมขวาบนของการ์ด เหนือ logo/ทุกอย่าง (z-index สูง
    สุดในการ์ด) - box-shadow ขอบขาวเปลี่ยนจาก --bg-panel (เข้ม) เป็นสีขาวของ
    การ์ดเองแทน ให้จุดแดงยังดูลอยเด่นแยกจากพื้นการ์ดเหมือนเดิม */
@@ -1179,8 +1212,7 @@ input.login-credential-input[data-ascii-guard="true"] {
   white-space: nowrap;
 }
 
-.device-card .device-meta span.label,
-.device-card .device-meta .site-org-copy {
+.device-card .device-meta span.label {
   flex-shrink: 0;
 }
 
@@ -1217,24 +1249,6 @@ input.login-credential-input[data-ascii-guard="true"] {
   color: #55666a;
   font-family: var(--sans);
   margin-right: 6px;
-}
-
-.site-org-copy {
-  margin-left: 8px;
-  padding: 1px 7px;
-  border: 1px solid #55666a;
-  border-radius: 999px;
-  background: transparent;
-  color: #344246;
-  font: inherit;
-  cursor: pointer;
-}
-
-.site-org-copy:hover,
-.site-org-copy:focus-visible {
-  border-color: #006b5f;
-  color: #006b5f;
-  outline: none;
 }
 
 /* ปุ่ม "จัดการอุปกรณ์"/"ลบ" ใน device card เท่านั้น - .btn-ghost ตัวเดิม (ใช้
