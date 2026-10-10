@@ -235,6 +235,11 @@ export default function OspfRouteFormModal({ devId, vendor, currentRule = null, 
         interfaces,
         passive_interfaces: passiveList,
         router_id: routerId,
+        // เดิมไม่ได้ส่ง 3 ค่านี้เลย - toggle ไม่มีผล และ replace ที่ระดับ <ospf> ลบ
+        // export ที่ตั้งไว้เดิมทิ้งทุกครั้งที่ Apply (ดู replace_ospf_area)
+        default_originate: values.defaultInformationOriginate,
+        redistribute_static: values.redistributeStatic,
+        redistribute_rip: values.redistributeRip,
       };
       await validateDeviceCommand(devId, "replace_ospf_area", ospfParams);
       await runDeviceCommand(devId, "replace_ospf_area", ospfParams);
@@ -250,7 +255,10 @@ export default function OspfRouteFormModal({ devId, vendor, currentRule = null, 
     event.preventDefault();
     setError("");
 
-    const processId = values.processId.trim();
+    // ตอน edit ใช้ process_id เดิมจากอุปกรณ์เสมอ - replace ทำงานแค่ใต้ <process-id>
+    // ที่ส่งไป ถ้าส่ง id ใหม่ process เดิมจะค้างอยู่คู่กันเป็น 2 process (ช่องนี้ล็อก
+    // ไว้ตอน edit แล้ว แต่ไม่พึ่ง UI อย่างเดียว)
+    const processId = isEdit ? String(currentRule.process_id) : values.processId.trim();
     const routerId = values.routerId.trim();
     const area = values.area.trim();
     if (!processId) return setError("Please enter Process ID");
@@ -274,8 +282,7 @@ export default function OspfRouteFormModal({ devId, vendor, currentRule = null, 
       // แก้ไข process ที่มีอยู่แล้วต้องลบของเดิมทิ้งทั้งก้อนก่อนเสมอ (ไม่ใช่แค่เรียก
       // set_ospf_network ซ้ำ) เพราะ network/passive-interface list merge แบบ "เพิ่ม"
       // ไม่ใช่แทนที่ (pattern เดียวกับ static route/DHCP pool ที่ผ่านมา) - ใช้
-      // process_id เดิมจาก target เสมอ ไม่ใช่ค่าใหม่ที่อาจแก้ในฟอร์ม (ต้องลบ
-      // ตัวที่มีอยู่จริง)
+      // process_id เดิมจาก currentRule เสมอตอน edit (ดู processId ด้านบน)
       // (ระลอก C2) เดิมยิง remove_ospf_process แล้ววน set_ospf_network ทีละ network
       // + default_originate + redistribute อีก 2 + passive_interface รวมได้ถึง 12 RPC
       // ถ้าพังกลางทางจะได้ routing ครึ่ง ๆ กลาง ๆ (บาง network เข้าแล้ว บางตัวยัง)
@@ -332,8 +339,12 @@ export default function OspfRouteFormModal({ devId, vendor, currentRule = null, 
             onChange={(event) => {
               if (acceptsOspfProcessIdInput(event.target.value)) setField("processId", event.target.value);
             }}
+            readOnly={isEdit}
             required
           />
+          {isEdit && (
+            <div className="field-hint">Process ID cannot be changed - disable OSPF and re-enable to use a different ID</div>
+          )}
         </div>
       )}
 
@@ -448,7 +459,10 @@ export default function OspfRouteFormModal({ devId, vendor, currentRule = null, 
           (Junos ไม่มี "default" จริง - mark ทีละ interface เอง ดู
           handleSubmitJuniper) - UI/behavior mirror Cisco ทุกประการตามสเปกข้อ
           5.2: เปิด toggle แล้วทุก interface ที่เลือกไว้ด้านบนเป็น passive โดย
-          default ทันที มีตารางให้ติ๊ก "ปลด Passive" เฉพาะตัวที่ต้องการให้ active */}
+          default ทันที มีตารางให้ติ๊ก "ปลด Passive" เฉพาะตัวที่ต้องการให้ active
+          toggle ในตาราง (ทั้ง 2 ยี่ห้อ) แสดงเป็น "เปิด = passive" ตามที่ user ขอ -
+          ทุกขาเปิดไว้ก่อน ปิดเฉพาะขาที่ไม่อยาก passive - state ยังเก็บเป็น
+          noPassiveInterfaces เหมือนเดิม แค่กลับค่า checked ตอนแสดงผล */}
       {isJuniper ? (
         <>
           <div className="interface-configuration-form-field">
@@ -466,7 +480,7 @@ export default function OspfRouteFormModal({ devId, vendor, currentRule = null, 
 
           {values.passiveInterfaceDefault && announcedRows.some((row) => row.interfaceName) && (
             <div className="interface-configuration-form-field">
-              <label className="data-label">No Passive (Disable Passive)</label>
+              <label className="data-label">Passive Interfaces (turn off to make active)</label>
               <table className="form-interface-add-list">
                 <tbody>
                   {announcedRows.filter((row) => row.interfaceName).map(({ interfaceName: ifaceName }) => (
@@ -476,7 +490,7 @@ export default function OspfRouteFormModal({ devId, vendor, currentRule = null, 
                         <div className="toggle-switch-container">
                           <input
                             type="checkbox"
-                            checked={values.noPassiveInterfaces.includes(ifaceName)}
+                            checked={!values.noPassiveInterfaces.includes(ifaceName)}
                             onChange={() => toggleNoPassive(ifaceName)}
                             id={`nopassive-juniper-${ifaceName}`}
                           />
@@ -507,7 +521,7 @@ export default function OspfRouteFormModal({ devId, vendor, currentRule = null, 
 
           {values.passiveInterfaceDefault && (
             <div className="interface-configuration-form-field">
-              <label className="data-label">No Passive</label>
+              <label className="data-label">Passive Interfaces (turn off to make active)</label>
               {announcedRows.length === 0 ? (
                 <span className="field-hint">
                   No interface found bound to the networks above (please select an IP matching an actual interface).
@@ -522,7 +536,7 @@ export default function OspfRouteFormModal({ devId, vendor, currentRule = null, 
                           <div className="toggle-switch-container">
                             <input
                               type="checkbox"
-                              checked={values.noPassiveInterfaces.includes(row.interfaceName)}
+                              checked={!values.noPassiveInterfaces.includes(row.interfaceName)}
                               onChange={() => toggleNoPassive(row.interfaceName)}
                               id={`nopassive-${row.interfaceName}`}
                             />

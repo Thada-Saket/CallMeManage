@@ -1749,15 +1749,66 @@ def set_ospf_network(
 # router-id อยู่คนละ subtree (routing-options ไม่ใช่ protocols) จึงส่งไปคู่กันใน
 # edit-config เดียวกันแต่ไม่ได้อยู่ใต้ replace - ตั้งใจ เพราะ router-id เป็นค่าระดับ
 # อุปกรณ์ที่ protocol อื่นใช้ร่วมด้วย ไม่ควรถูกล้างไปพร้อม OSPF
+#
+# เดิมไม่รับ default_originate/redistribute_* เลย ทั้งที่ฟอร์มมี toggle ทั้ง 3 ตัว
+# ให้ Juniper - กดเปิดแล้ว Apply ไม่มีผลอะไร และแย่กว่านั้นคือ replace ที่ระดับ <ospf>
+# ลบ <export> ที่ตั้งไว้เดิมทิ้งเงียบ ๆ ทุกครั้งที่ Apply (แม้แค่เปลี่ยน area) - ตอนนี้
+# เขียน <export> ไว้ใน replace ก้อนเดียวกันเลย ส่วน policy-statement อยู่คนละ
+# subtree (policy-options) จึงสร้าง (merge) ตัวที่เปิด และลบตัวที่ปิดใน edit-config
+# เดียวกัน กันเป็น orphan เหมือน remove_ospf_routing - ทั้ง 3 ชื่อใช้กับ OSPF เท่านั้น
+# (RIP ใช้ EXPORT-DEFAULT-RIP/EXPORT-STATIC แยกอยู่แล้ว) ลบได้โดยไม่กระทบ protocol อื่น
+_OSPF_EXPORT_POLICY_TERMS = {
+    "EXPORT-DEFAULT": '''
+      <from>
+        <route-filter>
+          <address>0.0.0.0/0</address>
+          <choice-ident>exact</choice-ident>
+          <choice-value></choice-value>
+        </route-filter>
+      </from>''',
+    "EXPORT-STATIC-OSPF": "<from><protocol>static</protocol></from>",
+    "EXPORT-RIP-OSPF": "<from><protocol>rip</protocol></from>",
+}
+
 @validate_call
 def replace_ospf_area(
     area: StrictInt | str,
     interfaces: list[str],
     passive_interfaces: list[str] | None = None,
     router_id: str | None = None,
+    default_originate: bool = False,
+    redistribute_static: bool = False,
+    redistribute_rip: bool = False,
 ) -> str:
     if not interfaces:
         raise ValueError("At least 1 interface must be specified")
+
+    enabled_exports = {
+        "EXPORT-DEFAULT": default_originate,
+        "EXPORT-STATIC-OSPF": redistribute_static,
+        "EXPORT-RIP-OSPF": redistribute_rip,
+    }
+    export_xml = ""
+    policy_xml = ""
+    for name, enabled in enabled_exports.items():
+        if enabled:
+            export_xml += f"<export>{name}</export>"
+            policy_xml += f'''
+  <policy-statement>
+    <name>{name}</name>
+    <term>
+      <name>1</name>
+      {_OSPF_EXPORT_POLICY_TERMS[name]}
+      <then>
+        <accept/>
+      </then>
+    </term>
+  </policy-statement>'''
+        else:
+            policy_xml += f'''
+  <policy-statement xmlns:nc="{NS_RPC}" nc:operation="remove">
+    <name>{name}</name>
+  </policy-statement>'''
 
     passive = set(passive_interfaces or [])
     interface_xml = ""
@@ -1777,12 +1828,15 @@ def replace_ospf_area(
     return _edit_configuration(f'''
 <protocols xmlns="{NS_PROTOCOLS}">
   <ospf xmlns:nc="{NS_RPC}" nc:operation="replace">
+    {export_xml}
     <area>
       <name>{validate_ospf_area(area)}</name>
       {interface_xml}
     </area>
   </ospf>
 </protocols>
+<policy-options xmlns="{NS_POLICY_OPTIONS}">{policy_xml}
+</policy-options>
 {router_id_xml}
     ''')
 
