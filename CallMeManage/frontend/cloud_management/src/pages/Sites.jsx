@@ -285,9 +285,20 @@ export default function Sites() {
     navigate(`/devices?site_id=${encodeURIComponent(siteId)}`);
   }
 
-  function handleCreated() {
+  // สร้างเสร็จแล้วพาเข้า site ใหม่ทันที (ผู้สร้างเป็น Owner เข้าได้เลยไม่ต้องรออนุมัติ)
+  // แทนที่จะกลับมาให้หาการ์ดแล้วพลิกกด Enter เอง - toast อยู่ที่ระดับ App
+  // (ToastContainer) จึงยังโชว์ต่อหลังเปลี่ยนหน้า · ถ้า response ไม่มี site_id
+  // (ไม่ควรเกิด) ถอยไปพฤติกรรมเดิมคือรีเฟรชรายการอยู่หน้านี้
+  function handleCreated(site) {
     setShowCreateModal(false);
-    setOwnedPage(0); // สร้างสาขาใหม่แล้วพากลับหน้าแรกของชุด "สาขาที่เป็นเจ้าของ" เสมอ
+    window.dispatchEvent(new CustomEvent("toast:success", {
+      detail: { message: `Site "${site?.site_name || ""}" created successfully`, duration: 3000 },
+    }));
+    if (site?.site_id) {
+      handleOpen(site.site_id);
+      return;
+    }
+    setOwnedPage(0);
     refresh(0, joinedPage);
   }
 

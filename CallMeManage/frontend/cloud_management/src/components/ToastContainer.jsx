@@ -15,14 +15,20 @@ export default function ToastContainer() {
   const timersRef = useRef({});
 
   useEffect(() => {
+    // detail เป็น string (ข้อความ) แบบเดิม หรือ {message, duration} เมื่อต้องการให้
+    // ค้างนานกว่า 1 วินาที - เช่นสร้าง site แล้วเปลี่ยนหน้าทันที (Sites.jsx) ถ้าใช้
+    // 1 วินาทีเดิม toast จะหายไประหว่างหน้าใหม่ยังโหลดอยู่จนผู้ใช้แทบไม่เห็น
     function handleToast(event) {
       const id = ++toastIdCounter;
-      const message = event.detail || "✓ Changes applied successfully";
+      const detail = event.detail;
+      const isObject = detail && typeof detail === "object";
+      const message = (isObject ? detail.message : detail) || "✓ Changes applied successfully";
+      const duration = isObject && Number(detail.duration) > 0 ? Number(detail.duration) : TOAST_DURATION_MS;
       setToasts((prev) => [...prev, { id, message }]);
       timersRef.current[id] = setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== id));
         delete timersRef.current[id];
-      }, TOAST_DURATION_MS);
+      }, duration);
     }
     window.addEventListener("toast:success", handleToast);
     return () => {
