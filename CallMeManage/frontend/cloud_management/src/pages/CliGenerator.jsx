@@ -759,6 +759,19 @@ export default function CliGenerator() {
         requires_manual_commit_before_next: false,
       }));
   const renderedSteps = effectiveSteps.filter((step) => Boolean(step && step.commands && step.commands.trim()));
+  // ทางสำรองตอนอุปกรณ์ดาวน์โหลด config ไม่ได้ (เช่น SSL error): ผู้ใช้วาง payload เองแทน แล้วข้ามขั้นที่
+  // นำไฟล์ที่ดาวน์โหลดไปใช้ (copy-config-running ของ Cisco / load-config-candidate ของ Juniper)
+  const loadStepIndex = renderedSteps.findIndex((step) => step.can_view_payload && boilerplateText);
+  const loadStepName = loadStepIndex >= 0 ? `step ${loadStepIndex + 1}` : "the download step";
+  const applyStep = loadStepIndex >= 0 ? renderedSteps[loadStepIndex + 1] : null;
+  const skipStepNumber = applyStep && ["copy-config-running", "load-config-candidate"].includes(applyStep.id)
+    ? loadStepIndex + 2
+    : null;
+  const pasteHowTo = applyStep?.id === "copy-config-running"
+    ? <>type <code>configure terminal</code>, paste the config, then type <code>end</code></>
+    : applyStep?.id === "load-config-candidate"
+      ? <>paste the config while still in configuration mode</>
+      : <>paste the config into the device</>;
   const enrollmentStatus = pendingDevice?.status || "pending";
   const enrollmentOnline = ["active", "online"].includes(enrollmentStatus);
   const enrollmentStatusText = enrollmentOnline
@@ -1488,7 +1501,7 @@ export default function CliGenerator() {
                         <div className="cli-generator-segment-actions">
                           {isLoadStep && (
                             <button type="button" className="btn btn-inspect" onClick={() => setShowBoilerplate(true)}>
-                              View Configuration Payload
+                              <span aria-hidden="true">📖</span> Please read: what this step loads
                             </button>
                           )}
                           <button type="button" className="btn btn-primary" onClick={() => handleCopySegment(stepId, step.commands)}>
@@ -1497,6 +1510,13 @@ export default function CliGenerator() {
                         </div>
                       </div>
                       <AutoSizeTextarea readOnly value={step.commands} onClick={(event) => event.target.select()} />
+                      {isLoadStep && (
+                        <div className="cli-generator-step-notice">
+                          ⚠️ <strong>Device shows an SSL error or the download fails?</strong> Click
+                          {" "}<strong>Please read</strong> above, copy the config there and paste it into the device yourself
+                          {skipStepNumber ? <>, then skip step {skipStepNumber}</> : null}.
+                        </div>
+                      )}
                       {step.requires_manual_commit_before_next && (
                         <div className="cli-generator-step-notice">
                           ⚠️ {step.warning_message || "Review and commit the initial network configuration before downloading the bootstrap configuration. The system does not commit configuration automatically."}
@@ -1532,10 +1552,7 @@ export default function CliGenerator() {
                 >
                   <div className="modal-header">
                     <div>
-                      <h2>Config Loaded Automatically by Device (No copy-paste needed)</h2>
-                       <p className="field-hint">
-                        This configuration is fetched automatically by the device in the final step. Shown here for verification.
-                      </p>
+                      <h2>The config {loadStepName} loads onto the device</h2>
                     </div>
                     <button
                       type="button"
@@ -1545,6 +1562,18 @@ export default function CliGenerator() {
                     >
                       &times;
                     </button>
+                  </div>
+                  <div className="cli-generator-payload-callout" role="note">
+                    <p>
+                      <strong>Normally you do not paste this.</strong> The device downloads it by itself in {loadStepName}
+                      {skipStepNumber ? <> and applies it in step {skipStepNumber}</> : null}.
+                      It is shown here so you can check what will be set.
+                    </p>
+                    <p>
+                      <strong>⚠️ If {loadStepName} fails, for example the device shows an SSL error:</strong>
+                      {" "}copy the config below and {pasteHowTo}.
+                      {skipStepNumber ? <> Then <strong>skip step {skipStepNumber}</strong> and carry on with the next step.</> : null}
+                    </p>
                   </div>
                   <div className="cli-generator-segment-header">
                     <h3>Configuration payload</h3>
