@@ -86,7 +86,7 @@ function SiteCard({ site, badge, canEnter, onEnter, onCopyOrgId, onManageMembers
       onClick={() => setFlipped((prev) => !prev)}
       onKeyDown={(event) => {
         if (event.target !== event.currentTarget) return;
-        if (event.key === "Enter" || event.key === " ") {
+        if (event.key === "Configure Devices" || event.key === " ") {
           event.preventDefault();
           setFlipped((prev) => !prev);
         }

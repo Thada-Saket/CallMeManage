@@ -1474,6 +1474,13 @@ input.login-credential-input[data-ascii-guard="true"] {
   margin: 0 0 12px;
 }
 
+/* checkbox/radio ปกติของ browser (ตัวเลือกใน dropdown, radio-option-list) - ติ๊กแล้ว
+   เป็นสีเดียวกับ .btn-primary แทนสีน้ำเงิน default ของ browser */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--jade);
+}
+
 /* start checkbox switch */
 .toggle-switch-container .toggleSwitch { 
    position : relative ;
@@ -1505,8 +1512,9 @@ input.login-credential-input[data-ascii-guard="true"] {
     background-color: white;
     left: 20px;
 }
+/* ตอนเปิดใช้สีเดียวกับ .btn-primary - เดิม #004138 เข้มจนแทบแยกไม่ออกจากตอนปิด */
 .toggle-switch-container input[type="checkbox"]:checked + .toggleSwitch {
-    background-color: #004138;
+    background-color: var(--jade);
 }
 
 /* user ขอ (2026-08-04): เปลี่ยนจากแสดง loading เฉยๆ ในแท็บ เป็น popup เต็มจอบัง

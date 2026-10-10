@@ -6,7 +6,6 @@ import { normalizeSubnet } from "../../../utils/normalizeSubnet";
 import { displayStaticRouteDistance } from "../../../utils/staticRouteDistance";
 import StaticRouteFormModal from "./StaticRouteFormModal";
 import Edit_Result from "../../commandResult/edit_command_result";
-import { Reload_Result } from "../../commandResult/reload_command_result";
 
 function ensureArray(value) {
   if (value === undefined || value === null) return [];
@@ -124,14 +123,18 @@ function extractJuniperStaticRoutes(payload) {
     for (const rt of ensureArray(table?.rt)) {
       for (const entry of ensureArray(rt?.["rt-entry"])) {
         if ((entry?.["protocol-name"] || "").toLowerCase() !== "static") continue;
-        const nh = ensureArray(entry?.nh)[0] || {};
-        routes.push({
-          prefix: rt?.["rt-destination"] || "",
-          nextHop: nh?.to || "",
-          iface: nh?.via || "",
-          distance: entry?.preference || "",
-          metric: entry?.metric || "",
-        });
+        // เก็บทุก nh (ไม่ใช่แค่ตัวแรก) - route ที่มีหลาย next-hop ต้องเทียบสถานะ
+        // ของแถว config ได้ครบทุกตัว (ดู isRouteActive)
+        const nextHops = ensureArray(entry?.nh);
+        for (const nh of nextHops.length > 0 ? nextHops : [{}]) {
+          routes.push({
+            prefix: rt?.["rt-destination"] || "",
+            nextHop: nh?.to || "",
+            iface: nh?.via || "",
+            distance: entry?.preference || "",
+            metric: entry?.metric || "",
+          });
+        }
       }
     }
   }
@@ -182,6 +185,37 @@ function extractStaticRoutes(payload, vendor) {
 
 function routeKey(route) {
   return `${route.prefix}::${route.nextHop}::${route.iface}`;
+}
+
+// สถานะของแถว config แต่ละแถว = มี route เดียวกันอยู่ใน RIB (get_routing_table)
+// หรือไม่ - RIB มีแค่ route ที่ active จริง route ที่ตั้งไว้แต่ next-hop resolve
+// ไม่ได้/ขาออก down จะไม่อยู่ในนั้น (ดูคอมเมนต์ extractConfiguredCiscoRoutes)
+// เทียบ prefix ก่อน แล้วเทียบ next hop ถ้าแถว config ระบุไว้ ไม่งั้นเทียบขาออก
+// (route แบบ interface) - route ที่ไม่มีทั้งสองอย่าง (เช่น discard ของ Junos)
+// เทียบแค่ prefix
+function isRouteActive(configured, activeRoutes) {
+  return activeRoutes.some((active) => {
+    if (active.prefix !== configured.prefix) return false;
+    if (configured.nextHop) return active.nextHop === configured.nextHop;
+    if (configured.iface) return active.iface === configured.iface;
+    return true;
+  });
+}
+
+// Huawei: get_routing_table ของ VRP query static route จาก config ตรง ๆ (srRoutes
+// ตัวเดียวกับ get_static_route_configuration) ไม่ใช่ RIB จึงบอกไม่ได้ว่า route
+// ไหน active - คืน null = ไม่ทราบสถานะ แทนที่จะโชว์เขียวทุกแถวแบบหลอก ๆ
+function resolveRouteStatus(configured, activeRoutes, vendor) {
+  if (vendor === "huawei" || !activeRoutes) return null;
+  return isRouteActive(configured, activeRoutes) ? "up" : "down";
+}
+
+function RouteStatusDot({ status }) {
+  if (!status) {
+    return <span className="route-status-dot route-status-unknown" title="Status not available" aria-label="Status not available" />;
+  }
+  const label = status === "up" ? "Up (active in routing table)" : "Down (not in routing table)";
+  return <span className={`route-status-dot route-status-${status}`} title={label} aria-label={label} />;
 }
 
 export default function StaticRoute({ devId, vendor }) {
@@ -247,16 +281,15 @@ export default function StaticRoute({ devId, vendor }) {
     return <div className="center-loading">Loading routing table...</div>;
   }
 
+  // RIB ไม่แสดงเป็นตารางแยกแล้ว - ใช้แค่หาสถานะ up/down ของแต่ละแถวในตาราง config
   const payload = data?.normalized ? data.result?.payload : null;
-  const routes = payload ? extractStaticRoutes(payload, data.result?.vendor) : null;
+  const activeRoutes = payload ? extractStaticRoutes(payload, data.result?.vendor) : null;
+  const statusVendor = data?.result?.vendor || vendor;
 
   const configPayload = configData?.normalized ? configData.result?.payload : null;
   const configuredRoutes = configPayload
     ? extractConfiguredStaticRoutes(configPayload, configData.result?.vendor)
     : null;
-  // เลือก/แก้ไข/ลบ ผูกกับตาราง config (ตารางใหม่) เท่านั้น - ตาราง active (RIB)
-  // เป็นแค่ผลลัพธ์ให้ดูเฉยๆ (route ที่ non-active จะไม่โผล่ในนั้นเลย เลือกจากตรง
-  // นั้นไม่ได้อยู่แล้ว)
   const selectedRoute = configuredRoutes?.find((r) => routeKey(r) === selectedKey) || null;
 
   return (
@@ -275,41 +308,6 @@ export default function StaticRoute({ devId, vendor }) {
       ) : (
         <>
           <div className="command-output-title">
-            <Reload_Result loading={loading} onRefresh={refetch} />
-          </div>
-
-          {routes === null ? (
-            data && (
-              <pre>{typeof data.result === "string" ? data.result : JSON.stringify(data.result, null, 2)}</pre>
-            )
-          ) : routes.length === 0 ? (
-            <div className="config-placeholder">No active static routes</div>
-          ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Destination</th>
-                  <th>Next Hop</th>
-                  <th>Exit Interface</th>
-                  <th>Distance</th>
-                  <th>Metric</th>
-                </tr>
-              </thead>
-              <tbody>
-                {routes.map((route, index) => (
-                  <tr key={`${routeKey(route)}-${index}`}>
-                    <td>{route.prefix}</td>
-                    <td>{route.nextHop || "-"}</td>
-                    <td>{route.iface || "-"}</td>
-                    <td>{displayStaticRouteDistance(route.distance, data.result?.vendor || vendor)}</td>
-                    <td>{route.metric || "-"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-
-          <div className="command-output-title">
             <Edit_Result
               featureName="static route"
               selectedLabel={selectedRoute ? `${selectedRoute.prefix} (next hop ${selectedRoute.nextHop || selectedRoute.iface})` : ""}
@@ -323,8 +321,11 @@ export default function StaticRoute({ devId, vendor }) {
               onOpenDeleteConfirm={() => setShowDeleteConfirm(true)}
               onCancelDelete={() => setShowDeleteConfirm(false)}
               onConfirmDelete={() => handleConfirmDelete(selectedRoute)}
-              refreshing={configLoading}
-              onRefresh={refetchConfig}
+              refreshing={configLoading || loading}
+              onRefresh={() => {
+                refetchConfig();
+                refetch();
+              }}
             />
           </div>
 
@@ -335,9 +336,10 @@ export default function StaticRoute({ devId, vendor }) {
           ) : configuredRoutes.length === 0 ? (
             <div className="config-placeholder">No static routes configured</div>
           ) : (
-            <table className="data-table">
+            <table className="data-table static-route-table">
               <thead>
                 <tr>
+                  <th className="route-status-col">Status</th>
                   <th>Destination</th>
                   <th>Next Hop</th>
                   <th>Exit Interface</th>
@@ -353,6 +355,9 @@ export default function StaticRoute({ devId, vendor }) {
                       className={`row-clickable ${key === selectedKey ? "row-selected" : ""}`}
                       onClick={() => setSelectedKey((prev) => (prev === key ? null : key))}
                     >
+                      <td className="route-status-col">
+                        <RouteStatusDot status={resolveRouteStatus(route, activeRoutes, statusVendor)} />
+                      </td>
                       <td>{route.prefix}</td>
                       <td>{route.nextHop || "-"}</td>
                       <td>{route.iface || "-"}</td>

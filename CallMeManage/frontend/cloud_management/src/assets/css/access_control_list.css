@@ -37,7 +37,7 @@
 }
 
 .acl-data-table tr.row-selected td:not(.acl-name-cell) {
-  background: var(--jade-dim);
+  background: var(--jade-selected);
 }
 
 .acl-rule-block {
@@ -97,7 +97,7 @@
 }
 
 .acl-binding-table tr.row-selected td {
-  background: var(--jade-dim);
+  background: var(--jade-selected);
 }
 
 /* |==== for mobile apply ====| */

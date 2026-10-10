@@ -51,7 +51,7 @@
 }
 
 .security-data-table tr.row-selected td {
-  background: var(--jade-dim);
+  background: var(--jade-selected);
 }
 
 /* |==== for mobile apply ====| */

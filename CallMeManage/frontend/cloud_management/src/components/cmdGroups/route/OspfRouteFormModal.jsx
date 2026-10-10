@@ -466,7 +466,7 @@ export default function OspfRouteFormModal({ devId, vendor, currentRule = null, 
       {isJuniper ? (
         <>
           <div className="interface-configuration-form-field">
-            <label className="data-label">Passive Interface Default</label>
+            <label className="data-label">Passive All Interfacs</label>
             <div className="toggle-switch-container">
               <input
                 type="checkbox"
@@ -480,7 +480,7 @@ export default function OspfRouteFormModal({ devId, vendor, currentRule = null, 
 
           {values.passiveInterfaceDefault && announcedRows.some((row) => row.interfaceName) && (
             <div className="interface-configuration-form-field">
-              <label className="data-label">Passive Interfaces (turn off to make active)</label>
+              <label className="data-label">Passive Interfaces Lists (turn off to make active)</label>
               <table className="form-interface-add-list">
                 <tbody>
                   {announcedRows.filter((row) => row.interfaceName).map(({ interfaceName: ifaceName }) => (

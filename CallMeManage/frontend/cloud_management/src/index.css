@@ -12,6 +12,9 @@
   --jade-bright: #1ee6c4;
   --jade-dim: rgba(0, 179, 154, 0.14);
   --jade-border: rgba(0, 179, 154, 0.4);
+  /* แถว/ตัวเลือกที่ถูกเลือก - เข้มกว่า --jade-dim (0.14 กลืนกับ hover/พื้นหลัง
+     จนแยกไม่ออกว่าเลือกอยู่) แต่ยังโปร่งพอให้อ่านข้อความในแถวได้ */
+  --jade-selected: rgba(0, 179, 154, 0.32);
 
   --text-primary: #e8eff0;
   --text-secondary: #93a5aa;
