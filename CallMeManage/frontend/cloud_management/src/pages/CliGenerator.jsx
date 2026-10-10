@@ -1664,7 +1664,7 @@ export default function CliGenerator() {
       </main>
 
       {tourStep === "fill-form" && !loadingRegenerationTarget && (
-        <TourTooltip target="cli-form" step="fill-form" title="Fill in the device information">
+        <TourTooltip target="cli-form" step="fill-form" placement="right" title="Fill in the device information">
           Choose the vendor and device type, then fill in the details of the device you want to add. This guide hides
           when you start typing.
         </TourTooltip>
