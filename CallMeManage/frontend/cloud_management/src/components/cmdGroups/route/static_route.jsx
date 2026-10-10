@@ -6,6 +6,7 @@ import { normalizeSubnet } from "../../../utils/normalizeSubnet";
 import { displayStaticRouteDistance } from "../../../utils/staticRouteDistance";
 import StaticRouteFormModal from "./StaticRouteFormModal";
 import Edit_Result from "../../commandResult/edit_command_result";
+import { rowClickSelection, rowDoubleClick } from "../../../utils/rowDoubleClick";
 
 function ensureArray(value) {
   if (value === undefined || value === null) return [];
@@ -353,7 +354,8 @@ export default function StaticRoute({ devId, vendor }) {
                     <tr
                       key={`${key}-${index}`}
                       className={`row-clickable ${key === selectedKey ? "row-selected" : ""}`}
-                      onClick={() => setSelectedKey((prev) => (prev === key ? null : key))}
+                      onClick={(event) => setSelectedKey(rowClickSelection(event, key, selectedKey))}
+                      onDoubleClick={rowDoubleClick(!!selectedRoute, handleEdit)}
                     >
                       <td className="route-status-col">
                         <RouteStatusDot status={resolveRouteStatus(route, activeRoutes, statusVendor)} />

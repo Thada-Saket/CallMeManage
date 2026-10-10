@@ -5,6 +5,7 @@ import getDeviceInformation from "../../../hooks/getDeviceInformation";
 import AddressPoolFormModal from "./addressPoolFormModal";
 import Edit_Result from "../../commandResult/edit_command_result";
 import { parseAddressPools } from "./addressPoolParser";
+import { rowClickSelection, rowDoubleClick } from "../../../utils/rowDoubleClick";
 
 // ตาราง "NAT Pool" - ย้ายมาจากแท็บ "NAT Pool" เดิมในหมวด NAT ทั้งก้อน (ยุบแท็บ
 // เดิมทิ้งตามที่ user ขอ) logic/backend command เดิมทุกอย่างไม่เปลี่ยน (ยังใช้
@@ -108,7 +109,8 @@ export default function AddressPool({ devId }) {
                   <tr
                     key={`${pool.name}-${index}`}
                     className={`row-clickable ${pool.name === selectedName ? "row-selected" : ""}`}
-                    onClick={() => setSelectedName(pool.name === selectedName ? null : pool.name)}
+                    onClick={(event) => setSelectedName(rowClickSelection(event, pool.name, selectedName))}
+                    onDoubleClick={rowDoubleClick(!!selectedPool, () => setFormMode("edit"))}
                   >
                     <td>{pool.name || "-"}</td>
                     <td>{pool.ranges?.length

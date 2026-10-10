@@ -4,6 +4,7 @@ import { runDeviceCommand } from "../../../api/api_devices";
 import getDeviceInformation from "../../../hooks/getDeviceInformation";
 import VlanFormModal from "./vlanFormModal";
 import Edit_Result from "../../commandResult/edit_command_result";
+import { rowClickSelection, rowDoubleClick } from "../../../utils/rowDoubleClick";
 
 function ensureArray(value) {
   if (value === undefined || value === null) return [];
@@ -392,7 +393,8 @@ export default function Vlan({ devId }) {
                         <tr
                           key={`${vlan.id}-${index}`}
                           className={selectable ? `row-clickable ${String(vlan.id) === selectedId ? "row-selected" : ""}` : ""}
-                          onClick={selectable ? () => setSelectedId(String(vlan.id) === selectedId ? null : String(vlan.id)) : undefined}
+                          onClick={selectable ? (event) => setSelectedId(rowClickSelection(event, String(vlan.id), selectedId)) : undefined}
+                          onDoubleClick={selectable ? rowDoubleClick(!!selectedVlan, () => setFormMode("edit")) : undefined}
                         >
                           <td>{index + 1}</td>
                           <td>{vlan.id}</td>

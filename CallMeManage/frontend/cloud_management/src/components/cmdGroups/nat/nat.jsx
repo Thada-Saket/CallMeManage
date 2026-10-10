@@ -10,6 +10,7 @@ import { teardownCurrentNat, parseNatInterfaceState } from "./natTeardown";
 import { isLastRuleInSet } from "./staticNatRuleSet";
 import { juniperSourceNatKey, parseJuniperSourceNat } from "./juniperSourceNatParser";
 import { parseCiscoNatScopes } from "./ciscoNatAclScopes";
+import { rowClickSelection, rowDoubleClick } from "../../../utils/rowDoubleClick";
 
 function ensureArray(value) {
   if (value === undefined || value === null) return [];
@@ -179,10 +180,8 @@ function JuniperNatPage({ devId }) {
                   <tr
                     key={`${juniperSourceNatKey(rule)}-${index}`}
                     className={`row-clickable ${juniperSourceNatKey(rule) === selectedKey ? "row-selected" : ""}`}
-                    onClick={() => {
-                      const key = juniperSourceNatKey(rule);
-                      setSelectedKey(key === selectedKey ? null : key);
-                    }}
+                    onClick={(event) => setSelectedKey(rowClickSelection(event, juniperSourceNatKey(rule), selectedKey))}
+                    onDoubleClick={rowDoubleClick(!!selectedRule, () => setFormMode("edit"))}
                   >
                     <td>{rule.name || "-"}</td>
                     <td>{rule.mode === "interface" ? "WAN IP" : "NAT Pool"}</td>

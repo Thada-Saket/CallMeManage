@@ -17,6 +17,7 @@ import { parseDhcpRelay, parsePools } from "./dhcp";
 import { maskToPrefix } from "../../../utils/dhcpRange";
 import { buildLayerLookup, displayLayer, displaySwitchportMode } from "../../../utils/interfaceLayerDisplay";
 import { juniperInterfaceDeleteSteps, juniperInterfacePoolCleanup } from "../../../utils/juniperInterfaceTransaction";
+import { rowDoubleClick } from "../../../utils/rowDoubleClick";
 
 function ensureArray(value) {
   if (value === undefined || value === null) return [];
@@ -917,7 +918,15 @@ export default function Interfaces({ devId, vendor, model }) {
                       return <tr
                         key={`${row.name}-${index}`}
                         className={`${physicalReadOnly ? "interface-row-readonly" : "row-clickable"} ${row.name === selectedName ? "row-selected" : ""}`}
-                        onClick={physicalReadOnly ? undefined : () => handleRowClick(row.name)}
+                        onClick={physicalReadOnly ? undefined : (event) => {
+                          // คลิกที่ 2 ของ double-click: เลือกค้างไว้ ไม่ toggle ออก (ดู utils/rowDoubleClick.js)
+                          if (event.detail > 1 && row.name === selectedName) return;
+                          handleRowClick(row.name);
+                        }}
+                        onDoubleClick={physicalReadOnly ? undefined : rowDoubleClick(
+                          !!selectedName && !isTunnelSelected && !isJuniperPhysicalSelected,
+                          handleEditClick,
+                        )}
                         aria-disabled={physicalReadOnly || undefined}
                         title={physicalReadOnly ? "Juniper physical interfaces are shown for reference only" : undefined}
                       >

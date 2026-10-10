@@ -15,6 +15,7 @@ import {
   groupPoliciesByZonePair,
   formatCiscoApplicationDisplay,
 } from "./statefulUtils";
+import { rowClickSelection, rowDoubleClick } from "../../../utils/rowDoubleClick";
 
 // จำนวนคอลัมน์จริงของตาราง Cisco (Policy Name, จากโซน, ไปโซน, Action, Services) - ใช้
 // เป็น colSpan ของแถวหัวข้อกลุ่ม Zone ให้กินเต็มความกว้างเสมอ แม้จำนวนคอลัมน์จะเปลี่ยน
@@ -331,6 +332,7 @@ export default function Stateful({ devId, vendor }) {
               moving={moving}
               refreshing={loading}
               onToggleSelect={setSelectedKey}
+              onRowDoubleClick={rowDoubleClick(canEdit, () => setFormMode("edit"))}
               onMove={handleMovePolicy}
             />
           ) : (
@@ -362,7 +364,8 @@ export default function Stateful({ devId, vendor }) {
                         <tr
                           key={`zone-row:${policyKey}-${index}`}
                           className={`row-clickable ${isSelected ? "row-selected" : ""}`}
-                          onClick={() => setSelectedKey(isSelected ? null : policyKey)}
+                          onClick={(event) => setSelectedKey(rowClickSelection(event, policyKey, selectedKey))}
+                          onDoubleClick={rowDoubleClick(canEdit, () => setFormMode("edit"))}
                         >
                           <td>{policy.name || "-"}</td>
                           <td>{policy.source || "-"}</td>

@@ -1087,37 +1087,42 @@ input.login-credential-input[data-ascii-guard="true"] {
   transform: rotateY(180deg);
 }
 
-/* คำใบ้ "Click for actions" มุมขวาล่างของ site card (Sites.jsx) - จางไว้ตอนปกติ
-   ไม่แย่งสายตาจากข้อมูลการ์ด แล้วชัดขึ้นเป็นสีธีมตอน hover/focus ให้รู้ว่าการ์ด
-   กดพลิกได้ · อยู่ใน face-front จึงหายไปพร้อมหน้า front ตอนพลิก */
+/* คำใบ้ "Click here for actions" มุมขวาล่างของ site card (Sites.jsx) - user ขอ
+   ให้เห็นชัดเต็มตา: เป็นป้าย pill พื้นสีธีม (โทนเดียวกับ .btn-primary) ทึบตลอด
+   ไม่จางแล้ว - hover/focus เข้มขึ้นเป็น --jade-bright + ไอคอนหมุน ให้รู้ว่า
+   การ์ดกดพลิกได้ · อยู่ใน face-front จึงหายไปพร้อมหน้า front ตอนพลิก */
 .site-card-flip-hint {
   position: absolute;
   right: 0;
   bottom: 0;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: #7a8a8e;
-  opacity: 0.7;
-  transition: color 0.2s ease, opacity 0.2s ease;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--jade);
+  color: #06211d;
+  font-size: 12.5px;
+  font-weight: 700;
+  font-family: var(--sans);
+  box-shadow: 0 2px 6px rgba(0, 179, 154, 0.35);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
   pointer-events: none;
 }
 
 .device-card:hover .site-card-flip-hint,
 .device-card:focus-visible .site-card-flip-hint {
-  color: #006b5f;
-  opacity: 1;
+  background: var(--jade-bright);
+  box-shadow: 0 3px 10px rgba(0, 179, 154, 0.5);
+}
+
+.site-card-flip-hint svg {
+  transition: transform 0.3s ease;
 }
 
 .device-card:hover .site-card-flip-hint svg,
 .device-card:focus-visible .site-card-flip-hint svg {
   transform: rotate(-90deg);
-}
-
-.site-card-flip-hint svg {
-  transition: transform 0.3s ease;
 }
 
 /* จุดแดง "ยังไม่เคยเปิดดู" - มุมขวาบนของการ์ด เหนือ logo/ทุกอย่าง (z-index สูง

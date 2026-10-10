@@ -10,6 +10,7 @@ import CiscoIkev2Tables from "./ciscoIkev2Tables";
 import { parseCiscoIkev2Objects } from "./ciscoIkev2Objects";
 import Edit_Result from "../../commandResult/edit_command_result";
 import PageTabs from "../../common/PageTabs";
+import { rowClickSelection, rowDoubleClick } from "../../../utils/rowDoubleClick";
 
 const CISCO_SECURITY_TABS = [
   { id: "proposal", label: "IKEv2 Proposal" },
@@ -185,7 +186,8 @@ export default function SecurityProfile({ devId, vendor }) {
                     <tr
                       key={`${profile.name}-${index}`}
                       className={`row-clickable ${profile.name === selectedName ? "row-selected" : ""}`}
-                      onClick={() => setSelectedName(profile.name === selectedName ? null : profile.name)}
+                      onClick={(event) => setSelectedName(rowClickSelection(event, profile.name, selectedName))}
+                      onDoubleClick={rowDoubleClick(!!selectedName, () => setFormMode("edit"))}
                     >
                       <td>{profile.name || "-"}</td>
                       <td>{profile.peerIp || "-"}</td>
@@ -263,7 +265,8 @@ export default function SecurityProfile({ devId, vendor }) {
                         <tr
                           key={`${profile.name}-${index}`}
                           className={`row-clickable ${profile.name === selectedName ? "row-selected" : ""}`}
-                          onClick={() => setSelectedName(profile.name === selectedName ? null : profile.name)}
+                          onClick={(event) => setSelectedName(rowClickSelection(event, profile.name, selectedName))}
+                      onDoubleClick={rowDoubleClick(!!selectedName, () => setFormMode("edit"))}
                         >
                           <td>{profile.name || "-"}</td>
                           <td>{profile.peerIp || "-"}</td>

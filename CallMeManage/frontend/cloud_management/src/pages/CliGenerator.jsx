@@ -730,6 +730,26 @@ export default function CliGenerator() {
     };
   }, [pendingDevice?.id]);
 
+  // แจ้งผู้ใช้ทันทีที่อุปกรณ์ Call Home สำเร็จ (polling ด้านบนเปลี่ยน status เป็น
+  // online) - toast ยิงครั้งเดียวตอน "เปลี่ยน" จาก ยังไม่ online -> online เท่านั้น
+  // ไม่ยิงซ้ำทุกรอบ poll · แถบแจ้งเตือนพร้อมปุ่มเข้าอุปกรณ์ด้านบนหน้าค้างไว้จนกว่า
+  // ผู้ใช้จะกดปิด (จำแยกตาม device id - Enroll อุปกรณ์ใหม่แล้วแถบกลับมาใหม่)
+  const [dismissedOnlineAlertId, setDismissedOnlineAlertId] = useState(null);
+  const wasOnlineRef = useRef(false);
+  const pendingDeviceOnline = ["active", "online"].includes(pendingDevice?.status);
+  useEffect(() => {
+    wasOnlineRef.current = false;
+  }, [pendingDevice?.id]);
+  useEffect(() => {
+    if (pendingDeviceOnline && !wasOnlineRef.current) {
+      window.dispatchEvent(new CustomEvent("toast:success", {
+        detail: { message: `${pendingDevice?.name || "Device"} is now online`, duration: 4000 },
+      }));
+    }
+    wasOnlineRef.current = pendingDeviceOnline;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingDeviceOnline]);
+
   // copyText() มีทางสำรองให้ origin ที่ไม่ใช่ HTTPS/localhost ซึ่งเป็นสาเหตุที่
   // ปุ่มคัดลอกเคยพังทุกครั้ง (ดู utils/copyText.js)
   const COPY_FAILED = "Failed to copy. Please select the text manually and copy it.";
@@ -787,6 +807,7 @@ export default function CliGenerator() {
       ? "badge-offline"
       : "badge-pending";
   const enrollmentStep = enrollmentOnline ? 3 : 2;
+  const deviceUrl = pendingDevice?.id ? `/devices/${encodeURIComponent(pendingDevice.id)}` : null;
 
   // ปิดท้ายใต้ขั้นสุดท้าย - ผู้ใช้เลื่อนลงมาถึงตรงนี้อยู่แล้วตอนวางคำสั่งเสร็จ จึงบอกว่าออกจากหน้าได้
   // และมีปุ่มไปต่อ ; ป้ายสถานะใช้ค่าเดียวกับการ์ดด้านบน (polling ชุดเดิม ไม่เช็คเพิ่ม)
@@ -798,7 +819,16 @@ export default function CliGenerator() {
       </div>
       <span className={`badge ${enrollmentStatusClass}`}>{enrollmentStatusText}</span>
       <div className="cli-generator-done-actions">
-        <button type="button" className="btn btn-primary" onClick={() => navigate(devicesUrl(siteId))}>
+        {enrollmentOnline && deviceUrl && (
+          <button type="button" className="btn btn-primary" onClick={() => navigate(deviceUrl)}>
+            Open Device
+          </button>
+        )}
+        <button
+          type="button"
+          className={`btn ${enrollmentOnline ? "btn-ghost" : "btn-primary"}`}
+          onClick={() => navigate(devicesUrl(siteId))}
+        >
           Back to Devices
         </button>
         <button type="button" className="btn btn-ghost" onClick={handleGenerateAnother}>
@@ -823,6 +853,29 @@ export default function CliGenerator() {
             &larr; Back to Devices
           </button>
         </div>
+
+        {enrollmentOnline && deviceUrl && dismissedOnlineAlertId !== pendingDevice.id && (
+          <div className="cli-generator-online-alert" role="status" aria-live="polite">
+            <span className="cli-generator-online-alert-dot" aria-hidden="true" />
+            <div className="cli-generator-online-alert-text">
+              <strong>{pendingDevice.name || "Device"} is online</strong>
+              <span>The device called home successfully and is ready to configure.</span>
+            </div>
+            <div className="cli-generator-online-alert-actions">
+              <button type="button" className="btn btn-primary" onClick={() => navigate(deviceUrl)}>
+                Open Device &rarr;
+              </button>
+              <button
+                type="button"
+                className="modal-close"
+                aria-label="Dismiss"
+                onClick={() => setDismissedOnlineAlertId(pendingDevice.id)}
+              >
+                &times;
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="cli-generator-layout">
           <div className="cli-generator-form-panel detail-panel">

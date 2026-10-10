@@ -1,5 +1,6 @@
 import { Fragment } from "react";
 import { getPolicyIdentityKey, getApplicationDisplayItems, getAddressDisplayItems, groupPoliciesByZonePair } from "./statefulUtils";
+import { rowClickSelection } from "../../../utils/rowDoubleClick";
 
 const JUNIPER_ACTION_LABEL = {
   permit: "Permit",
@@ -55,7 +56,7 @@ function moveTitle(policy, direction, blockedReason) {
 // ตาราง Juniper Security Policy - แยกไฟล์จาก stateful.jsx เพราะ Cisco ใช้ตารางคนละแบบ
 // (ไม่มีลำดับ/ปุ่มเลื่อน/Services) และทำให้ทดสอบ render ได้โดยไม่ต้องจำลอง hook
 // moving = { key, direction } ของแถวที่กำลังเลื่อน | null
-export default function JuniperPolicyTable({ policies, selectedKey, moving, refreshing, onToggleSelect, onMove }) {
+export default function JuniperPolicyTable({ policies, selectedKey, moving, refreshing, onToggleSelect, onRowDoubleClick, onMove }) {
   const busyAny = moving !== null && moving !== undefined;
   const groups = groupPoliciesByZonePair(policies, true);
   return (
@@ -103,7 +104,8 @@ export default function JuniperPolicyTable({ policies, selectedKey, moving, refr
                   <tr
                     key={`zone-row:${policyKey}`}
                     className={`row-clickable ${isSelected ? "row-selected" : ""}`}
-                    onClick={() => onToggleSelect(isSelected ? null : policyKey)}
+                    onClick={(event) => onToggleSelect(rowClickSelection(event, policyKey, selectedKey))}
+                    onDoubleClick={onRowDoubleClick}
                   >
                     <td className="juniper-policy-order-col">{policy.zoneOrder}</td>
                     <td>

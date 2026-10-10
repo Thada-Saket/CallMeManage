@@ -16,6 +16,7 @@ function ensureArray(value) {
 }
 import SecurityTunnelFormModal from "./security_tunnelFormModal";
 import Edit_Result from "../../commandResult/edit_command_result";
+import { rowClickSelection, rowDoubleClick } from "../../../utils/rowDoubleClick";
 
 
 // ชื่อ interface ทุกตัวที่ OSPF ของ Junos อ้างอยู่ (ทุก area รวมกัน) ใช้แสดงข้อมูล
@@ -266,7 +267,8 @@ export default function SecurityTunnel({ devId, vendor }) {
                   <tr
                     key={`${tunnel.name}-${index}`}
                     className={`row-clickable ${tunnel.name === selectedName ? "row-selected" : ""}`}
-                    onClick={() => setSelectedName(tunnel.name === selectedName ? null : tunnel.name)}
+                    onClick={(event) => setSelectedName(rowClickSelection(event, tunnel.name, selectedName))}
+                    onDoubleClick={rowDoubleClick(!!selectedName, () => setFormMode("edit"))}
                   >
                     <td>{tunnel.name}</td>
                     <td>{tunnel.type}</td>

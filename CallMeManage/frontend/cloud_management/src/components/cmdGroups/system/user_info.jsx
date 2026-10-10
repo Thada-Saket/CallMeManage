@@ -6,6 +6,7 @@ import Edit_Result from "../../commandResult/edit_command_result";
 import UserInfoForm from "./UserInfoForm";
 import { buildUserCommand, parseLocalUsers, privilegeLabel } from "../../../utils/localUsers.js";
 import "../../../assets/css/userInfo.css";
+import { rowClickSelection, rowDoubleClick } from "../../../utils/rowDoubleClick";
 
 function errorMessage(err, fallback) {
   const detail = err?.detail;
@@ -114,7 +115,8 @@ export default function UserInfo({ devId, vendor }) {
                     <tr
                       key={user.username}
                       className={`row-clickable ${user.username === selectedName ? "row-selected" : ""}`}
-                      onClick={() => setSelectedName(user.username === selectedName ? null : user.username)}
+                      onClick={(event) => setSelectedName(rowClickSelection(event, user.username, selectedName))}
+                      onDoubleClick={rowDoubleClick(!!selectedUser, () => setFormMode("edit"))}
                     >
                       <td>{user.username}</td>
                       <td>{privilegeLabel(user.privilege)}</td>

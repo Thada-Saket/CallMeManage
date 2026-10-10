@@ -13,6 +13,7 @@ import {
   parseJuniperDestinationRuleSets,
   parseJuniperPortForwards,
 } from "./juniperPortForwardParser";
+import { rowClickSelection, rowDoubleClick } from "../../../utils/rowDoubleClick";
 
 function ensureArray(value) {
   if (value === undefined || value === null) return [];
@@ -284,7 +285,8 @@ export default function Pf({ devId, vendor }) {
                     <tr
                       key={`${key}-${index}`}
                       className={`row-clickable ${key === selectedKey ? "row-selected" : ""}`}
-                      onClick={() => setSelectedKey(key === selectedKey ? null : key)}
+                      onClick={(event) => setSelectedKey(rowClickSelection(event, key, selectedKey))}
+                      onDoubleClick={rowDoubleClick(!!selectedKey && (isJuniper || nameMap !== null), () => setFormMode("edit"))}
                     >
                       <td>{isJuniper ? row.name : nameMap === null ? "-" : displayNameMap[key]}</td>
                       <td>{(row.protocol || "-").toUpperCase()}</td>

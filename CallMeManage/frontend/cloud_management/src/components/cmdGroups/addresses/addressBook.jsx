@@ -5,6 +5,7 @@ import getDeviceInformation from "../../../hooks/getDeviceInformation";
 import AddressBookFormModal from "./addressBookFormModal";
 import Edit_Result from "../../commandResult/edit_command_result";
 import { parseJuniperAddressBook } from "./addressBookParser";
+import { rowClickSelection, rowDoubleClick } from "../../../utils/rowDoubleClick";
 
 export default function AddressBook({ devId, vendor }) {
   const isJuniper = vendor === "juniper";
@@ -116,7 +117,8 @@ export default function AddressBook({ devId, vendor }) {
                     <tr
                       key={entry.key || `${entry.name}-${index}`}
                       className={`row-clickable ${entry.key === selectedKey ? "row-selected" : ""}`}
-                      onClick={() => setSelectedKey(entry.key === selectedKey ? null : entry.key)}
+                      onClick={(event) => setSelectedKey(rowClickSelection(event, entry.key, selectedKey))}
+                      onDoubleClick={rowDoubleClick(!!selectedEntry?.editable, () => setFormMode("edit"))}
                     >
                       <td>{index + 1}</td>
                       <td>{entry.name}</td>

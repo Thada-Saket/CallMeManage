@@ -5,6 +5,7 @@ import getDeviceInformation from "../../../hooks/getDeviceInformation";
 import ZoneInterfacesFormModal from "./zoneInterfacesFormModal";
 import Edit_Result from "../../commandResult/edit_command_result";
 import { protectedWanInterfaces } from "../../../utils/zoneProtection";
+import { rowClickSelection, rowDoubleClick } from "../../../utils/rowDoubleClick";
 
 function ensureArray(value) {
   if (value === undefined || value === null) return [];
@@ -275,7 +276,8 @@ export default function ZoneInterfaces({ devId, vendor }) {
                     <tr
                       key={`${zone.name}-${index}`}
                       className={`row-clickable ${zone.name === selectedName ? "row-selected" : ""}`}
-                      onClick={() => setSelectedName(zone.name === selectedName ? null : zone.name)}
+                      onClick={(event) => setSelectedName(rowClickSelection(event, zone.name, selectedName))}
+                      onDoubleClick={rowDoubleClick(!!selectedZone, () => setFormMode("edit"))}
                     >
                       <td>{index + 1}</td>
                       <td>{zone.name}</td>

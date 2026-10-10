@@ -12,6 +12,7 @@ import Edit_Result from "../../commandResult/edit_command_result";
 import { readDhcpLease, formatLeaseHours } from "../../../utils/dhcpLease";
 import { juniperPoolRanges, ciscoPoolRanges } from "../../../utils/dhcpPoolRanges";
 import PageTabs from "../../common/PageTabs";
+import { rowClickSelection, rowDoubleClick } from "../../../utils/rowDoubleClick";
 
 const DHCP_BASE_TABS = [
   { id: "dhcp_pool", label: "DHCP Pool" },
@@ -480,7 +481,8 @@ export default function Dhcp({ devId }) {
                       <tr
                         key={`${pool.name}-${index}`}
                         className={`row-clickable ${pool.name === selectedPoolName ? "row-selected" : ""}`}
-                        onClick={() => setSelectedPoolName((prev) => (prev === pool.name ? null : pool.name))}
+                        onClick={(event) => setSelectedPoolName(rowClickSelection(event, pool.name, selectedPoolName))}
+                        onDoubleClick={rowDoubleClick(!!selectedPoolName, handleEditPool)}
                       >
                         <td>{pool.name || "-"}</td>
                         <td>{pool.network || "-"}</td>
@@ -542,7 +544,8 @@ export default function Dhcp({ devId }) {
                         <tr
                           key={`${key}-${index}`}
                           className={`row-clickable ${key === selectedRelayKey ? "row-selected" : ""}`}
-                          onClick={() => setSelectedRelayKey((prev) => (prev === key ? null : key))}
+                          onClick={(event) => setSelectedRelayKey(rowClickSelection(event, key, selectedRelayKey))}
+                          onDoubleClick={rowDoubleClick(!!selectedRelay, handleEditRelay)}
                         >
                           <td>{row.interface}</td>
                           <td>{row.server || "- (no server bound)"}</td>

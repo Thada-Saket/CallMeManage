@@ -38,6 +38,7 @@ export function computeAclRowSpans(rules) {
 }
 
 import { aclAddressToCidr } from "../../../utils/aclPrefix";
+import { rowClickSelection, rowDoubleClick } from "../../../utils/rowDoubleClick";
 
 function ensureArray(value) {
   if (value === undefined || value === null) return [];
@@ -645,9 +646,10 @@ export default function Stateless({ devId, vendor }) {
                           <tr
                             key={item.aclName}
                             className={`row-clickable ${isSelected ? "row-selected" : ""}`}
-                            onClick={() =>
-                              setSelectedBindingAcl(isSelected ? null : item.aclName)
+                            onClick={(event) =>
+                              setSelectedBindingAcl(rowClickSelection(event, item.aclName, selectedBindingAcl))
                             }
+                            onDoubleClick={rowDoubleClick(!!selectedBindingAcl, () => setFormMode("apply_interface"))}
                           >
                             <td className="acl-name-cell">
                               {item.aclName}
@@ -759,7 +761,8 @@ export default function Stateless({ devId, vendor }) {
                           <tr
                             key={`${key}-${index}`}
                             className={`row-clickable ${key === selectedKey ? "row-selected" : ""}`}
-                            onClick={() => setSelectedKey(key === selectedKey ? null : key)}
+                            onClick={(event) => setSelectedKey(rowClickSelection(event, key, selectedKey))}
+                            onDoubleClick={rowDoubleClick(canEditAcl, () => setFormMode("edit"))}
                           >
                             {nameRowSpan !== null && (
                               <td className="acl-name-cell" rowSpan={nameRowSpan}>
