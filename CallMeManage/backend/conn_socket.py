@@ -220,6 +220,17 @@ async def read_dev_response(process, buf: list[str], timeout: float = 40) -> str
     return msg.strip()
 
 
+# RPC ที่อ่านอย่างเดียว (<get>, <get-config>, Junos <get-*-information>) ส่งซ้ำได้ปลอดภัย
+# ถ้าท่อตายระหว่างรอ reply - ไม่มีอะไรบนอุปกรณ์เปลี่ยน ใช้ตัดสินว่า send_payload จะส่งซ้ำบน
+# session ใหม่ให้เองหรือไม่ (ดู send_payload) - คำสั่งเขียนห้ามส่งซ้ำเด็ดขาด เพราะอาจ apply ไปแล้ว
+_RPC_OPERATION = re.compile(r"<rpc\b[^>]*>\s*<([A-Za-z_][\w.-]*:)?([A-Za-z_][\w.-]*)")
+
+
+def _is_read_only_payload(payload: str) -> bool:
+    match = _RPC_OPERATION.search(payload or "")
+    return bool(match) and match.group(2).startswith("get")
+
+
 def _extract_message_id(xml: str) -> str | None:
     match = re.search(r'message-id\s*=\s*"([^"]+)"', xml)
     return match.group(1) if match else None
@@ -853,7 +864,7 @@ class CallhomeService:
                 if not self._is_current_connection(dev_id, connection):
                     raise ProbeAborted("session ถูกแทนที่หรือปิดไปแล้ว")
                 try:
-                    return await self.send_payload(dev_id, payload, timeout=timeout)
+                    return await self.send_payload(dev_id, payload, timeout=timeout, retry_reads=False)
                 except (NetconfDead, ConnectionError) as exc:
                     raise ProbeAborted(str(exc)) from exc
 
@@ -949,6 +960,12 @@ class CallhomeService:
         if not session:
             raise ConnectionError("Device does not have a live Call Home session")
         return session
+
+    # ให้ request ใหม่ "ต่อคิวรอ" ตอนอุปกรณ์กำลัง call-home กลับมา ก่อนจะไปจับ DeviceLock -
+    # ถ้ารอภายใน lock แทน request อื่นที่ตามมาจะได้ DeviceLockBusy (409 "busy") หลัง 5 วิ
+    # ทั้งที่แค่ต้องรออุปกรณ์อีกไม่กี่วินาที · ไม่มี session เลยและไม่ได้กำลังรอ = ConnectionError เดิม
+    async def wait_for_live_session(self, dev_id: str) -> None:
+        await self._live_session(dev_id)
 
     # คำสั่งเขียน NAT ของ Cisco (device_router.py) - รอให้อุปกรณ์กลับมาก่อนตอบผู้ใช้
     async def wait_for_reconnect(self, dev_id: str, old_connection, timeout: float) -> bool:
@@ -1223,7 +1240,7 @@ class CallhomeService:
         vendor = session["vendor"]
         try:
             payload = build_payload(vendor, "get_cpu_memory_information", {})
-            reply = await self.send_payload(dev_id, payload, timeout=STATS_POLL_TIMEOUT)
+            reply = await self.send_payload(dev_id, payload, timeout=STATS_POLL_TIMEOUT, retry_reads=False)
             normalized = normalize(vendor, "get_cpu_memory_information", reply)
             stat = _extract_stats(vendor, normalized)
             if stat:
@@ -1234,7 +1251,7 @@ class CallhomeService:
                     try:
                         uptime_payload = build_payload(vendor, "get_uptime", {})
                         uptime_reply = await self.send_payload(
-                            dev_id, uptime_payload, timeout=STATS_POLL_TIMEOUT
+                            dev_id, uptime_payload, timeout=STATS_POLL_TIMEOUT, retry_reads=False
                         )
                         uptime_normalized = normalize(vendor, "get_uptime", uptime_reply)
                         uptime = _extract_huawei_uptime(uptime_normalized)
@@ -1386,9 +1403,20 @@ class CallhomeService:
         self._mark_alive(dev_id)
         return reply
 
+    # retry_reads: คำสั่งอ่าน (_is_read_only_payload) ที่ท่อตายระหว่างรอ reply ให้รอ session ใหม่
+    # แล้วส่งซ้ำเอง แทนที่จะโยน "Channel closed" ให้ผู้ใช้เห็นเป็น 409 - เคสจริง: เปิด/ปิด NAT
+    # แบบ any บน Cisco ทำให้ router เปลี่ยน port ของ call-home session ตัวเอง session เดิมตาย
+    # เงียบ ๆ แล้วอุปกรณ์ call-home เข้ามาใหม่ คำสั่งอ่านที่ค้างอยู่บนท่อเก่าตอนนั้น (เช่นหน้าเว็บ
+    # refetch หลัง Apply) เคยได้ 409 ทั้งที่อีกไม่กี่วินาทีก็มี session ใหม่ให้ใช้แล้ว
+    # stats poll / capability probe ปิดตัวนี้ (False) - ของพวกนั้นผูกกับ session ตัวเดิมหรือ
+    # เป็น best-effort ไม่ควรไปนั่งรอ call-home ใหม่นาน ๆ
+    READ_RETRY_LIMIT = 2
+
     async def send_payload(
         self, dev_id: str, payload: str, timeout: float | None = None, nat_quarantine: bool = False,
+        retry_reads: bool = True,
     ) -> str:
+        retries_left = self.READ_RETRY_LIMIT if retry_reads and _is_read_only_payload(payload) else 0
         while True:
             session = await self._live_session(dev_id)
             try:
@@ -1397,12 +1425,15 @@ class CallhomeService:
                 )
             except _SessionDropped:
                 continue  # ช่องถูกปิดระหว่างรอคิว lock - ส่งบน session ใหม่แทน (ยังไม่ได้ส่งอะไรลงท่อ)
-            except ConnectionError as exc:
-                if str(exc) == "Channel closed":
-                    self._mark_dropped(dev_id, session.get("connection"))
-                raise
-            except asyncssh.misc.ConnectionLost:
+            except (ConnectionError, asyncssh.misc.ConnectionLost) as exc:
+                lost = isinstance(exc, asyncssh.misc.ConnectionLost) or str(exc) == "Channel closed"
+                if not lost:
+                    raise
                 self._mark_dropped(dev_id, session.get("connection"))
+                if retries_left > 0:
+                    retries_left -= 1
+                    print(f"[*] {dev_id} ท่อตายระหว่างคำสั่งอ่าน - รอ call-home ใหม่แล้วส่งซ้ำ")
+                    continue
                 raise
 
     async def _send_on_session(

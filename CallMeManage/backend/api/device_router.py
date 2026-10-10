@@ -166,6 +166,16 @@ CISCO_NAT_QUARANTINE_COMMANDS = CISCO_NAT_READ_COMMANDS | CISCO_NAT_WRITE_COMMAN
 # ผู้ใช้เห็นแค่ปุ่ม Save หมุนนานขึ้น ส่วนรายการ NAT ที่โหลดใหม่หลังบันทึกเป็นตัวยืนยันผลจริง
 CISCO_NAT_RECONNECT_WAIT_SECONDS = 90
 
+# คำสั่งที่เพิ่ม/ถอด "ip nat outside" และ ACL ของ NAT rule หลัก - ยืนยันจากอุปกรณ์จริง
+# (HQ-Router-1, 2026-10-10): scope "any" ทำให้ ACL ครอบ IP ของขา WAN ที่ call-home วิ่งอยู่
+# router จึงเอา PAT ไปใช้กับ session call-home ของตัวเอง (show ip nat translations เห็น
+# 22.22.22.190:61435 -> 22.22.22.190:5062 ไปหา server:4334) port เปลี่ยนกลางทาง session เดิม
+# ตายเงียบ ๆ ทั้งตอนเปิดและตอนปิด NAT แล้วอุปกรณ์ call-home ใหม่เองหลัง 0-17 วิแบบสุ่ม
+# ไม่กรอง ACL บนอุปกรณ์ (any ต้องเป็น any ตามที่ผู้ใช้เลือก) - ฝั่งเราถือว่า session "จะตายแน่"
+# หลังคำสั่งพวกนี้สำเร็จ ปิดเองทันทีแล้วรอตัวใหม่ก่อนตอบ ผู้ใช้เห็นแค่ปุ่มหมุนแล้วสำเร็จ
+# ไม่ต้องเจอ refetch ค้าง 15 วิแล้ว 409 บนท่อที่ตายแล้ว
+CISCO_NAT_SESSION_RESET_COMMANDS = frozenset({"create_nat_policy", "remove_nat_policy"})
+
 
 def _netconf_channel_dropped(exc: BaseException) -> bool:
     # ConnectionError อื่น (เช่น "Device does not have a live Call Home session") ไม่ใช่เคสนี้
@@ -1807,8 +1817,14 @@ async def run_device_command(
     nat_dashboard_acl_missing = False
     # ตั้งเมื่อ Cisco ตัดช่อง NETCONF ระหว่างคำสั่งเขียน NAT (ดู CISCO_NAT_RECONNECT_WAIT_SECONDS)
     nat_dropped_connection = None
+    # connection เดิมที่ต้องรอให้อุปกรณ์ call-home ใหม่แทน ก่อนตอบผู้ใช้ - ตั้งทั้งตอนท่อตาย
+    # กลางคำสั่ง (nat_dropped_connection) และตอนได้ reply สำเร็จแล้ว (ดู CISCO_NAT_SESSION_RESET_COMMANDS)
+    nat_reconnect_connection = None
 
     try:
+        # อุปกรณ์กำลัง call-home กลับมา (ท่อเดิมเพิ่งตาย) - ต่อคิวรอ session ใหม่ "ก่อน" จับ
+        # DeviceLock ไม่งั้น request ที่ตามมาจะได้ 409 busy หลัง 5 วิทั้งที่แค่ต้องรออุปกรณ์
+        await callhome_service.wait_for_live_session(dev_id)
         # Redis distributed lock (device:lock:<dev_id>, NX PX 10000) คู่กับ
         # asyncio.Lock ในความจำที่ session["lock"] ใน conn_socket.py คุมอยู่แล้ว
         # (ตัวนั้นยังเป็นตัวหลักที่รับประกันความถูกต้องจริงใน process เดียวนี้ -
@@ -2389,10 +2405,17 @@ async def run_device_command(
                 except (ConnectionError, asyncssh.misc.ConnectionLost) as exc:
                     if command not in CISCO_NAT_WRITE_COMMANDS or not _netconf_channel_dropped(exc):
                         raise
-                    # รอนอก DeviceLock (ด้านล่าง) - lock มีอายุแค่ 10 วิ
+                    # รอนอก DeviceLock (ด้านล่าง) - ไม่ถือ lock ค้างระหว่างรออุปกรณ์ต่อใหม่
                     nat_dropped_connection = connection_before
+                    nat_reconnect_connection = connection_before
                     reply = ""
                     print(f"[*] {dev_id} closed NETCONF during '{command}' - waiting for call-home")
+                else:
+                    if command in CISCO_NAT_SESSION_RESET_COMMANDS and not reply_rejected(reply):
+                        # ได้ reply แล้วก็จริง แต่ session นี้กำลังจะตาย (ดู
+                        # CISCO_NAT_SESSION_RESET_COMMANDS) - ปิดเองแล้วรอตัวใหม่ก่อนตอบ
+                        nat_reconnect_connection = connection_before
+                        print(f"[*] {dev_id} applied '{command}' - resetting call-home session")
             else:
                 reply = await callhome_service.send_payload(dev_id, payload)
     except DeviceLockBusy as exc:
@@ -2561,10 +2584,13 @@ async def run_device_command(
     # **ไม่เปลี่ยน HTTP status และไม่เปลี่ยนรูปร่าง response** - ยังคืน 200 พร้อม
     # {ok:false, errors:[...]} เหมือนเดิมทุกประการ ฝั่ง frontend จึงไม่ต้องแก้อะไรเลย
     # ที่เปลี่ยนคือ "ไม่เขียนลงฐานข้อมูล" อย่างเดียว
-    if nat_dropped_connection is not None:
-        if not await callhome_service.wait_for_reconnect(
-            dev_id, nat_dropped_connection, CISCO_NAT_RECONNECT_WAIT_SECONDS
-        ):
+    if nat_reconnect_connection is not None:
+        reconnected = await callhome_service.wait_for_reconnect(
+            dev_id, nat_reconnect_connection, CISCO_NAT_RECONNECT_WAIT_SECONDS
+        )
+        # ได้ reply ยืนยันแล้ว (nat_dropped_connection เป็น None) = config ลงจริงแน่นอน ตอบตาม
+        # reply ได้เลยแม้อุปกรณ์ยังไม่กลับมา - หน้าเว็บที่โหลดต่อจะรอ session ใหม่เอง
+        if not reconnected and nat_dropped_connection is not None:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail={
