@@ -23,6 +23,8 @@ import { cliGeneratorUrl, devicesUrl } from "../utils/deviceEnrollmentRoutes";
 import { acceptsDomainNameInput, DOMAIN_NAME_MAX_LENGTH } from "../utils/domainNameInput";
 import AutoSizeTextarea from "../components/common/AutoSizeTextarea";
 import { cliStepHint } from "../utils/cliStepHints";
+import TourTooltip from "../components/TourTooltip";
+import { advanceTour, endTour, useTourStep } from "../utils/onboardingTour";
 
 // แปลงวินาทีคงเหลือของ bootstrap download link ให้อยู่ในรูป mm:ss
 function formatBootstrapRemaining(totalSeconds) {
@@ -238,6 +240,12 @@ export default function CliGenerator() {
   const flightRef = useRef(createSingleFlight());
   const requestSeqRef = useRef(0);
   const mountedRef = useRef(true);
+  // onboarding tour ขั้น 3-6 อยู่หน้านี้ (ดู utils/onboardingTour.js) - formValid ใช้ตัดสิน
+  // ว่าจะชี้ปุ่ม Generate ได้หรือยัง อ่านจาก required ของ input ในฟอร์มตรง ๆ
+  // (checkValidity) แทนที่จะเขียนเงื่อนไขซ้ำกับ handleGenerate ซึ่งเปลี่ยนตามยี่ห้อ/โหมด
+  const tourStep = useTourStep();
+  const formRef = useRef(null);
+  const [formValid, setFormValid] = useState(false);
   useEffect(() => {
     mountedRef.current = true;
     return () => {
@@ -421,6 +429,11 @@ export default function CliGenerator() {
   const wanInterfaceName = `${values.wanIfPrefix}${values.wanIfId.trim()}`;
   // bool check device is exist or not
   const isExisting = values.deviceMode === "existing";
+
+  // ค่าฟอร์มเปลี่ยน = input ที่ required ถูกเพิ่ม/ลด/กรอก ตรวจใหม่หลัง DOM อัปเดตแล้ว
+  useEffect(() => {
+    setFormValid(Boolean(formRef.current?.checkValidity()));
+  }, [values]);
   // ขา bootstrap เลือกได้ชุดเดียวกันทุกยี่ห้อแล้ว - Huawei ใช้เสมอในโหมด new
   // (CE12800 เป็นสวิตช์อยู่แล้ว) ส่วน Cisco/Juniper ใช้เมื่อเลือก role เป็น switch
   // role router ยังผูก IP กับ WAN interface ตรง ๆ เหมือนเดิม ไม่มี VLAN มาเกี่ยว
@@ -673,6 +686,8 @@ export default function CliGenerator() {
           : null
       );
       setRegenerationTarget(null);
+      // tour ขั้น 4 -> 5: CLI ขึ้นแล้ว ชี้ปุ่ม Copy แรกต่อ
+      advanceTour("generate", "copy");
     } catch (err) {
       started = true;
       if (mountedRef.current && requestId === requestSeqRef.current) {
@@ -818,7 +833,7 @@ export default function CliGenerator() {
         <span>You can leave this page. The device shows up on Devices by itself once it connects.</span>
       </div>
       <span className={`badge ${enrollmentStatusClass}`}>{enrollmentStatusText}</span>
-      <div className="cli-generator-done-actions">
+      <div className="cli-generator-done-actions" data-tour="cli-done-actions" onClickCapture={() => endTour()}>
         {enrollmentOnline && deviceUrl && (
           <button type="button" className="btn btn-primary" onClick={() => navigate(deviceUrl)}>
             Open Device
@@ -889,10 +904,11 @@ export default function CliGenerator() {
                 </p>
               </div>
             )}
-            <form onSubmit={handleGenerate}>
+            {/* onInput: เริ่มพิมพ์/เลือกอะไรก็ได้ในฟอร์ม = ปิดคำแนะนำขั้น 3 (tour ขั้น 3 -> 4) */}
+            <form ref={formRef} onSubmit={handleGenerate} onInput={() => advanceTour("fill-form", "generate")}>
               {error && <DismissibleError message={error} onDismiss={() => setError("")} />}
 
-              <div className="field">
+              <div className="field" data-tour="cli-form">
                 <label htmlFor="cli-vendor">Vendor</label>
                 <select id="cli-vendor" value={values.vendor} onChange={(event) => handleVendorChange(event.target.value)}>
                   <option value="cisco">Cisco IOS-XE</option>
@@ -1446,7 +1462,7 @@ export default function CliGenerator() {
               </div>
 
               <div className="modal-actions">
-                <button type="submit" className="btn btn-primary" disabled={submitting || loadingRegenerationTarget}>
+                <button type="submit" className="btn btn-primary" data-tour="cli-generate" disabled={submitting || loadingRegenerationTarget}>
                   {submitting
                     ? "Generating..."
                     : loadingRegenerationTarget
@@ -1557,7 +1573,12 @@ export default function CliGenerator() {
                               <span aria-hidden="true">📖</span> Please read: what this step loads
                             </button>
                           )}
-                          <button type="button" className="btn btn-primary" onClick={() => handleCopySegment(stepId, step.commands)}>
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            data-tour={index === 0 ? "cli-first-copy" : undefined}
+                            onClick={() => handleCopySegment(stepId, step.commands)}
+                          >
                             {copiedSegments[stepId] ? "Copied" : "Copy"}
                           </button>
                         </div>
@@ -1586,7 +1607,7 @@ export default function CliGenerator() {
                   <p className="cli-generator-step-hint">
                     Copy all commands and paste them into the device console. The device then connects to the server.
                   </p>
-                  <button type="button" className="btn btn-primary" onClick={handleCopy}>
+                  <button type="button" className="btn btn-primary" data-tour="cli-first-copy" onClick={handleCopy}>
                     {copied ? "Copied" : "Copy"}
                   </button>
                 </div>
@@ -1641,6 +1662,53 @@ export default function CliGenerator() {
           </div>
         </div>
       </main>
+
+      {tourStep === "fill-form" && !loadingRegenerationTarget && (
+        <TourTooltip target="cli-form" step="fill-form" title="Fill in the device information">
+          Choose the vendor and device type, then fill in the details of the device you want to add. This guide hides
+          when you start typing.
+        </TourTooltip>
+      )}
+      {tourStep === "generate" && (formValid || isExisting) && !submitting && (
+        <TourTooltip target="cli-generate" step="generate" title="Generate the configuration">
+          All required details are filled in. Click <strong>Generate</strong> to create the commands for this device.
+        </TourTooltip>
+      )}
+      {tourStep === "copy" && renderedSteps.length + (cliText ? 1 : 0) > 0 && (
+        <TourTooltip
+          target="cli-first-copy"
+          step="copy"
+          title="Copy and paste on the device"
+          actions={(
+            <button
+              type="button"
+              className="btn btn-primary"
+              // ไม่มีกล่อง "Done pasting?" (ผลลัพธ์ไม่มี pending device) = ไม่มีขั้น 6 ให้ชี้ จบ tour ตรงนี้
+              onClick={() => (pendingDevice ? advanceTour("copy", "finish") : endTour())}
+            >
+              Next
+            </button>
+          )}
+        >
+          Click <strong>Copy</strong> and paste the commands into the device console. Do it one step at a time, in order,
+          and wait for each step to finish before copying the next one.
+        </TourTooltip>
+      )}
+      {tourStep === "finish" && pendingDevice && (
+        <TourTooltip
+          target="cli-done-actions"
+          step="finish"
+          title="All done"
+          actions={(
+            <button type="button" className="btn btn-primary" onClick={endTour}>
+              Finish
+            </button>
+          )}
+        >
+          After pasting every step, add another device with <strong>+ Enroll another device</strong>, or go back to
+          the device list with <strong>Back to Devices</strong>. The device appears there by itself once it connects.
+        </TourTooltip>
+      )}
     </div>
   );
 }

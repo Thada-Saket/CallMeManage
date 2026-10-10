@@ -21,6 +21,8 @@ import { Pagination } from "../components/Pagination";
 import { listDevices } from "../api/api_devices";
 import { createGenerationGuard, createPoller, POLL_BASE_MS, POLL_MAX_MS } from "../utils/devicePoller";
 import { cliGeneratorUrl } from "../utils/deviceEnrollmentRoutes";
+import TourTooltip from "../components/TourTooltip";
+import { advanceTour, useTourStep } from "../utils/onboardingTour";
 
 // สถานะอุปกรณ์อัปเดตเองแบบ real-time (อ้างอิงจาก basic_info.jsx) - ยิง GET /devices/ query DB ไม่ใช้ Netconf RPC
 // รอบปกติ 10 วิ, ล้มเหลวถอยเป็น 20/40/60 วิ (ดู utils/devicePoller.js) - pending card ที่ backend เปลี่ยนเป็น active
@@ -74,6 +76,7 @@ export default function Devices() {
   const devices = currentPage ? currentPage.items : null;
   const siteRole = currentPage?.siteRole || null;
   const canManageSite = siteRole === "owner" || siteRole === "admin";
+  const tourStep = useTourStep();
 
   // ขอข้อมูลอุปกรณ์ 1 ชุดจาก backend ด้วย cursor ที่กำหนด (afterDevId=null คือชุดแรกสุด)
   async function fetchPage(afterDevId) {
@@ -202,8 +205,11 @@ export default function Devices() {
             <button
               type="button"
               className="btn btn-primary"
+              data-tour="add-device"
               onClick={() => {
                 const url = cliGeneratorUrl(siteId);
+                // tour ขั้น 2 -> 3: หน้า CLI Generator ชี้ฟอร์มกรอกข้อมูลอุปกรณ์ต่อ
+                advanceTour("add-device", "fill-form");
                 if (url) navigate(url);
               }}
             >
@@ -245,6 +251,13 @@ export default function Devices() {
           )}
         </section>
       </main>
+      {/* tour ขั้น 2 - เฉพาะคนที่เห็นปุ่ม (owner/admin) · ปุ่มซ่อนอยู่ TourTooltip ก็ไม่แสดง */}
+      {tourStep === "add-device" && canManageSite && (
+        <TourTooltip target="add-device" step="add-device" title="Add your first device">
+          You are now inside your new site. Click <strong>+ New Device</strong> to create the commands that connect a
+          device to this system.
+        </TourTooltip>
+      )}
     </div>
   );
 }

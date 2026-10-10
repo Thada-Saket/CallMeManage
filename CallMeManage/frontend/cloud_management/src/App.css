@@ -159,39 +159,6 @@ button.topbar-element:focus-visible {
   .site-notification-bell.has-pending svg { animation: none; }
 }
 
-/* แถบเตือนใต้หัวหน้า Sites - โชว์เฉพาะตอนมีคำเชิญค้าง (แทนแถบสรุปล่างสุดเดิมที่โชว์
-   ตลอดแม้ไม่มีคำเชิญ และอยู่ท้ายหน้าจนผู้ใช้ไม่เห็น) */
-.site-invitations-alert {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 0 2rem 1rem;
-  padding: 12px 16px;
-  border: 1px solid var(--danger);
-  border-radius: var(--radius-sm);
-  background: var(--danger-dim);
-}
-
-.site-invitations-alert-count {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 28px;
-  height: 28px;
-  padding: 0 6px;
-  box-sizing: border-box;
-  border-radius: 999px;
-  background: var(--danger);
-  color: #fff;
-  font-weight: 700;
-}
-
-.site-invitations-alert-text {
-  flex: 1 1 auto;
-  color: var(--text-primary);
-}
-
 .main-content {
   flex: 1;
   min-width: 100%;
@@ -1522,6 +1489,149 @@ input.login-credential-input[data-ascii-guard="true"] {
   justify-content: center;
   padding: 20px;
   z-index: 40;
+}
+
+/* พื้นหลังเบลอชัดกว่า modal ปกติ - ใช้กับคำถามเปิด onboarding tour หลัง login */
+.modal-overlay.modal-overlay-blur {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.tour-prompt-card {
+  max-width: 440px;
+}
+
+.tour-prompt-text {
+  margin: 12px 0 16px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.tour-prompt-dont-ask {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+/* กล่องคำแนะนำของ onboarding tour (TourTooltip.jsx) - position:fixed ใน portal,
+   top/left คำนวณจาก JS · ลูกศรเป็นสี่เหลี่ยมหมุน 45 องศาที่ขอบบน (กล่องอยู่ใต้เป้าหมาย)
+   หรือขอบล่าง (.is-above) เลื่อนแนวนอนด้วย --tour-arrow-left ให้ชี้กลางเป้าหมาย
+   z-index ต่ำกว่า modal-overlay (40) - เปิด modal (เช่นฟอร์มสร้าง site) แล้วกล่องอยู่ใต้ */
+.tour-tooltip {
+  position: fixed;
+  z-index: 35;
+  box-sizing: border-box;
+  padding: 14px 16px;
+  border: 1px solid var(--jade);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+  color: var(--text-primary);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 0 3px var(--jade-dim);
+  font-size: 13.5px;
+  line-height: 1.55;
+  animation: tour-tooltip-in 0.2s ease-out;
+}
+
+.tour-tooltip-arrow {
+  position: absolute;
+  left: var(--tour-arrow-left, 50%);
+  width: 14px;
+  height: 14px;
+  margin-left: -7px;
+  background: var(--bg-panel);
+  border: 1px solid var(--jade);
+  transform: rotate(45deg);
+}
+
+.tour-tooltip.is-below .tour-tooltip-arrow {
+  top: -8px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.tour-tooltip.is-above .tour-tooltip-arrow {
+  bottom: -8px;
+  border-left: none;
+  border-top: none;
+}
+
+.tour-tooltip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.tour-tooltip-step {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--jade-bright);
+}
+
+.tour-tooltip-skip {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.tour-tooltip-skip:hover {
+  color: var(--text-primary);
+}
+
+.tour-tooltip-title {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 15px;
+}
+
+.tour-tooltip-body {
+  color: var(--text-secondary);
+}
+
+.tour-tooltip-body strong {
+  color: var(--text-primary);
+}
+
+.tour-tooltip-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+/* กรอบไฮไลต์รอบเป้าหมาย (วาดซ้อนด้านบน คลิกทะลุได้) - กะพริบเบา ๆ ให้สายตาตามไปเจอ */
+.tour-target-ring {
+  position: fixed;
+  z-index: 34;
+  border: 2px solid var(--jade-bright);
+  border-radius: 8px;
+  pointer-events: none;
+  animation: tour-ring-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes tour-tooltip-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes tour-ring-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(30, 230, 196, 0.45); }
+  50% { box-shadow: 0 0 0 6px rgba(30, 230, 196, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-tooltip,
+  .tour-target-ring { animation: none; }
 }
 
 .modal-card {

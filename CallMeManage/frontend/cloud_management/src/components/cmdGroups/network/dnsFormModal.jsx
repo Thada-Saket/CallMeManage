@@ -48,7 +48,7 @@ export default function DnsForm({ values, setValue, onApply, applying, error, on
 
       {showDnsServerToggle && (
         <div className="interface-configuration-form-field">
-          <label className="data-label">Enable DNS Server (Router act as DNS server)</label>
+          <label className="data-label">Enable DNS Server</label>
           <div className="toggle-switch-container">
             <input
               type="checkbox"

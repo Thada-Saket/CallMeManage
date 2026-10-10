@@ -19,6 +19,9 @@ import { acceptInvitation, getMyInvitations, getMyJoinRequests, rejectInvitation
 import LeaveSiteModal from "../components/LeaveSiteModal";
 import InvitationsModal from "../components/InvitationsModal";
 import { copyText } from "../utils/copyText";
+import TourPromptModal from "../components/TourPromptModal";
+import TourTooltip from "../components/TourTooltip";
+import { advanceTour, markTourPrompted, setTourStep, shouldPromptTour, useTourStep } from "../utils/onboardingTour";
 
 // หน้าศูนย์รวมสาขา (spec ข้อ 3.1) - แยก 2 ส่วนชัดเจน: สาขาที่เป็นเจ้าของ (Owned)
 // กับสาขาที่ขอเข้าร่วม (Joined - ทั้ง pending และ approved, badge บอกสถานะ) -
@@ -190,6 +193,22 @@ export default function Sites() {
 
   const [leaveSite, setLeaveSite] = useState(null);
 
+  // onboarding tour: ถามหลัง login (ครั้งเดียวต่อ login, ไม่ถามถ้าติ๊ก Don't ask again)
+  // ขั้นแรกของ tour อยู่หน้านี้ (ชี้ปุ่ม Create New Site) - ดู utils/onboardingTour.js
+  const [showTourPrompt, setShowTourPrompt] = useState(shouldPromptTour);
+  const tourStep = useTourStep();
+
+  function handleTourAccept({ dontAskAgain }) {
+    markTourPrompted({ dontAskAgain });
+    setShowTourPrompt(false);
+    setTourStep("create-site");
+  }
+
+  function handleTourDecline({ dontAskAgain }) {
+    markTourPrompted({ dontAskAgain });
+    setShowTourPrompt(false);
+  }
+
   async function refresh(nextOwnedPage = ownedPage, nextJoinedPage = joinedPage) {
     const requestId = ++refreshRequestId.current;
     const [sitesResult, invitationsResult, joinRequestsResult] = await Promise.allSettled([
@@ -306,6 +325,8 @@ export default function Sites() {
   // (ไม่ควรเกิด) ถอยไปพฤติกรรมเดิมคือรีเฟรชรายการอยู่หน้านี้
   function handleCreated(site) {
     setShowCreateModal(false);
+    // tour ขั้น 1 -> 2: สร้างเสร็จแล้วถูกพาเข้า site ใหม่ หน้า Devices ชี้ปุ่ม + New Device ต่อ
+    advanceTour("create-site", "add-device");
     window.dispatchEvent(new CustomEvent("toast:success", {
       detail: { message: `Site "${site?.site_name || ""}" created successfully`, duration: 3000 },
     }));
@@ -366,25 +387,13 @@ export default function Sites() {
             <button type="button" className="btn btn-ghost" onClick={() => setShowJoinModal(true)}>
               Search & Join Site
             </button>
-            <button type="button" className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
+            <button type="button" className="btn btn-primary" data-tour="create-site" onClick={() => setShowCreateModal(true)}>
               + Create New Site
             </button>
           </div>
         </div>
 
         {error && <DismissibleError message={error} onDismiss={() => setError("")} />}
-
-        {invitations.length > 0 && (
-          <div className="site-invitations-alert" role="status">
-            <span className="site-invitations-alert-count">{invitations.length > 99 ? "99+" : invitations.length}</span>
-            <span className="site-invitations-alert-text">
-              You have <strong>{invitations.length}</strong> pending site {invitations.length === 1 ? "invitation" : "invitations"} waiting for your response
-            </span>
-            <button type="button" className="btn btn-primary" onClick={() => setShowInvitationsModal(true)}>
-              View Invitations
-            </button>
-          </div>
-        )}
 
         {data === null && !error && <div className="center-loading">Loading...</div>}
 
@@ -481,6 +490,13 @@ export default function Sites() {
 
       </main>
 
+      {showTourPrompt && <TourPromptModal onAccept={handleTourAccept} onDecline={handleTourDecline} />}
+      {tourStep === "create-site" && !showCreateModal && !showTourPrompt && (
+        <TourTooltip target="create-site" step="create-site" title="Create your first site">
+          A site groups the devices of one location (for example a branch office). Click
+          {" "}<strong>+ Create New Site</strong>, give it a name and try creating one now.
+        </TourTooltip>
+      )}
       {showCreateModal && (
         <CreateSiteModal onClose={() => setShowCreateModal(false)} onCreated={handleCreated} />
       )}

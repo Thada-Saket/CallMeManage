@@ -239,18 +239,7 @@
     box-sizing: border-box;
   }
 
-  /* --- 3.5 Site Invitations Alert --- */
-  .site-invitations-alert {
-    flex-wrap: wrap;
-    margin: 0 0.5rem 0.75rem;
-    box-sizing: border-box;
-  }
-
-  .site-invitations-alert .btn {
-    width: 100%;
-    min-height: 44px;
-  }
-
+  /* --- 3.5 Site Notification Bell --- */
   .site-notification-bell {
     width: 44px;
     height: 44px;
