@@ -1606,7 +1606,6 @@ export default function CliGenerator() {
                     </div>
                   );
                 })}
-                {doneCard}
               </>
             ) : cliText ? (
               <>
@@ -1619,7 +1618,6 @@ export default function CliGenerator() {
                   </button>
                 </div>
                 <AutoSizeTextarea readOnly value={cliText} onClick={(event) => event.target.select()} />
-                {doneCard}
               </>
             ) : (
               <div className="config-placeholder">Fill in the configuration on the left and click Generate to produce CLI commands.</div>
