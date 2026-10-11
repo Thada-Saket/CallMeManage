@@ -132,6 +132,19 @@ def get_running_config():
     ''')
 
 # show routing table
+# running-config ในรูปแบบ CLI ของ IOS (เหมือน show running-config) สำหรับหน้า Running
+# Configuration - RPC get-modelled-config-clis ของ Cisco-IOS-XE-cli-rpc.yang ("Retrieve
+# configuration in CLI format from Running or Candidate datastore. Wireless, app-hosting,
+# telemetry features are not supported") ยืนยันจาก device_capability ของ SeniorProject ·
+# ไม่อยู่ใน PUBLIC_FUNCTIONS โดยตั้งใจ - เรียกได้จาก snapshot endpoint ที่ปิดค่าลับก่อนเก็บ
+# เท่านั้น ไม่เปิดเส้นทางให้ /command คืน config ดิบที่มีค่าลับ
+def get_running_config_cli():
+    return open_rpc_tag('''
+        <get-modelled-config-clis xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-cli-rpc">
+            <datastore>running</datastore>
+        </get-modelled-config-clis>
+    ''')
+
 def get_routing_table():
     return  open_rpc_tag('''
 <get>

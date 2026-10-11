@@ -161,6 +161,14 @@ def get_running_config():
 
 
 # show routing table
+# running config ในรูปแบบข้อความของ Junos (ปีกกา - เหมือน show configuration) สำหรับหน้า
+# Running Configuration - วางกลับลงอุปกรณ์ได้ด้วย `load merge terminal` · ไม่อยู่ใน
+# PUBLIC_FUNCTIONS โดยตั้งใจ (ดูเหตุผลที่ cisco_iosxe.get_running_config_cli)
+# database="committed" - <get-configuration> ของ Junos อ่าน candidate เป็นค่าเริ่มต้น ถ้าไม่ระบุ
+# อาจได้ค่าที่ยังไม่ commit ติดมาด้วย ซึ่งไม่ใช่ running config ที่หน้านี้บอกว่าแสดง
+def get_running_config_cli():
+    return open_rpc_tag('<get-configuration database="committed" format="text"/>')
+
 def get_routing_table():
     return open_rpc_tag(f'<get-route-information xmlns="{NS_RPC_ROUTE}"/>')
 

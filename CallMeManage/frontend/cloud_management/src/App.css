@@ -2326,17 +2326,25 @@ input[type="radio"] {
   background: var(--warning);
   box-shadow: 0 0 0 2px var(--bg-app), 0 0 8px rgba(224, 168, 62, 0.8);
   pointer-events: none;
-  animation: unsaved-dot-blink 1s steps(1, end) infinite;
+  animation: unsaved-dot-blink 1s linear infinite;
 }
 
 /* ติด-ดับชัด ๆ (ไม่ใช่ค่อย ๆ จาง) แบบไฟแจ้งเตือน */
 @keyframes unsaved-dot-blink {
-  0% { opacity: 1; }
-  50% { opacity: 0.15; }
+  0%, 49.9% { opacity: 1; }
+  50%, 100% { opacity: 0.12; }
 }
 
+/* เครื่องที่ปิด animation ของระบบ (เช่น Windows "Show animations" ปิด / Remote Desktop ที่ปิด
+   ให้เอง) เดิมหยุดกระพริบเลย ทำให้จุดนิ่งจนไม่ดึงความสนใจ - จุดนี้เป็นตัวแจ้งเตือนสถานะที่ต้อง
+   เห็นจริง จึงยังกระพริบอยู่แต่ช้าลงและนุ่มลง (จาง ไม่ใช่ติด-ดับฉับ ๆ) แทนการหยุด */
 @media (prefers-reduced-motion: reduce) {
-  .unsaved-dot { animation: none; }
+  .unsaved-dot { animation: unsaved-dot-blink-soft 2s ease-in-out infinite; }
+}
+
+@keyframes unsaved-dot-blink-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
 }
 
 .visually-hidden {

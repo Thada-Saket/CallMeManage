@@ -122,6 +122,10 @@ class RunningConfigSnapshotRead(RunningConfigSnapshotCreated):
     created_at: datetime
     redacted_count: int
     sections: list[RunningConfigSection]
+    # config รูปแบบของอุปกรณ์ที่ปิดค่าลับแล้ว (Cisco CLI / Junos text) - None = ไม่รองรับ/อ่านไม่ได้
+    native_text: str | None = None
+    native_redacted_count: int = 0
+    native_error: str | None = None
 
 
 # ---------- Device Command (หน้าเว็บที่ 3 config GUI) ----------

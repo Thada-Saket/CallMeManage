@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { getRunningConfigSnapshot } from "../api/api_devices";
+import { copyText } from "../utils/copyText";
 import "../assets/css/runningConfiguration.css";
 
 function readableError(error) {
@@ -68,6 +69,51 @@ function ConfigurationTable({ data, label }) {
   );
 }
 
+// วิธีวาง config กลับลงอุปกรณ์ตามยี่ห้อ - แสดงใต้หัวข้อ Device Format
+const PASTE_HINT = {
+  cisco: <>Paste in <code>configure terminal</code>.</>,
+  juniper: <>In configuration mode run <code>load merge terminal</code>, paste, press <kbd>Ctrl+D</kbd>, then <code>commit</code>.</>,
+};
+
+// config รูปแบบของอุปกรณ์ (Cisco CLI / Junos text) - ค่าลับถูกแทนด้วย <hidden> ตั้งแต่ backend
+// ก่อนเก็บ snapshot (ผู้ใช้เลือกให้ซ่อนเหมือนเดิม) บรรทัดพวกนั้นต้องเติมเองก่อนวาง
+function NativeConfiguration({ snapshot }) {
+  const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState("");
+
+  async function handleCopy() {
+    setCopyError("");
+    if (await copyText(snapshot.native_text)) {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } else {
+      setCopyError("Failed to copy. Please select the text manually and copy it.");
+    }
+  }
+
+  return (
+    <section className="running-config-section">
+      <div className="running-config-native-header">
+        <div>
+          <h2>Device Format</h2>
+          <p className="running-config-native-hint">{PASTE_HINT[snapshot.vendor]}</p>
+        </div>
+        <button type="button" className="btn btn-primary" onClick={handleCopy}>
+          {copied ? "Copied" : "Copy"}
+        </button>
+      </div>
+      {snapshot.native_redacted_count > 0 && (
+        <p className="running-config-native-warning" role="note">
+          <strong>{snapshot.native_redacted_count} secret value{snapshot.native_redacted_count === 1 ? " is" : "s are"} shown as <code>&lt;hidden&gt;</code>.</strong>{" "}
+          Replace them with the real values (or remove those lines) before pasting, otherwise the device rejects them.
+        </p>
+      )}
+      {copyError && <p className="running-config-native-warning" role="alert">{copyError}</p>}
+      <pre className="running-config-native-text">{snapshot.native_text}</pre>
+    </section>
+  );
+}
+
 function formatRemaining(seconds) {
   const safe = Math.max(0, seconds);
   const minutes = Math.floor(safe / 60);
@@ -80,6 +126,7 @@ export default function RunningConfigurationViewer() {
   const [snapshot, setSnapshot] = useState(null);
   const [error, setError] = useState("");
   const [now, setNow] = useState(() => Date.now());
+  const [view, setView] = useState("native"); // native | structured
 
   useEffect(() => {
     if (isReservationPage) return undefined;
@@ -101,6 +148,7 @@ export default function RunningConfigurationViewer() {
     return Math.max(0, Math.ceil((new Date(snapshot.expires_at).getTime() - now) / 1000));
   }, [snapshot, now]);
   const expired = Boolean(snapshot) && remaining <= 0;
+  const hasNative = Boolean(snapshot?.native_text);
 
   if (isReservationPage || (!snapshot && !error)) {
     return <main className="running-config-viewer running-config-centered"><div className="running-config-spinner" /><h1>Preparing Configuration View</h1><p>The device is still returning its running configuration.</p></main>;
@@ -119,7 +167,7 @@ export default function RunningConfigurationViewer() {
             Running Configuration
             <span className="field-help">
               <button type="button" className="field-help-trigger" aria-label="About this view">?</button>
-              <span className="field-help-tooltip" role="tooltip">Read-only structured data returned through NETCONF/YANG. Secret values are hidden before the snapshot is stored or displayed.</span>
+              <span className="field-help-tooltip" role="tooltip">Read-only configuration returned through NETCONF. Device Format is the device's own syntax, ready to paste back; Structured is the YANG data. Secret values are hidden before the snapshot is stored or displayed.</span>
             </span>
           </h1>
           <p>{snapshot.dev_name}</p>
@@ -140,14 +188,36 @@ export default function RunningConfigurationViewer() {
         <span>{snapshot.redacted_count} sensitive values hidden</span>
       </section>
 
-      <div className="running-config-sections">
-        {snapshot.sections.map((section) => (
-          <section className="running-config-section" key={section.id}>
-            <h2>{section.label}</h2>
-            <ConfigurationTable data={section.data} label={section.label} />
-          </section>
-        ))}
-      </div>
+      {/* Cisco/Juniper มี config รูปแบบของอุปกรณ์ให้ (พร้อมวาง) เป็นค่าเริ่มต้น ส่วน Huawei
+          ไม่มี RPC แบบนี้ผ่าน NETCONF จึงเห็นแบบ structured อย่างเดียวเหมือนเดิม */}
+      {hasNative && (
+        <div className="segmented-control running-config-view-switch" role="tablist" aria-label="Configuration view">
+          <input type="radio" id="rc-view-native" name="rc-view" checked={view === "native"} onChange={() => setView("native")} />
+          <label htmlFor="rc-view-native">Device Format</label>
+          <input type="radio" id="rc-view-structured" name="rc-view" checked={view === "structured"} onChange={() => setView("structured")} />
+          <label htmlFor="rc-view-structured">Structured</label>
+        </div>
+      )}
+      {!hasNative && snapshot.native_error && (
+        <p className="running-config-native-warning" role="note">
+          Device format is unavailable for this snapshot: {snapshot.native_error}
+        </p>
+      )}
+
+      {hasNative && view === "native" ? (
+        <div className="running-config-sections">
+          <NativeConfiguration snapshot={snapshot} />
+        </div>
+      ) : (
+        <div className="running-config-sections">
+          {snapshot.sections.map((section) => (
+            <section className="running-config-section" key={section.id}>
+              <h2>{section.label}</h2>
+              <ConfigurationTable data={section.data} label={section.label} />
+            </section>
+          ))}
+        </div>
+      )}
     </main>
   );
 }

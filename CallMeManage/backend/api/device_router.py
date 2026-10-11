@@ -57,8 +57,10 @@ from backend.crud.dev_crud.crud_dev_config_object import (
 )
 from backend.running_config_snapshot import (
     extract_configuration_sections,
+    extract_native_configuration_text,
     get_running_config_snapshot,
     public_snapshot,
+    redact_native_configuration,
     store_running_config_snapshot,
 )
 
@@ -971,6 +973,10 @@ async def get_device_access_log(
     )
 
 
+# ยี่ห้อที่ดึง running config เป็นรูปแบบของอุปกรณ์ได้ (ดู get_running_config_cli)
+NATIVE_CONFIG_VENDORS = frozenset({"cisco", "juniper"})
+
+
 @router.post(
     "/{dev_id}/running-config-snapshots",
     response_model=RunningConfigSnapshotCreated,
@@ -997,8 +1003,25 @@ async def create_running_config_snapshot(
 
     try:
         payload = build_payload(device.dev_vendor, "get_running_config", {})
+        native_text = None
+        native_redacted_count = 0
+        native_error = None
         async with DeviceLock(dev_id):
             reply = await callhome_service.send_payload(dev_id, payload, timeout=60)
+            # config รูปแบบของอุปกรณ์ (พร้อมวางกลับลงอุปกรณ์) - Cisco/Juniper เท่านั้น
+            # (Huawei ไม่มี RPC ส่ง config เป็น CLI ผ่าน NETCONF) อ่านใน DeviceLock เดียวกับ
+            # XML ด้านบน = snapshot เดียวกัน · best-effort: อ่านไม่ได้ก็ยังแสดงแบบ structured
+            # ได้ตามเดิม ค่าลับถูกปิดก่อนเก็บลง Redis เสมอ (ไม่ถึง browser)
+            if device.dev_vendor in NATIVE_CONFIG_VENDORS:
+                try:
+                    native_payload = module_for_vendor(device.dev_vendor).get_running_config_cli()
+                    native_reply = await callhome_service.send_payload(dev_id, native_payload, timeout=60)
+                    native_text, native_redacted_count = redact_native_configuration(
+                        device.dev_vendor,
+                        extract_native_configuration_text(device.dev_vendor, native_reply),
+                    )
+                except (ValueError, SyntaxError) as exc:
+                    native_error = str(exc) or "The device could not return its configuration in device format"
         normalized = normalize(device.dev_vendor, "get_running_config", reply)
         if normalized.get("ok") is False:
             messages = [
@@ -1018,6 +1041,9 @@ async def create_running_config_snapshot(
             vendor=device.dev_vendor,
             sections=sections,
             redacted_count=redacted_count,
+            native_text=native_text,
+            native_redacted_count=native_redacted_count,
+            native_error=native_error,
         )
     except HTTPException:
         raise

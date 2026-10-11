@@ -95,3 +95,12 @@
   .running-config-table th,
   .running-config-table td { padding: 9px 12px; }
 }
+
+/* Device Format (Cisco CLI / Junos text) - พร้อมวางกลับลงอุปกรณ์ */
+.running-config-view-switch { margin: 0 0 14px; }
+.running-config-native-header { align-items: flex-start; display: flex; gap: 12px; justify-content: space-between; margin-bottom: 8px; }
+.running-config-native-header h2 { margin: 0 0 4px; }
+.running-config-native-hint { color: var(--text-secondary); font-size: 13px; margin: 0; }
+.running-config-native-hint code, .running-config-native-warning code { font-family: var(--mono); font-size: 12px; }
+.running-config-native-warning { background: var(--warning-dim); border: 1px solid var(--warning); border-left-width: 4px; border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px; line-height: 1.55; margin: 0 0 12px; padding: 10px 14px; }
+.running-config-native-text { background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-primary); font-family: var(--mono); font-size: 12.5px; line-height: 1.5; margin: 0; max-height: 70vh; overflow: auto; padding: 14px 16px; tab-size: 4; white-space: pre; }
