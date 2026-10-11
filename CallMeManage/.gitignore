@@ -26,3 +26,4 @@ __pycache__/
 
 # local notes
 SUBPATH_FIX_NOTES.md
+cmm_probe.py

@@ -558,8 +558,13 @@ def set_sub_interface_ip(
     interface_type = _interface_type_tag(interface_type)
     interface_id = _interface_id_value(interface_id)
     ip = validate_ipv4(ip, "Sub-interface IP")
-    # merge ทับ sub-interface เดิม ปิด Native ต้อง remove <native/> เดิม ไม่งั้นค้าง
-    native_xml = "<native/>" if native else f'<native {NC} nc:operation="remove"/>'
+    # (regression 2026-10-11) เดิมปิด Native ส่ง <native nc:operation="remove"/> เพื่อให้
+    # native หายจริง แต่ยืนยันบน C8000v IOS-XE 17.16 (licensed) แล้วว่า remove native
+    # ที่มีอยู่จริงในก้อน edit เดียวกับ <ip><address> ทำให้ **IP address หลุดหายไปด้วย**
+    # (ตอบ ok แต่ไม่มี ip) และ subinterface เข้าสถานะที่ set ip กลับไม่ติดจนกว่าจะลบ unit ทิ้ง
+    # กลับไปพฤติกรรมเดิม: native=False = ไม่แตะ native (ถ้าเคยเปิดไว้จะยังเปิด) ซึ่งปลอดภัยกว่า
+    # การทำ IP หาย มาก การปิด native จริงต้องทำด้วย flow ลบ+สร้าง unit ใหม่ (ยังไม่รองรับ)
+    native_xml = "<native/>" if native else ""
     description_xml = _interface_description_xml(description)
     mtu_xml = _mtu_xml(mtu)
     subinterface_id = f"{interface_id}.{vlan_id}"
@@ -659,7 +664,9 @@ def clear_interface_ip(
     switchport_xml = "<switchport-conf><switchport>false</switchport></switchport-conf>" if layer3 and "Ethernet" in interface_type and "." not in interface_id else ""
     if vlan_id is not None and not 1 <= vlan_id <= 4094:
         raise ValueError("vlan_id must be between 1 and 4094")
-    native_xml = "<native/>" if native else f'<native {NC} nc:operation="remove"/>'
+    # (regression 2026-10-11) เหตุผลเดียวกับ set_sub_interface_ip: remove native ในก้อน
+    # เดียวกับ <ip> ทำ IP หลุดบน IOS-XE 17.16 - native=False = ไม่แตะ native
+    native_xml = "<native/>" if native else ""
     encapsulation_xml = f'<encapsulation><dot1Q><vlan-id>{vlan_id}</vlan-id>{native_xml}</dot1Q></encapsulation>' if vlan_id is not None else ""
     admin_xml = "" if shutdown is None else "<shutdown/>" if shutdown else f'<shutdown {NC} nc:operation="remove"/>'
     desc_xml = _interface_description_xml(description)
