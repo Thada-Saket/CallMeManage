@@ -139,6 +139,18 @@ export function getDeviceConfigObjects(devId, feature) {
 const SUCCESS_TOAST_DEBOUNCE_MS = 700;
 let pendingSuccessToast = null;
 
+// คำสั่งเขียนสำเร็จ = running-config เปลี่ยนแล้วแต่ยังไม่ได้ save ลง startup (Cisco) -
+// DeviceDetail ฟัง event นี้เพื่อเปลี่ยนปุ่ม Save Configuration เป็นสถานะ "ยังไม่ได้ save"
+// ทันทีโดยไม่ต้องรอถาม backend (backend เก็บ flag จริงไว้ที่ Redis ด้วย - ดู
+// device_router.py's _note_cisco_config_write)
+export function announceConfigWritten(devId, command) {
+  window.dispatchEvent(new CustomEvent("device:config-written", { detail: { devId, command } }));
+}
+
+export function getConfigSaveStatus(devId) {
+  return request(`/devices/${encodeURIComponent(devId)}/config-save-status`);
+}
+
 function scheduleSuccessToast() {
   if (pendingSuccessToast) clearTimeout(pendingSuccessToast);
   pendingSuccessToast = setTimeout(() => {
@@ -254,6 +266,7 @@ export async function runDeviceCommand(devId, command, parameters = {}, { allowF
   }
 
   if (!command.startsWith("get_")) {
+    announceConfigWritten(devId, command);
     scheduleSuccessToast();
   }
   return response;
@@ -288,6 +301,7 @@ export async function runDeviceTransaction(devId, commands) {
     throw error;
   }
 
+  announceConfigWritten(devId, (commands || [])[0]?.command || "transaction");
   scheduleSuccessToast();
   return response;
 }

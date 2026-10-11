@@ -34,6 +34,7 @@ import SecurityProfile from "../components/cmdGroups/vpn/security_profile";
 import SecurityTunnel from "../components/cmdGroups/vpn/security_tunnel";
 
 import {
+  getConfigSaveStatus,
   getDevice,
   getDeviceCapability,
   getDeviceCommands,
@@ -553,6 +554,57 @@ export default function DeviceDetail() {
   const deviceVendor = device?.dev_vendor;
   const platformRole = capability?.platform_role || null;
 
+  // Cisco: ทุกคำสั่งของระบบแก้แค่ running-config - รีบูตก่อน save ค่าที่ตั้งผ่านเว็บหายหมด
+  // ปุ่มนี้สั่ง save_running_config (cisco-ia:save-config = write memory) ให้ผู้ใช้กดเองเมื่อ
+  // ตั้งค่าเสร็จ ไม่ save อัตโนมัติทุกคำสั่ง (ไม่เพิ่มเวลาทุกคำสั่ง และไม่บันทึก config กลางทาง)
+  // ซ่อนเมื่ออุปกรณ์ไม่มี cisco-ia (capability ตัดสิน) หรืออยู่โหมดอ่านอย่างเดียว (offline)
+  const [savingConfig, setSavingConfig] = useState(false);
+  const [saveConfigResult, setSaveConfigResult] = useState(null); // {ok, message, at}
+  // true = มีคำสั่งเขียนสำเร็จหลังการ save ครั้งล่าสุด (ปุ่มเป็นสีหลัก + จุดเหลืองกระพริบ)
+  // false/null = ปกติ (ปุ่ม ghost) · ค่าตั้งต้นอ่านจาก backend (Redis) แล้วอัปเดตทันทีจาก event
+  // device:config-written ที่ api_devices.js ยิงหลังคำสั่งเขียนสำเร็จทุกครั้ง
+  const [configUnsaved, setConfigUnsaved] = useState(null);
+
+  useEffect(() => {
+    if (deviceVendor !== "cisco") {
+      setConfigUnsaved(null);
+      return undefined;
+    }
+    let cancelled = false;
+    getConfigSaveStatus(devId)
+      .then((res) => { if (!cancelled && res?.supported) setConfigUnsaved(res.unsaved); })
+      .catch(() => {});
+    function handleWritten(event) {
+      if (event.detail?.devId !== devId) return;
+      setConfigUnsaved(event.detail.command !== "save_running_config");
+    }
+    window.addEventListener("device:config-written", handleWritten);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("device:config-written", handleWritten);
+    };
+  }, [devId, deviceVendor]);
+  const canSaveConfig = deviceVendor === "cisco"
+    && (!capabilityKnown || availableCommands.has("save_running_config"))
+    && !capabilityContext.hiddenCommands.has("save_running_config");
+
+  async function handleSaveConfig() {
+    if (savingConfig) return;
+    setSavingConfig(true);
+    setSaveConfigResult(null);
+    try {
+      await runDeviceCommand(devId, "save_running_config", {});
+      setSaveConfigResult({ ok: true, at: new Date() });
+      setConfigUnsaved(false);
+    } catch (err) {
+      const detail = err?.detail;
+      const message = (detail && typeof detail === "object" ? detail.message : detail) || "Failed to save configuration";
+      setSaveConfigResult({ ok: false, message });
+    } finally {
+      setSavingConfig(false);
+    }
+  }
+
   // Cisco switch ต้องรู้สถานะ global routing ตั้งแต่เปิดหน้า เพราะค่านี้ควบคุม
   // ทั้ง Routing Status และเมนู Route ไม่ใช่แค่ Default-Gateway ภายในกลุ่ม Route
   // หลัง toggle สำเร็จ IPRouting ส่งค่ากลับผ่าน onRoutingStateChange โดยตรง
@@ -652,7 +704,29 @@ export default function DeviceDetail() {
       <main className="main-content">
         <div className="page-header">
           <h1>{device?.dev_name}</h1>
-          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+            {canSaveConfig && !readOnlyHistoryMode && (
+              <>
+                {saveConfigResult?.ok && (
+                  <span className="save-config-status" role="status">
+                    Saved to startup-config at {saveConfigResult.at.toLocaleTimeString()}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  className={`btn ${configUnsaved ? "btn-primary" : "btn-ghost"} save-config-btn`}
+                  onClick={handleSaveConfig}
+                  disabled={savingConfig}
+                  title={configUnsaved
+                    ? "There are changes not saved to startup-config yet - they are lost if the device reboots"
+                    : "Copy running-config to startup-config (write memory) so the settings survive a reboot"}
+                >
+                  {configUnsaved && <span className="unsaved-dot" aria-hidden="true" />}
+                  {savingConfig ? "Saving..." : "Save Configuration"}
+                  {configUnsaved && <span className="visually-hidden"> (unsaved changes)</span>}
+                </button>
+              </>
+            )}
             <button type="button" className="btn btn-primary" onClick={handleBackToDevices}>
               &larr; Back to Devices
             </button>
@@ -661,6 +735,9 @@ export default function DeviceDetail() {
 
         
         {error && <DismissibleError message={error} onDismiss={() => setError("")} />}
+        {saveConfigResult && !saveConfigResult.ok && (
+          <DismissibleError message={saveConfigResult.message} onDismiss={() => setSaveConfigResult(null)} />
+        )}
 
         {!device && !error && <div className="center-loading">Loading...</div>}
 

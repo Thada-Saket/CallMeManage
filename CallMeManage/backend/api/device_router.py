@@ -184,9 +184,39 @@ def _netconf_channel_dropped(exc: BaseException) -> bool:
     )
 
 
+# "มีการแก้ไขที่ยังไม่ได้ save" ของ Cisco (หน้า DeviceDetail ใช้เปลี่ยนปุ่ม Save Configuration
+# เป็นสีหลัก + จุดเหลืองกระพริบ) - ทุกคำสั่งเขียนของระบบแก้ running อย่างเดียว ตั้ง flag เมื่อ
+# คำสั่งเขียนสำเร็จจริง (อุปกรณ์ไม่ปฏิเสธ) และล้างเมื่อ save_running_config สำเร็จ
+# เก็บใน Redis ต่ออุปกรณ์ (ไม่ใช่ browser) ทุกแท็บ/ผู้ใช้/การเปิดหน้าใหม่เห็นตรงกัน และไม่หาย
+# ตอน restart backend - ข้อจำกัด: แก้จาก CLI ตรง ๆ ระบบไม่รู้ · best-effort ล้วน Redis ล่มไม่
+# ทำให้คำสั่งพัง
+CISCO_CONFIG_UNSAVED_KEY = "device:config_unsaved:{dev_id}"
+_READ_ONLY_PREFIXES = ("get_", "show_")
+
+
+async def _note_cisco_config_write(dev_id: str, vendor: str, command: str) -> None:
+    if vendor != "cisco" or command.startswith(_READ_ONLY_PREFIXES):
+        return
+    key = CISCO_CONFIG_UNSAVED_KEY.format(dev_id=dev_id)
+    try:
+        if command == "save_running_config":
+            await get_redis().delete(key)
+        else:
+            await get_redis().set(key, "1")
+    except Exception as exc:
+        print(f"[!] failed to update unsaved-config flag for {dev_id}: {exc}")
+
+
+# save-config เขียน startup-config ลง flash - อุปกรณ์ใหญ่/config ยาวใช้เวลาเกิน 20 วิ
+# (timeout default ของ transport) ได้ ถ้าตัดก่อนจะได้ error ทั้งที่อุปกรณ์ save สำเร็จ
+CISCO_SAVE_CONFIG_TIMEOUT_SECONDS = 60
+
+
 def _command_reply_timeout(vendor: str, command: str) -> float | None:
     if vendor == "cisco" and command in CISCO_NAT_EXTENDED_TIMEOUT_COMMANDS:
         return CISCO_NAT_WRITE_TIMEOUT_SECONDS
+    if vendor == "cisco" and command == "save_running_config":
+        return CISCO_SAVE_CONFIG_TIMEOUT_SECONDS
     return None
 
 
@@ -1373,6 +1403,24 @@ async def get_device_history(
     )
 
 # ดึงรายการ config ที่ตั้งชื่อไว้ใน database ทั้งหมด
+# สถานะ "มีการแก้ไขที่ยังไม่ได้ save ลง startup-config" (Cisco เท่านั้น - ดู
+# _note_cisco_config_write) · unsaved=None = อ่าน Redis ไม่ได้ (หน้าเว็บแสดงแบบปกติ)
+@router.get("/{dev_id}/config-save-status")
+async def get_config_save_status(
+    dev_id: str,
+    current_user: User_Table = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    device = await _get_authorized_device(session, dev_id, current_user.usr_id)
+    if device.dev_vendor != "cisco":
+        return {"supported": False, "unsaved": False}
+    try:
+        unsaved = bool(await get_redis().exists(CISCO_CONFIG_UNSAVED_KEY.format(dev_id=dev_id)))
+    except Exception:
+        return {"supported": True, "unsaved": None}
+    return {"supported": True, "unsaved": unsaved}
+
+
 @router.get("/{dev_id}/config-objects", response_model=List[DeviceConfigObjectRead])
 async def list_device_config_objects(
     dev_id: str,
@@ -1709,6 +1757,8 @@ async def run_device_transaction(
     # action = คำสั่งแรกของชุด (สื่อเจตนาหลักและยังใช้ filter/อ่านได้เหมือนเดิม)
     # ส่วนรายละเอียดครบทุก step อยู่ใน detail.steps ซึ่ง history.jsx แตกออกมาแสดง
     # เป็น badge + คำอธิบายเรียงแนวตั้งภายในแถวเดียว
+    for step in body.commands:
+        await _note_cisco_config_write(dev_id, device.dev_vendor, step.command)
     await create_history(
         session,
         dev_id=dev_id,
@@ -2416,6 +2466,10 @@ async def run_device_command(
                         # CISCO_NAT_SESSION_RESET_COMMANDS) - ปิดเองแล้วรอตัวใหม่ก่อนตอบ
                         nat_reconnect_connection = connection_before
                         print(f"[*] {dev_id} applied '{command}' - resetting call-home session")
+            elif command == "save_running_config" and device.dev_vendor == "cisco":
+                reply = await callhome_service.send_payload(
+                    dev_id, payload, timeout=_command_reply_timeout(device.dev_vendor, command),
+                )
             else:
                 reply = await callhome_service.send_payload(dev_id, payload)
     except DeviceLockBusy as exc:
@@ -2615,6 +2669,7 @@ async def run_device_command(
 
         # เก็บ log เฉพาะคำสั่งที่แก้ config จริง (ไม่ใช่ get_* query อ่านอย่างเดียว) -
         # ตรงกับที่ระบบ config management ทั่วไปทำ (log การเปลี่ยนแปลง ไม่ log การอ่าน)
+        await _note_cisco_config_write(dev_id, device.dev_vendor, command)
         if not command.startswith("get_"):
             await create_history(
                 session,

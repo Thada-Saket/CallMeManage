@@ -222,6 +222,15 @@ def get_ip_interface_brief():
 </get>
     ''')
 
+# บันทึก running-config ลง startup-config (เทียบเท่า `write memory` / `copy run start`) -
+# ทุกคำสั่งเขียนของระบบนี้แก้ running อย่างเดียว ถ้าอุปกรณ์รีบูตก่อน save ค่าที่ตั้งผ่านเว็บ
+# จะหายหมด - ใช้ RPC save-config ของ cisco-ia.yang (ยืนยันจาก device_capability ของ
+# SeniorProject: `rpc save-config { description "Copy the running-config to startup-config" }`
+# และอุปกรณ์ประกาศ cisco-ia ใน hello) ไม่ใช่ edit-config จึงไม่ผ่าน logic candidate/commit
+# namespace อยู่ในตัว payload ตรง ๆ - capability_service ซ่อนคำสั่งนี้เองถ้าอุปกรณ์ไม่มี cisco-ia
+def save_running_config():
+    return open_rpc_tag('<save-config xmlns="http://cisco.com/yang/cisco-ia"/>')
+
 # show device version
 def get_device_version():
     return open_rpc_tag('''

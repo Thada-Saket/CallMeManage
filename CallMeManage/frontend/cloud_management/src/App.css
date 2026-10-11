@@ -2308,6 +2308,49 @@ input[type="radio"] {
 
 /* Cisco: Static NAT / Port Forwarding ทำงานได้เฉพาะตอนเปิด NAT (ip nat inside/outside) -
    แถบเหนือตารางเมื่อยังไม่เปิด NAT (CiscoNatDependencyBanner) และคำเตือนใน popup ปิด NAT */
+/* ปุ่ม Save Configuration (Cisco): มีการแก้ไขที่ยังไม่ได้ save = btn-primary + จุดเหลือง
+   กระพริบต่อเนื่อง · ปกติ = btn-ghost ไม่มีจุด */
+.save-config-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.unsaved-dot {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--warning);
+  box-shadow: 0 0 0 2px rgba(6, 33, 29, 0.35);
+  animation: unsaved-dot-blink 1.2s ease-in-out infinite;
+}
+
+@keyframes unsaved-dot-blink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.25; transform: scale(0.8); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .unsaved-dot { animation: none; }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ข้อความยืนยันหลังกด Save Configuration (Cisco) ที่หัวหน้า DeviceDetail */
+.save-config-status {
+  font-size: 12.5px;
+  color: var(--jade-bright);
+}
+
 /* คำเตือนตอนผูก ACL ขาเข้า (aclInterfaceBindingModal.jsx) - เสี่ยงตัดท่อจัดการของตัวเอง */
 .acl-mgmt-warning {
   margin: 4px 0 12px;

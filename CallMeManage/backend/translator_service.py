@@ -68,6 +68,8 @@ PUBLIC_FUNCTIONS = {
     "set_dns_lookup",
     "remove_dns_lookup",
     "set_dns_config",
+    # ---------- บันทึก running -> startup (Cisco cisco-ia:save-config) ----------
+    "save_running_config",
     "remove_dns_name_server",
     "set_dns_server_interface",
     "remove_dns_server_interface",
