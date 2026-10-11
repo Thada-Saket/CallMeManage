@@ -157,15 +157,29 @@ function parseCiscoRip(rip, hasConfig) {
 // แล้ว) ถึงจะเช็คเนื้อหาจริงได้ - defaultInformationOriginate implement จริง
 // แล้วเช่นกัน (เดิม raise ValueError ตายตัว) เช็คจากชื่อ policy "EXPORT-DEFAULT-RIP"
 // ตรงๆ ได้เลย (ไม่ต้องดูเนื้อหาข้างใน - แค่มี/ไม่มีก็พอ ไม่มีทางชนกับ policy อื่น)
+// (แก้ 2026-10-11) 2 จุดที่เคยอ่านผิดที่ ทำให้ "สั่งแล้วไม่เห็นผล" และ Apply รอบถัดไป
+// เขียนค่าผิดทับกลับลงอุปกรณ์ (ฟอร์ม pre-fill จาก summary นี้แล้ว replace ทั้งก้อน):
+// - policy ชื่อจริงที่ set_rip_routing เขียนคือ "RIP-POLICY" (ไม่ใช่ "EXPORT-SUBNETS"
+//   ตามคอมเมนต์ด้านบนซึ่งเป็นชื่อสมัยก่อน) - อ่านผิดชื่อ = redistributeStatic เป็น false
+//   เสมอ แล้ว Apply ครั้งถัดไปถอด static ออกจาก RIP เงียบ ๆ
+// - send/receive อยู่ที่ระดับ neighbor (Junos ไม่มี leaf นี้ที่ group - ดู set_rip_routing)
+//   อ่านจาก group = version เป็น "2" เสมอ แล้ว Apply ครั้งถัดไปสลับ v1 กลับเป็น v2 เอง
+// ทุก neighbor ที่ระบบเขียนใช้ version เดียวกันเสมอ จึงอ่านจาก neighbor ตัวแรกพอ
+// (group.receive เก็บไว้เป็น fallback ของ config เก่า)
+const RIP_EXPORT_POLICY_NAMES = ["RIP-POLICY", "EXPORT-SUBNETS"];
+
 function parseJuniperRip(configuration) {
   const groups = ensureArray(configuration?.protocols?.rip?.group);
   const group = groups[0] || {};
-  const receive = group?.receive;
+  const firstNeighbor = ensureArray(group?.neighbor)[0] || {};
+  const receive = firstNeighbor?.receive ?? group?.receive;
   const version = receive && typeof receive === "object" && "version-1" in receive ? "1" : "2";
   const exportPolicies = ensureArray(group?.export).map(toText);
 
   const policyStatements = ensureArray(configuration?.["policy-options"]?.["policy-statement"]);
-  const exportSubnets = policyStatements.find((p) => toText(p?.name) === "EXPORT-SUBNETS");
+  const exportSubnets = RIP_EXPORT_POLICY_NAMES
+    .map((name) => policyStatements.find((p) => toText(p?.name) === name))
+    .find(Boolean);
   const terms = ensureArray(exportSubnets?.term);
   const term1 = terms.find((t) => toText(t?.name) === "1") || terms[0];
   const protocolList = ensureArray(term1?.from?.protocol).map(toText);

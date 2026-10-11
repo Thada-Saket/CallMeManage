@@ -242,7 +242,7 @@ export default function CliGenerator() {
   const mountedRef = useRef(true);
   // onboarding tour ขั้น 3-6 อยู่หน้านี้ (ดู utils/onboardingTour.js) - formValid ใช้ตัดสิน
   // ว่าจะชี้ปุ่ม Generate ได้หรือยัง อ่านจาก required ของ input ในฟอร์มตรง ๆ
-  // (checkValidity) แทนที่จะเขียนเงื่อนไขซ้ำกับ handleGenerate ซึ่งเปลี่ยนตามยี่ห้อ/โหมด
+  // (validity.valid ของแต่ละช่อง - ไม่ใช่ checkValidity ดูเหตุผลที่ useEffect ด้านล่าง) แทนที่จะเขียนเงื่อนไขซ้ำกับ handleGenerate ซึ่งเปลี่ยนตามยี่ห้อ/โหมด
   const tourStep = useTourStep();
   const formRef = useRef(null);
   const [formValid, setFormValid] = useState(false);
@@ -431,8 +431,12 @@ export default function CliGenerator() {
   const isExisting = values.deviceMode === "existing";
 
   // ค่าฟอร์มเปลี่ยน = input ที่ required ถูกเพิ่ม/ลด/กรอก ตรวจใหม่หลัง DOM อัปเดตแล้ว
+  // ห้ามใช้ form.checkValidity() - มันยิง event "invalid" ใส่ทุกช่องที่ยังไม่ผ่าน ซึ่ง
+  // IPv4Input ถือเป็นการกด submit: ขึ้นแดงทันทีที่เข้าหน้า และดีด cursor ไปช่อง prefix
+  // ระหว่างที่ผู้ใช้ยังพิมพ์ IP ไม่เสร็จ - อ่าน validity.valid ตรง ๆ แทน (ไม่ยิง event)
   useEffect(() => {
-    setFormValid(Boolean(formRef.current?.checkValidity()));
+    const elements = Array.from(formRef.current?.elements || []);
+    setFormValid(elements.length > 0 && elements.every((element) => !element.willValidate || element.validity.valid));
   }, [values]);
   // ขา bootstrap เลือกได้ชุดเดียวกันทุกยี่ห้อแล้ว - Huawei ใช้เสมอในโหมด new
   // (CE12800 เป็นสวิตช์อยู่แล้ว) ส่วน Cisco/Juniper ใช้เมื่อเลือก role เป็น switch
