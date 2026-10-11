@@ -63,11 +63,11 @@ export default function TopBar() {
         </div>
       </Link>
       <div className="topbar-user">
-        <button type="button" className="topbar-element" onClick={() => navigate("/sites")}>
-          Site Management
-        </button>
         <button type="button" className="topbar-element" onClick={() => setShowTourPrompt(true)}>
           Tutorial
+        </button>
+        <button type="button" className="topbar-element" onClick={() => navigate("/sites")}>
+          Site Management
         </button>
         {isAccountPage ? (
           <></>
