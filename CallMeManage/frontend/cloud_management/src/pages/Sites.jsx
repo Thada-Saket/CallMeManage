@@ -144,12 +144,12 @@ function SiteCard({ site, badge, canEnter, onEnter, onCopyOrgId, onManageMembers
               เงื่อนไขเงียบๆ) ตอนนี้ซ่อนปุ่มไปเลยให้ชัดเจนกว่าเดิมว่ายังเข้าไม่ได้ */}
           {canEnter && (
             <button type="button" className="btn btn-ghost btn-block" onClick={handleEnterClick}>
-              Enter
+              Configure Devices
             </button>
           )}
           {showManage && (
             <button type="button" className="btn btn-ghost btn-block" onClick={handleManageClick}>
-              Site Management
+              Site Settings
             </button>
           )}
           {showLeave && (
