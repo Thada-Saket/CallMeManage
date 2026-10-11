@@ -187,6 +187,7 @@ export default function Dns({ devId }) {
         // เข้าใจผิดว่าต้อง "เปิด" อะไรก่อนถึงจะใช้ DNS ได้ - Cisco ยังโชว์ปกติ
         // เพราะเป็น toggle จริง (presence container ip/dns/server)
         showDnsServerToggle={!isJuniper}
+        showDomainLookupToggle={!isJuniper}
       />
     </div>
   );

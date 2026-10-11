@@ -1392,7 +1392,13 @@ def set_dns_config(
     lookup_xml = f"<lookup>{str(domain_lookup).lower()}</lookup>"
     if domain_name:
         domain_name = validate_domain_name(domain_name, "domain_name")
-    name_xml = f"<name>{escape(domain_name)}</name>" if domain_name else ""
+    # ช่อง Domain Name ว่าง = ลบชื่อเดิมออก (ผู้เรียกมีหน้า DNS ที่เดียว ซึ่งส่งค่าทั้งฟอร์มเสมอ)
+    # เดิมไม่ส่ง <name> เลยแล้ว merge ทำให้ชื่อเดิมค้าง - ล้างช่องแล้ว Apply ชื่อเดิมกลับมา
+    # remove เป็น no-op ถ้าไม่มีชื่ออยู่แล้ว จึงส่งได้เสมอ
+    name_xml = (
+        f"<name>{escape(domain_name)}</name>" if domain_name
+        else f'<name {nc} nc:operation="remove"/>'
+    )
     domain_xml = f"<domain>{lookup_xml}{name_xml}</domain>"
 
     if dns_server:

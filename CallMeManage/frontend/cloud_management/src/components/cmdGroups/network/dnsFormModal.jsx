@@ -8,7 +8,7 @@ const MIN_ROWS = 2; // โชว์ 2 ช่องเสมอ (Primary/Secondar
 // มาเติมเป็น initial state แล้วส่ง values + setValue + onApply เข้ามา ตัวนี้แค่
 // render controls: 2 toggle (dns server / domain lookup), 1 ช่องชื่อ domain,
 // และรายการ name-server (2 ช่องแรกคงที่ เพิ่มได้ถึง 6)
-export default function DnsForm({ values, setValue, onApply, applying, error, onDismissError, loading, onRefresh, showDnsServerToggle = true }) {
+export default function DnsForm({ values, setValue, onApply, applying, error, onDismissError, loading, onRefresh, showDnsServerToggle = true, showDomainLookupToggle = true }) {
   // โชว์อย่างน้อย MIN_ROWS ช่องเสมอ - เติมช่องว่างให้ครบถ้ามีน้อยกว่า
   const rows = [...values.nameServers];
   while (rows.length < MIN_ROWS) rows.push("");
@@ -61,18 +61,22 @@ export default function DnsForm({ values, setValue, onApply, applying, error, on
         </div>
       )}
 
-      <div className="interface-configuration-form-field">
-        <label className="data-label">Enable Domain Lookup</label>
-        <div className="toggle-switch-container">
-          <input
-            type="checkbox"
-            id="domain-lookup-toggle"
-            checked={values.domainLookup}
-            onChange={(event) => setValue("domainLookup", event.target.checked)}
-          />
-          <label className="toggleSwitch" htmlFor="domain-lookup-toggle"></label>
+      {/* Junos ไม่มีตัวเปิด/ปิดที่ตรงกับ `ip domain lookup` ของ Cisco - set_dns_config ฝั่ง
+          Juniper ไม่ใช้ค่านี้ ซ่อนไว้ไม่ให้กดแล้วไม่มีผล (ซ่อนแบบเดียวกับ DNS Server) */}
+      {showDomainLookupToggle && (
+        <div className="interface-configuration-form-field">
+          <label className="data-label">Enable Domain Lookup</label>
+          <div className="toggle-switch-container">
+            <input
+              type="checkbox"
+              id="domain-lookup-toggle"
+              checked={values.domainLookup}
+              onChange={(event) => setValue("domainLookup", event.target.checked)}
+            />
+            <label className="toggleSwitch" htmlFor="domain-lookup-toggle"></label>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="interface-configuration-form-field-third">
         <label className="data-label">Domain Name</label>

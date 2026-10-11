@@ -4095,7 +4095,12 @@ def set_dns_config(
     # (bug 12 - ส่วนที่ตกไป) ใช้นโยบายกลางตัวเดียวกับ cisco และกับ CLI generator
     if domain_name:
         domain_name = validate_domain_name(domain_name, "domain_name")
-    domain_xml = f"<domain-name>{escape(domain_name)}</domain-name>" if domain_name else ""
+    # ช่อง Domain Name ว่าง = ลบชื่อเดิม (เดิมไม่ส่งอะไรเลย ชื่อเดิมค้างหลัง Apply) - remove
+    # เป็น no-op ถ้าไม่มีอยู่แล้ว · ผู้เรียกมีหน้า DNS ที่เดียวซึ่งส่งค่าทั้งฟอร์มเสมอ
+    domain_xml = (
+        f"<domain-name>{escape(domain_name)}</domain-name>" if domain_name
+        else f'<domain-name xmlns:nc="{NS_RPC}" nc:operation="remove"/>'
+    )
 
     # Validate ทุกค่าให้ครบก่อนคืน payload เพื่อไม่ให้ลบของเดิมก่อนพบ IP ผิด
     servers = list(dict.fromkeys(str(ipaddress.IPv4Address(server)) for server in (name_servers or [])))
