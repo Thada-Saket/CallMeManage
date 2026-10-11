@@ -248,12 +248,18 @@
   gap: 12px 16px;
   margin-bottom: 16px;
   padding: 14px 18px;
-  border: 1.5px solid var(--jade-bright);
+  /* ธีมหลักเป็นเขียว jade สีออนไลน์เดิมเลยกลืนพื้นหลัง เปลี่ยนเป็นฟ้า sky ให้ตัดกับพื้น
+     เขียว/เข้มชัด ดึงดูดแต่ไม่ตกใจแบบแดง (--online-accent คุมที่เดียว) */
+  --online-accent: #38bdf8;
+  --online-accent-soft: #7dd3fc;
+  --online-accent-tint: rgba(56, 189, 248, 0.16);
+  --online-accent-ring: rgba(56, 189, 248, 0.45);
+  border: 1.5px solid var(--online-accent);
   border-radius: var(--radius);
   background:
-    linear-gradient(var(--jade-selected, rgba(0, 179, 154, 0.32)), var(--jade-selected, rgba(0, 179, 154, 0.32))),
+    linear-gradient(var(--online-accent-tint), var(--online-accent-tint)),
     var(--bg-panel);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 179, 154, 0.25);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--online-accent-ring);
   animation: cli-online-alert-in 0.25s ease-out, cli-online-alert-glow 2s ease-in-out 0.25s 2;
 }
 
@@ -263,8 +269,8 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: var(--jade-bright);
-  box-shadow: 0 0 0 4px var(--jade-dim);
+  background: var(--online-accent);
+  box-shadow: 0 0 0 4px var(--online-accent-tint);
   animation: cli-online-dot-pulse 1.4s ease-in-out infinite;
 }
 
@@ -277,27 +283,27 @@
   height: 18px;
   margin-right: 7px;
   border-radius: 50%;
-  background: var(--jade-bright);
-  color: #06201b;
+  background: var(--online-accent);
+  color: #042433;
   font-size: 12px;
   font-weight: 800;
   vertical-align: middle;
 }
 
 .cli-generator-online-alert.is-ready .cli-generator-online-alert-text strong {
-  color: var(--jade-bright);
+  color: var(--online-accent-soft);
   font-size: 16px;
   letter-spacing: 0.2px;
 }
 
 @keyframes cli-online-dot-pulse {
-  0%, 100% { box-shadow: 0 0 0 3px var(--jade-dim); opacity: 1; }
-  50% { box-shadow: 0 0 0 7px rgba(0, 179, 154, 0.08); opacity: 0.7; }
+  0%, 100% { box-shadow: 0 0 0 3px var(--online-accent-tint); opacity: 1; }
+  50% { box-shadow: 0 0 0 7px rgba(56, 189, 248, 0.08); opacity: 0.7; }
 }
 
 @keyframes cli-online-alert-glow {
-  0%, 100% { box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 179, 154, 0.25); }
-  50% { box-shadow: 0 6px 22px rgba(0, 0, 0, 0.4), 0 0 0 3px rgba(30, 230, 196, 0.45); }
+  0%, 100% { box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--online-accent-ring); }
+  50% { box-shadow: 0 6px 22px rgba(0, 0, 0, 0.4), 0 0 0 3px rgba(56, 189, 248, 0.6); }
 }
 
 @media (prefers-reduced-motion: reduce) {
