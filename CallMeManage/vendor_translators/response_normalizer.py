@@ -216,12 +216,39 @@ def normalize_interfaces(vendor: str, xml_response: str) -> list[dict]:
         }
         if vendor == "juniper" and tag == "logical-interface":
             parent = parents.get(element)
-            if parent is not None and _local_name(parent.tag) == "physical-interface":
-                parent_admin = _child_text(parent, "admin-status")
-                # A logical unit cannot be administratively enabled while its
-                # physical parent is disabled; retain unit-specific down state.
+            parent_is_physical = parent is not None and _local_name(parent.tag) == "physical-interface"
+            parent_admin = _child_text(parent, "admin-status") if parent_is_physical else ""
+            parent_oper = _child_text(parent, "oper-status") if parent_is_physical else ""
+            # Junos operational XML carries NO <admin-status>/<oper-status> on a
+            # logical-interface. A unit's own enable/disable state (the toggle the
+            # user flips) lives in <if-config-flags>: <iff-up/> = enabled,
+            # <iff-down/> = disabled. Reading only the physical parent's status
+            # made a disabled unit still show "up", and an empty oper show "down"
+            # on a working unit. Derive the unit's status from its own flags, then
+            # let the physical link gate it.
+            unit_down = any(_local_name(e.tag) == "iff-down" for e in element.iter())
+            unit_up = any(_local_name(e.tag) == "iff-up" for e in element.iter())
+            if unit_down:
+                row["admin_status"] = "down"
+                row["oper_status"] = "down"
+            elif unit_up:
+                row["admin_status"] = "up"
+                # unit enabled -> link follows the physical parent (physical link
+                # down => unit down); default up when the parent reports nothing
+                row["oper_status"] = parent_oper or "up"
+            else:
+                # no flags (unexpected/older output): fall back to inheriting the
+                # physical parent so we never regress to a blank "down"
                 if parent_admin.lower() == "down" or not row["admin_status"]:
                     row["admin_status"] = parent_admin or row["admin_status"]
+                if not row["oper_status"]:
+                    row["oper_status"] = parent_oper
+            # A disabled physical forces every unit down regardless of unit flags.
+            if parent_admin.lower() == "down":
+                row["admin_status"] = "down"
+                row["oper_status"] = "down"
+            if parent_is_physical and not row["last_change"]:
+                row["last_change"] = _child_text(parent, "interface-flapped")
                 # Last flapped is physical state in Junos extensive output.
                 # Logical units inherit it so every displayed child has a
                 # meaningful Last Change value without a second RPC.
