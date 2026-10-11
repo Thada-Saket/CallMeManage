@@ -211,6 +211,34 @@ export default function SecurityTunnelFormModal({ devId, vendor, mode = "create"
     setValues((prev) => ({ ...prev, [name]: value }));
   }
 
+  // Destination ของ IPsec มาจาก Peer IP ของ Security Profile ที่เลือก (ระบบรองรับ peer
+  // เดียวต่อ profile) - เติมให้เองและล็อกช่องไว้ แก้ได้ที่หน้า Security Profile เท่านั้น:
+  //   Juniper: peer อยู่ที่ IKE gateway ของ profile ที่เดียว ค่าที่กรอกในหน้านี้ตอนสร้าง
+  //            ไม่ถูกเขียนลงอุปกรณ์เลย (create_security_tunnel ไม่แตะ gateway address)
+  //            ถ้าเปิดให้กรอกเอง = กรอกแล้วไม่มีผล
+  //   Cisco:   tunnel destination เป็น config ของ Tunnel เองก็จริง แต่ต้องตรงกับ peer ของ
+  //            profile อยู่แล้ว ไม่งั้น IKE ไม่ขึ้น
+  // profile ที่อ่าน peer ไม่ได้ / เป็น 0.0.0.0 (รับทุก peer): Cisco ปลดล็อกให้กรอกเอง,
+  // Juniper บล็อก (กรอกไปก็ไม่มีผล) ให้ไปตั้ง Peer IP ที่หน้า Profile ก่อน
+  // Edit ของ Cisco ที่ destination เดิมไม่ตรง peer: คงค่าเดิมไว้ ไม่เติมทับเงียบ ๆ (ไม่งั้น
+  // Apply จะเปลี่ยน tunnel destination โดยผู้ใช้ไม่รู้ตัว) ให้ผู้ใช้กดเลือกใช้ peer เอง
+  const selectedProfile = values.tunnelType === "ipsec" && Array.isArray(securityProfiles)
+    ? securityProfiles.find((profile) => profile.fullName === values.securityProfile || profile.name === values.securityProfile) || null
+    : null;
+  const profilePeerCheck = validateIPv4Input(selectedProfile?.peerIp || "", { mode: "address" });
+  const profilePeer = profilePeerCheck.valid && profilePeerCheck.value !== "0.0.0.0" ? profilePeerCheck.value : "";
+  const [useProfilePeer, setUseProfilePeer] = useState(false);
+  const ciscoEditPeerMismatch = !isJuniper && isEdit && Boolean(profilePeer) && !useProfilePeer
+    && values.securityProfile === editTarget.securityProfile
+    && Boolean(editTarget.destination) && editTarget.destination !== profilePeer;
+  const destinationFromProfile = Boolean(profilePeer) && !ciscoEditPeerMismatch;
+  const juniperProfileWithoutPeer = isJuniper && values.tunnelType === "ipsec" && Boolean(selectedProfile) && !profilePeer;
+
+  useEffect(() => {
+    if (destinationFromProfile && values.remoteIp !== profilePeer) setField("remoteIp", profilePeer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [destinationFromProfile, profilePeer]);
+
   const isJuniperGre = isJuniper && values.tunnelType === "gre";
   // สร้างใหม่แบบที่ระบบต้องเลือกเลขให้เอง (Cisco ทุกชนิด + Junos IPsec) - Junos GRE
   // ผู้ใช้เลือก gr- interface เองจึงไม่ต้องใช้เลข และโหมดแก้ไขใช้เลขเดิมเสมอ
@@ -233,7 +261,10 @@ export default function SecurityTunnelFormModal({ devId, vendor, mode = "create"
     }
     if (!values.wanInterface) return setError(isJuniperGre ? "Please select interface to use its IP as Tunnel Source" : "Please select Outbound Interface (Via)");
 
-    const remote = validateIPv4Input(values.remoteIp, { mode: "address" });
+    if (juniperProfileWithoutPeer) {
+      return setError(`Security Profile "${selectedProfile.name}" has no Peer IP - set the Peer IP in the Security Profile page first`);
+    }
+    const remote = validateIPv4Input(destinationFromProfile ? profilePeer : values.remoteIp, { mode: "address" });
     if (!remote.valid) return setError("Please enter a valid Destination Public IP, e.g. 203.0.113.5");
     const remoteIp = remote.value;
 
@@ -443,8 +474,36 @@ export default function SecurityTunnelFormModal({ devId, vendor, mode = "create"
           mode="address"
           value={values.remoteIp}
           onChange={(value) => setField("remoteIp", value)}
+          readOnly={destinationFromProfile || juniperProfileWithoutPeer}
           required
         />
+        {destinationFromProfile && (
+          <div className="field-hint">
+            Filled from the Peer IP of Security Profile <strong>{selectedProfile.name}</strong>. To change it, edit that
+            profile in the Security Profile page.
+          </div>
+        )}
+        {juniperProfileWithoutPeer && (
+          <div className="field-hint">
+            Security Profile <strong>{selectedProfile.name}</strong> has no Peer IP. Set it in the Security Profile page
+            first - the tunnel uses the profile&apos;s Peer IP as its destination.
+          </div>
+        )}
+        {!isJuniper && values.tunnelType === "ipsec" && selectedProfile && !profilePeer && (
+          <div className="field-hint">
+            Security Profile <strong>{selectedProfile.name}</strong> has no single Peer IP to copy - enter the destination
+            manually (it must match the peer the profile accepts).
+          </div>
+        )}
+        {ciscoEditPeerMismatch && (
+          <div className="field-hint">
+            This tunnel&apos;s current destination ({editTarget.destination}) differs from the Peer IP of Security Profile{" "}
+            <strong>{selectedProfile.name}</strong> ({profilePeer}). It is kept unchanged.{" "}
+            <button type="button" className="link-button" onClick={() => setUseProfilePeer(true)}>
+              Use {profilePeer} instead
+            </button>
+          </div>
+        )}
       </div>
 
       {/* MTU - optional, เหมือนหน้า Interfaces (ไม่กรอก = ใช้ default ของอุปกรณ์
