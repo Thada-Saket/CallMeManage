@@ -184,20 +184,24 @@ def _netconf_channel_dropped(exc: BaseException) -> bool:
     )
 
 
-# "มีการแก้ไขที่ยังไม่ได้ save" ของ Cisco (หน้า DeviceDetail ใช้เปลี่ยนปุ่ม Save Configuration
+# "มีการแก้ไขที่ยังไม่ได้ save" ของ Cisco/Huawei (หน้า DeviceDetail ใช้เปลี่ยนปุ่ม Save Configuration
 # เป็นสีหลัก + จุดเหลืองกระพริบ) - ทุกคำสั่งเขียนของระบบแก้ running อย่างเดียว ตั้ง flag เมื่อ
 # คำสั่งเขียนสำเร็จจริง (อุปกรณ์ไม่ปฏิเสธ) และล้างเมื่อ save_running_config สำเร็จ
 # เก็บใน Redis ต่ออุปกรณ์ (ไม่ใช่ browser) ทุกแท็บ/ผู้ใช้/การเปิดหน้าใหม่เห็นตรงกัน และไม่หาย
 # ตอน restart backend - ข้อจำกัด: แก้จาก CLI ตรง ๆ ระบบไม่รู้ · best-effort ล้วน Redis ล่มไม่
 # ทำให้คำสั่งพัง
-CISCO_CONFIG_UNSAVED_KEY = "device:config_unsaved:{dev_id}"
+CONFIG_UNSAVED_KEY = "device:config_unsaved:{dev_id}"
 _READ_ONLY_PREFIXES = ("get_", "show_")
+# ยี่ห้อที่ commit/edit-config แก้แค่ running ต้อง save ลง startup เอง (Juniper ไม่อยู่ในนี้
+# เพราะ commit ของ Junos บันทึกถาวรอยู่แล้ว)
+SAVE_CONFIG_VENDORS = frozenset({"cisco", "huawei"})
+NETCONF_STARTUP_CAPABILITY = "urn:ietf:params:netconf:capability:startup:1.0"
 
 
-async def _note_cisco_config_write(dev_id: str, vendor: str, command: str) -> None:
-    if vendor != "cisco" or command.startswith(_READ_ONLY_PREFIXES):
+async def _note_config_write(dev_id: str, vendor: str, command: str) -> None:
+    if vendor not in SAVE_CONFIG_VENDORS or command.startswith(_READ_ONLY_PREFIXES):
         return
-    key = CISCO_CONFIG_UNSAVED_KEY.format(dev_id=dev_id)
+    key = CONFIG_UNSAVED_KEY.format(dev_id=dev_id)
     try:
         if command == "save_running_config":
             await get_redis().delete(key)
@@ -215,7 +219,7 @@ CISCO_SAVE_CONFIG_TIMEOUT_SECONDS = 60
 def _command_reply_timeout(vendor: str, command: str) -> float | None:
     if vendor == "cisco" and command in CISCO_NAT_EXTENDED_TIMEOUT_COMMANDS:
         return CISCO_NAT_WRITE_TIMEOUT_SECONDS
-    if vendor == "cisco" and command == "save_running_config":
+    if vendor in SAVE_CONFIG_VENDORS and command == "save_running_config":
         return CISCO_SAVE_CONFIG_TIMEOUT_SECONDS
     return None
 
@@ -1403,8 +1407,8 @@ async def get_device_history(
     )
 
 # ดึงรายการ config ที่ตั้งชื่อไว้ใน database ทั้งหมด
-# สถานะ "มีการแก้ไขที่ยังไม่ได้ save ลง startup-config" (Cisco เท่านั้น - ดู
-# _note_cisco_config_write) · unsaved=None = อ่าน Redis ไม่ได้ (หน้าเว็บแสดงแบบปกติ)
+# สถานะ "มีการแก้ไขที่ยังไม่ได้ save ลง startup-config" (Cisco/Huawei - ดู
+# _note_config_write) · unsaved=None = อ่าน Redis ไม่ได้ (หน้าเว็บแสดงแบบปกติ)
 @router.get("/{dev_id}/config-save-status")
 async def get_config_save_status(
     dev_id: str,
@@ -1412,10 +1416,10 @@ async def get_config_save_status(
     session: AsyncSession = Depends(get_session),
 ):
     device = await _get_authorized_device(session, dev_id, current_user.usr_id)
-    if device.dev_vendor != "cisco":
+    if device.dev_vendor not in SAVE_CONFIG_VENDORS:
         return {"supported": False, "unsaved": False}
     try:
-        unsaved = bool(await get_redis().exists(CISCO_CONFIG_UNSAVED_KEY.format(dev_id=dev_id)))
+        unsaved = bool(await get_redis().exists(CONFIG_UNSAVED_KEY.format(dev_id=dev_id)))
     except Exception:
         return {"supported": True, "unsaved": None}
     return {"supported": True, "unsaved": unsaved}
@@ -1758,7 +1762,7 @@ async def run_device_transaction(
     # ส่วนรายละเอียดครบทุก step อยู่ใน detail.steps ซึ่ง history.jsx แตกออกมาแสดง
     # เป็น badge + คำอธิบายเรียงแนวตั้งภายในแถวเดียว
     for step in body.commands:
-        await _note_cisco_config_write(dev_id, device.dev_vendor, step.command)
+        await _note_config_write(dev_id, device.dev_vendor, step.command)
     await create_history(
         session,
         dev_id=dev_id,
@@ -2466,7 +2470,16 @@ async def run_device_command(
                         # CISCO_NAT_SESSION_RESET_COMMANDS) - ปิดเองแล้วรอตัวใหม่ก่อนตอบ
                         nat_reconnect_connection = connection_before
                         print(f"[*] {dev_id} applied '{command}' - resetting call-home session")
-            elif command == "save_running_config" and device.dev_vendor == "cisco":
+            elif command == "save_running_config" and device.dev_vendor in SAVE_CONFIG_VENDORS:
+                # Huawei ใช้ copy-config -> startup ซึ่งต้องมี :startup ใน hello ของ session
+                # จริง - ไม่มี = อุปกรณ์จะตอบ rpc-error ที่อ่านยาก ปฏิเสธก่อนแตะอุปกรณ์แทน
+                if device.dev_vendor == "huawei" and NETCONF_STARTUP_CAPABILITY not in (
+                    (callhome_service.sessions.get(dev_id) or {}).get("capabilities") or set()
+                ):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="This device does not advertise the NETCONF :startup capability, so the configuration cannot be saved to startup over NETCONF.",
+                    )
                 reply = await callhome_service.send_payload(
                     dev_id, payload, timeout=_command_reply_timeout(device.dev_vendor, command),
                 )
@@ -2669,7 +2682,7 @@ async def run_device_command(
 
         # เก็บ log เฉพาะคำสั่งที่แก้ config จริง (ไม่ใช่ get_* query อ่านอย่างเดียว) -
         # ตรงกับที่ระบบ config management ทั่วไปทำ (log การเปลี่ยนแปลง ไม่ log การอ่าน)
-        await _note_cisco_config_write(dev_id, device.dev_vendor, command)
+        await _note_config_write(dev_id, device.dev_vendor, command)
         if not command.startswith("get_"):
             await create_history(
                 session,

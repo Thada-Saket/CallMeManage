@@ -51,6 +51,8 @@ import { parseIpRouting, showCiscoRouteModeItem } from "../utils/ciscoRouteMode"
 // Offline Alert Modal/read-only lock/banner อัปเดตเองแบบ real-time (ทั้งตอนหลุด
 // การเชื่อมต่อและตอนกลับมาออนไลน์) โดยไม่ต้องกด refresh หน้าเลย
 const POLL_INTERVAL_MS = 10000;
+// ยี่ห้อที่ต้อง save running -> startup เอง (ตรงกับ SAVE_CONFIG_VENDORS ใน device_router.py)
+const SAVE_CONFIG_VENDORS = new Set(["cisco", "huawei"]);
 // (dynamic feature ขั้นที่ 5) ระหว่างที่ backend กำลังตรวจความสามารถ ถามผลซ้ำถี่กว่ารอบปกติ
 const CAPABILITY_PROBE_POLL_MS = 3000;
 const HOSTNAME_MAX_LENGTH = 32;
@@ -554,7 +556,7 @@ export default function DeviceDetail() {
   const deviceVendor = device?.dev_vendor;
   const platformRole = capability?.platform_role || null;
 
-  // Cisco: ทุกคำสั่งของระบบแก้แค่ running-config - รีบูตก่อน save ค่าที่ตั้งผ่านเว็บหายหมด
+  // Cisco/Huawei: ทุกคำสั่งของระบบแก้แค่ running-config - รีบูตก่อน save ค่าที่ตั้งผ่านเว็บหายหมด
   // ปุ่มนี้สั่ง save_running_config (cisco-ia:save-config = write memory) ให้ผู้ใช้กดเองเมื่อ
   // ตั้งค่าเสร็จ ไม่ save อัตโนมัติทุกคำสั่ง (ไม่เพิ่มเวลาทุกคำสั่ง และไม่บันทึก config กลางทาง)
   // ซ่อนเมื่ออุปกรณ์ไม่มี cisco-ia (capability ตัดสิน) หรืออยู่โหมดอ่านอย่างเดียว (offline)
@@ -566,7 +568,7 @@ export default function DeviceDetail() {
   const [configUnsaved, setConfigUnsaved] = useState(null);
 
   useEffect(() => {
-    if (deviceVendor !== "cisco") {
+    if (!SAVE_CONFIG_VENDORS.has(deviceVendor)) {
       setConfigUnsaved(null);
       return undefined;
     }
@@ -584,7 +586,9 @@ export default function DeviceDetail() {
       window.removeEventListener("device:config-written", handleWritten);
     };
   }, [devId, deviceVendor]);
-  const canSaveConfig = deviceVendor === "cisco"
+  // Huawei อยู่สถานการณ์เดียวกัน (commit เขียนแค่ running) - save ด้วย copy-config ->
+  // startup ส่วน Juniper ไม่ต้องมีปุ่ม เพราะ commit ของ Junos บันทึกถาวรอยู่แล้ว
+  const canSaveConfig = SAVE_CONFIG_VENDORS.has(deviceVendor)
     && (!capabilityKnown || availableCommands.has("save_running_config"))
     && !capabilityContext.hiddenCommands.has("save_running_config");
 

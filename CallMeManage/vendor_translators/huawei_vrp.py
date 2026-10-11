@@ -238,6 +238,22 @@ def get_interface_list():
 ''')
 
 
+# บันทึก running ลง startup (เทียบเท่า `save` ของ VRP) - commit ของ Huawei เขียน running
+# อย่างเดียว รีบูตก่อน save ค่าที่ตั้งผ่านเว็บหายหมด สถานการณ์เดียวกับ Cisco
+# Huawei ไม่มี RPC เฉพาะแบบ cisco-ia:save-config แต่ประกาศ capability มาตรฐาน
+# urn:ietf:params:netconf:capability:startup:1.0 ใน hello (ยืนยันจาก huaweiHello.txt ของ
+# SeniorProject) จึงใช้ copy-config running -> startup ตาม RFC 6241 §8.7 - device_router
+# เช็ค :startup จาก hello ของ session จริงก่อนส่งเสมอ (namespace เป็น base NETCONF ที่ทุก
+# อุปกรณ์มี capability_service จึงซ่อนเองจาก YANG ไม่ได้แบบ Cisco)
+def save_running_config():
+  return open_rpc_tag("""
+<copy-config>
+  <target><startup/></target>
+  <source><running/></source>
+</copy-config>
+""")
+
+
 # show all device information
 def get_device_version():
     return open_rpc_tag(f'''
