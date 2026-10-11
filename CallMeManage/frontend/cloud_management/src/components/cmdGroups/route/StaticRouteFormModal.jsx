@@ -6,6 +6,7 @@ import { splitInterfaceName } from "../../../utils/interfaceName";
 import { validateIPv4Input } from "../../../utils/ipv4Input";
 import { layer3StaticRouteInterfaces } from "../../../utils/staticRouteInterfaces";
 import IPv4Input from "../../common/IPv4Input";
+import { huaweiRouteIfNameParameters, staticRouteTargetParameters } from "../../../utils/staticRouteTarget";
 
 // ฟอร์มสร้าง/แก้ไข static route - เขียนเองตรงๆ ไม่ใช้ DynamicCommandForm กลาง
 // เพราะ "ปลายทาง" ของ route เลือกได้ 2 แบบ (Next Hop IP / Exit Interface) ต้อง
@@ -38,7 +39,15 @@ function buildInitialValues(mode, editTarget) {
   };
 }
 
-export default function StaticRouteFormModal({ devId, vendor, mode = "create", editTarget = null, onClose, onSaved }) {
+export default function StaticRouteFormModal({
+  devId,
+  vendor,
+  mode = "create",
+  editTarget = null,
+  editSharesPrefix = false,
+  onClose,
+  onSaved,
+}) {
   const isEdit = mode === "edit" && !!editTarget;
   const isHuawei = vendor === "huawei";
   const initial = buildInitialValues(mode, editTarget);
@@ -109,7 +118,7 @@ export default function StaticRouteFormModal({ devId, vendor, mode = "create", e
 
     setSubmitting(true);
     try {
-      const parameters = {
+      let parameters = {
         prefix: destination.address,
         mask: destination.prefix,
         distance: distanceText ? Number(distanceText) : undefined,
@@ -134,6 +143,11 @@ export default function StaticRouteFormModal({ devId, vendor, mode = "create", e
           // VRP ใช้ next-hop เป็นส่วนหนึ่งของ key จึงต้องส่ง key นี้เพิ่มจากอีกสองยี่ห้อ
           if (!editTarget.nextHop) throw new Error("Next Hop of previous static route not found");
           parameters.replace_next_hop = editTarget.nextHop;
+          parameters = { ...parameters, ...huaweiRouteIfNameParameters(editTarget, "replace_") };
+        } else if (editSharesPrefix) {
+          // prefix เดิมมี next-hop อื่นอยู่ด้วย - แก้แค่ next-hop ของแถวนี้ ไม่ replace
+          // ทั้ง prefix (ซึ่งจะลบ next-hop ตัวอื่นทิ้ง)
+          parameters = { ...parameters, ...staticRouteTargetParameters(editTarget, "replace_") };
         }
       }
 

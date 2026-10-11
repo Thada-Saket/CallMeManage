@@ -947,6 +947,14 @@ def get_static_route_configuration():
 #     '''))
 # |=============================|
 
+# ifName เป็นส่วนหนึ่งของ key srRoute ตอนลบ/แก้ต้องส่งค่าเดียวกับที่อุปกรณ์เก็บไว้ - เดิม
+# ส่ง <ifName/> ว่างซึ่งไม่ตรงกับ Invalid0 / ชื่อขาที่ set_static_route สร้าง
+def _static_route_ifname(interface_type: str | None, interface_id: str | None) -> str:
+    if interface_type and interface_id:
+        return _interface_name(interface_type, interface_id)
+    return "Invalid0"
+
+
 # set static routing
 # replace_* (optional) = key ของ route เดิมตอนแก้ไข: VRP ใช้ prefix + mask + nexthop
 # เป็น key จึงแก้ค่าในที่เดิมไม่ได้ ต้องลบของเก่าแล้วสร้างใหม่ เดิมหน้าเว็บยิง
@@ -964,6 +972,8 @@ def set_static_route(
     replace_prefix: str | None = None,
     replace_mask: int | None = None,
     replace_next_hop: str | None = None,
+    replace_interface_type: str | None = None,
+    replace_interface_id: str | None = None,
 ):
     network = ipaddress.IPv4Network(f"{prefix}/{mask}", strict=False)
     if next_hop:
@@ -993,6 +1003,7 @@ def set_static_route(
             raise ValueError("replace_prefix, replace_mask, and replace_next_hop must all be provided together")
         old_network = ipaddress.IPv4Network(f"{replace_prefix}/{replace_mask}", strict=False)
         ipaddress.IPv4Address(replace_next_hop)
+        old_ifname = _static_route_ifname(replace_interface_type, replace_interface_id)
         replace_xml = f'''
             <srRoute xmlns:xc="urn:ietf:params:xml:ns:netconf:base:1.0" xc:operation="delete">
               <vrfName>_public_</vrfName>
@@ -1000,7 +1011,7 @@ def set_static_route(
               <topologyName>base</topologyName>
               <prefix>{old_network.network_address}</prefix>
               <maskLength>{replace_mask}</maskLength>
-              <ifName/>
+              <ifName>{old_ifname}</ifName>
               <destVrfName>_public_</destVrfName>
               <nexthop>{replace_next_hop}</nexthop>
             </srRoute>'''
@@ -1026,10 +1037,16 @@ def set_static_route(
     '''))
 
 
+# interface_type/interface_id = ifName ของ route ที่อ่านกลับมาจากอุปกรณ์ (ส่วนหนึ่งของ
+# key srRoute) ไม่ส่งมา = Invalid0 ค่าเดียวกับที่ set_static_route เขียนให้ route แบบ
+# next-hop IP
+@validate_call
 def remove_static_route(
     prefix: str,
     mask: int,
     next_hop: str = None,
+    interface_type: str | None = None,
+    interface_id: str | None = None,
 ):
     network = ipaddress.IPv4Network(f"{prefix}/{mask}", strict=False)
     if next_hop:
@@ -1037,6 +1054,7 @@ def remove_static_route(
         nexthop_value = next_hop
     else:
         raise ValueError("next_hop is required")
+    ifname_value = _static_route_ifname(interface_type, interface_id)
     return open_rpc_tag(edit_config_tag(f'''
       <staticrt xmlns="{NS_STATICRT}">
         <staticrtbase>
@@ -1047,7 +1065,7 @@ def remove_static_route(
               <topologyName>base</topologyName>
               <prefix>{network.network_address}</prefix>
               <maskLength>{mask}</maskLength>
-              <ifName/>
+              <ifName>{ifname_value}</ifName>
               <destVrfName>_public_</destVrfName>
               <nexthop>{nexthop_value}</nexthop>
             </srRoute>

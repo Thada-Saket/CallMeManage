@@ -122,6 +122,88 @@ function MultiCidrFields({ idPrefix, rows, onChangeAt, onAdd, onRemoveAt, disabl
   );
 }
 
+// dropdown checkbox เลือก Address Book entry หลายค่า (Source/Destination ของ Juniper)
+// - หน้าตาเดียวกับ ApplicationCheckboxPicker ด้านล่าง ค่าที่เลือกอยู่แต่ไม่มีใน address
+// book แล้ว (ถูกลบไป/ตั้งจากที่อื่น) ยังแสดงให้เห็นและถอดออกได้ ไม่หายเงียบ ๆ
+function AddressCheckboxPicker({
+  idPrefix, label, modeValue, onModeChange, options, selected, onToggle, disabled,
+}) {
+  const allOptions = Array.from(new Set([...options, ...selected])).filter((addr) => addr && addr !== "any");
+  return (
+    <>
+      <div className="interface-configuration-form-field">
+        <label className="data-label">{label}</label>
+        <div
+          className={`segmented-control${disabled ? " locked-choice" : ""}`}
+          title={disabled ? "This value cannot be changed" : undefined}
+        >
+          <input
+            type="radio"
+            id={`${idPrefix}-any`}
+            name={`${idPrefix}-mode`}
+            value="any"
+            checked={modeValue === "any"}
+            onChange={() => onModeChange("any")}
+            disabled={disabled}
+          />
+          <label htmlFor={`${idPrefix}-any`}>Any</label>
+          <input
+            type="radio"
+            id={`${idPrefix}-specific`}
+            name={`${idPrefix}-mode`}
+            value="specific"
+            checked={modeValue === "specific"}
+            onChange={() => onModeChange("specific")}
+            disabled={disabled}
+          />
+          <label htmlFor={`${idPrefix}-specific`}>Specific</label>
+        </div>
+      </div>
+
+      {modeValue === "specific" && (
+        <div className="interface-configuration-form-field">
+          <label className="data-label">{label} (Address Book)</label>
+          <CheckboxDropdown
+            ariaLabel={`Select ${label}`}
+            disabled={disabled}
+            title={disabled ? `${label} cannot be changed` : undefined}
+            summary={<>
+              <input
+                type="text"
+                readOnly
+                tabIndex={-1}
+                aria-label={`Selected ${label}`}
+                placeholder="-- Select Address --"
+                value={selected.join(", ")}
+              />
+            </>}
+          >
+            <div className="zone-interface-picker-options">
+              {allOptions.length === 0 && <div className="field-hint">No Address Book entry found</div>}
+              {allOptions.map((addr) => {
+                const missing = !options.includes(addr);
+                const displayLabel = missing ? `${addr} (not in Address Book)` : addr;
+                return (
+                  <label key={addr} className="zone-interface-picker-option">
+                    <input
+                      type="checkbox"
+                      checked={selected.includes(addr)}
+                      onChange={() => onToggle(addr)}
+                      disabled={disabled}
+                      aria-label={displayLabel}
+                    />
+                    <span>{displayLabel}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </CheckboxDropdown>
+        </div>
+      )}
+    </>
+  );
+}
+
 // dropdown checkbox เลือก Application/Services หลายค่า - markup เดียวกับที่
 // Juniper ใช้อยู่แล้ว (details.zone-interface-picker) parameterize ด้วย catalog/
 // format function ต่อ vendor เพื่อไม่ให้ปนกัน (Juniper "junos-*" กับ Cisco เป็นคนละ
@@ -283,14 +365,14 @@ function buildInitialValuesJuniper(editTarget) {
       toZone: "",
       action: "permit",
       sourceMode: "any",
-      sourceAddresses: [""],
+      sourceAddresses: [],
       destinationMode: "any",
-      destinationAddresses: [""],
+      destinationAddresses: [],
       applicationMode: "any",
       applications: [],
     };
   }
-  // sourceAddresses/destinationAddresses กดบวกได้หลายชุด (2026-07-29/07-30) -
+  // sourceAddresses/destinationAddresses เลือกได้หลายค่า (dropdown checkbox) -
   // editTarget.sourceAddresses/destinationAddresses เป็น array เสมอ
   // (parseJuniperSecurityPolicies) ["any"] = ไม่ได้เจาะจง
   const editSources = (editTarget.sourceAddresses || ["any"]).filter((a) => a && a !== "any");
@@ -305,9 +387,9 @@ function buildInitialValuesJuniper(editTarget) {
     toZone: editTarget.toZone || "",
     action: editTarget.action === "deny" ? "deny" : editTarget.action === "reject" ? "reject" : (editTarget.action || "permit"),
     sourceMode: hasSource ? "specific" : "any",
-    sourceAddresses: hasSource ? editSources : [""],
+    sourceAddresses: editSources,
     destinationMode: hasDestination ? "specific" : "any",
-    destinationAddresses: hasDestination ? editDestinations : [""],
+    destinationAddresses: editDestinations,
     applicationMode: hasApps ? "specific" : "any",
     applications: editApps,
   };
@@ -488,38 +570,13 @@ export default function StatefulFormModal({
     }));
   }
 
-  // Source Address กดบวกได้หลายชุด (pattern เดียวกับ From Zone ของ NAT
-  // natFormModal.jsx - list ของ <select> พร้อมปุ่ม +/-)
-  function setSourceAddressAt(index, value) {
-    const next = [...juniperValues.sourceAddresses];
-    next[index] = value;
-    setJuniperField("sourceAddresses", next);
-  }
-
-  function addSourceAddress() {
-    setJuniperField("sourceAddresses", [...juniperValues.sourceAddresses, ""]);
-  }
-
-  function removeSourceAddressAt(index) {
-    if (juniperValues.sourceAddresses.length <= 1) return;
-    setJuniperField("sourceAddresses", juniperValues.sourceAddresses.filter((_, i) => i !== index));
-  }
-
-  // Destination Address กดบวกได้หลายชุดเหมือน Source Address (2026-07-30 - user
-  // ขอ) - pattern เดียวกันเป๊ะ
-  function setDestinationAddressAt(index, value) {
-    const next = [...juniperValues.destinationAddresses];
-    next[index] = value;
-    setJuniperField("destinationAddresses", next);
-  }
-
-  function addDestinationAddress() {
-    setJuniperField("destinationAddresses", [...juniperValues.destinationAddresses, ""]);
-  }
-
-  function removeDestinationAddressAt(index) {
-    if (juniperValues.destinationAddresses.length <= 1) return;
-    setJuniperField("destinationAddresses", juniperValues.destinationAddresses.filter((_, i) => i !== index));
+  // Source/Destination Address เลือกหลายค่าผ่าน dropdown checkbox (แบบเดียวกับ
+  // Application) - คงลำดับที่ผู้ใช้ติ๊กไว้ เพราะเป็นลำดับที่ส่งลง leaf-list
+  function toggleAddress(field, address) {
+    const current = juniperValues[field];
+    setJuniperField(field, current.includes(address)
+      ? current.filter((value) => value !== address)
+      : [...current, address]);
   }
 
   function setScopeAt(index, value) {
@@ -943,114 +1000,27 @@ export default function StatefulFormModal({
               )}
             </div>
 
-            <div className="interface-configuration-form-field">
-              <label className="data-label">Source Address</label>
-              <div className={`segmented-control${juniperFieldsDisabled ? " locked-choice" : ""}`}>
-                <input
-                  type="radio"
-                  id="fw-src-any"
-                  name="fw-source-mode"
-                  value="any"
-                  checked={juniperValues.sourceMode === "any"}
-                  onChange={(event) => setJuniperField("sourceMode", event.target.value)}
-                  disabled={juniperFieldsDisabled}
-                />
-                <label htmlFor="fw-src-any">Any</label>
-                <input
-                  type="radio"
-                  id="fw-src-specific"
-                  name="fw-source-mode"
-                  value="specific"
-                  checked={juniperValues.sourceMode === "specific"}
-                  onChange={(event) => setJuniperField("sourceMode", event.target.value)}
-                  disabled={juniperFieldsDisabled}
-                />
-                <label htmlFor="fw-src-specific">Specific</label>
-              </div>
-            </div>
+            <AddressCheckboxPicker
+              idPrefix="fw-src"
+              label="Source Address"
+              modeValue={juniperValues.sourceMode}
+              onModeChange={(mode) => setJuniperField("sourceMode", mode)}
+              options={addressOptions}
+              selected={juniperValues.sourceAddresses}
+              onToggle={(address) => toggleAddress("sourceAddresses", address)}
+              disabled={juniperFieldsDisabled}
+            />
 
-            {juniperValues.sourceMode === "specific" &&
-              juniperValues.sourceAddresses.map((addr, index) => (
-                <div className="interface-configuration-form-field-third" key={index}>
-                  <label className="data-label">
-                    {index === 0 ? "Source Address (Address Book)" : `Source Address ${index + 1}`}
-                  </label>
-                  <select value={addr} disabled={juniperFieldsDisabled} onChange={(event) => setSourceAddressAt(index, event.target.value)}>
-                    <option value="">-- Select Address --</option>
-                    {addressOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                  {index === juniperValues.sourceAddresses.length - 1 ? (
-                    <button type="button" className="mini-btn btn-ghost" disabled={juniperFieldsDisabled} onClick={addSourceAddress}>
-                      +
-                    </button>
-                  ) : (
-                    <button type="button" className="mini-btn btn-ghost" disabled={juniperFieldsDisabled} onClick={() => removeSourceAddressAt(index)}>
-                      -
-                    </button>
-                  )}
-                </div>
-              ))}
-
-            <div className="interface-configuration-form-field">
-              <label className="data-label">Destination Address</label>
-              <div className={`segmented-control${juniperFieldsDisabled ? " locked-choice" : ""}`}>
-                <input
-                  type="radio"
-                  id="fw-dst-any"
-                  name="fw-destination-mode"
-                  value="any"
-                  checked={juniperValues.destinationMode === "any"}
-                  onChange={(event) => setJuniperField("destinationMode", event.target.value)}
-                  disabled={juniperFieldsDisabled}
-                />
-                <label htmlFor="fw-dst-any">Any</label>
-                <input
-                  type="radio"
-                  id="fw-dst-specific"
-                  name="fw-destination-mode"
-                  value="specific"
-                  checked={juniperValues.destinationMode === "specific"}
-                  onChange={(event) => setJuniperField("destinationMode", event.target.value)}
-                  disabled={juniperFieldsDisabled}
-                />
-                <label htmlFor="fw-dst-specific">Specific</label>
-              </div>
-            </div>
-
-            {juniperValues.destinationMode === "specific" &&
-              juniperValues.destinationAddresses.map((addr, index) => (
-                <div className="interface-configuration-form-field-third" key={index}>
-                  <label className="data-label">
-                    {index === 0 ? "Destination Address (Address Book)" : `Destination Address ${index + 1}`}
-                  </label>
-                  <select value={addr} disabled={juniperFieldsDisabled} onChange={(event) => setDestinationAddressAt(index, event.target.value)}>
-                    <option value="">-- Select Address --</option>
-                    {addressOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                  {index === juniperValues.destinationAddresses.length - 1 ? (
-                    <button type="button" className="mini-btn btn-ghost" disabled={juniperFieldsDisabled} onClick={addDestinationAddress}>
-                      +
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="mini-btn btn-ghost"
-                      disabled={juniperFieldsDisabled}
-                      onClick={() => removeDestinationAddressAt(index)}
-                    >
-                      -
-                    </button>
-                  )}
-                </div>
-              ))}
+            <AddressCheckboxPicker
+              idPrefix="fw-dst"
+              label="Destination Address"
+              modeValue={juniperValues.destinationMode}
+              onModeChange={(mode) => setJuniperField("destinationMode", mode)}
+              options={addressOptions}
+              selected={juniperValues.destinationAddresses}
+              onToggle={(address) => toggleAddress("destinationAddresses", address)}
+              disabled={juniperFieldsDisabled}
+            />
 
             <ApplicationCheckboxPicker
               idPrefix="fw-juniper"

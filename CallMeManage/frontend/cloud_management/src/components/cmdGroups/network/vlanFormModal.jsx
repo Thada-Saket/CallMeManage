@@ -57,6 +57,8 @@ export default function VlanFormModal({ devId, vendor, mode = "create", editTarg
     } else {
       params = { vlan_id: vlanId, shutdown: !values.enabled };
       if (name) params.name = name;
+      // Cisco: ช่องชื่อว่างตอน Edit = ลบชื่อเดิม (set_vlan รับ name="" เป็น remove)
+      else if (isEdit && vendor === "cisco" && editTarget.name) params.name = "";
     }
 
     setSubmitting(true);

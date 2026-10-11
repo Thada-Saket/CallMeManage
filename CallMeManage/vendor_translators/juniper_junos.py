@@ -499,6 +499,15 @@ def set_shutdown(interface_type: str, interface_id: str):
 </interfaces>
 ''')
 
+# ค่า next-hop หนึ่งตัวใน leaf-list (IP หรือชื่อ interface) - None = ไม่ได้ระบุ
+def _static_route_target(next_hop: str | None, interface_type: str | None, interface_id: str | None) -> str | None:
+    if next_hop:
+        return str(ipaddress.IPv4Address(next_hop))
+    if interface_type and interface_id:
+        return _interface_name(interface_type, interface_id)
+    return None
+
+
 # set static routing
 @validate_call
 def set_static_route(
@@ -510,6 +519,9 @@ def set_static_route(
     distance: int | None = None,
     replace_prefix: str | None = None,
     replace_mask: int | None = None,
+    replace_next_hop: str | None = None,
+    replace_interface_type: str | None = None,
+    replace_interface_id: str | None = None,
 ):
     network = ipaddress.IPv4Network(f"{prefix}/{mask}", strict=False)
     next_hops = []
@@ -535,6 +547,48 @@ def set_static_route(
         preference_xml = (
             f"<preference><metric-value>{preference}</metric-value></preference>"
         )
+
+    # replace_next_hop/replace_interface_* = next-hop เดิมของแถวที่แก้ หน้าเว็บส่งมา
+    # เฉพาะเมื่อ prefix เดิมยังมี next-hop อื่นอยู่ (ECMP) - replace/delete ทั้ง <route>
+    # จะลบ next-hop ตัวอื่นทิ้งไปด้วย จึงลบแค่ค่าเดิมออกจาก leaf-list next-hop แล้ว
+    # merge ค่าใหม่เข้าไป preference อยู่ระดับ route (ใช้ร่วมกันทุก next-hop) ช่องว่าง
+    # = กลับไปใช้ค่า default ของ route นั้น
+    old_target = _static_route_target(replace_next_hop, replace_interface_type, replace_interface_id)
+    if old_target is not None and (replace_prefix is None or replace_mask is None):
+        raise ValueError("replace_prefix and replace_mask are required with the previous next hop")
+    if old_target is not None:
+        old_network = ipaddress.IPv4Network(f"{replace_prefix}/{replace_mask}", strict=False)
+        same_route = old_network == network
+        old_hop_xml = "" if same_route and old_target in next_hops else (
+            f'<next-hop xmlns:nc="{NS_RPC}" nc:operation="delete">{old_target}</next-hop>'
+        )
+        if same_route and not preference_xml:
+            preference_xml = f'<preference xmlns:nc="{NS_RPC}" nc:operation="remove"/>'
+        if same_route:
+            route_xml = f'''
+    <route>
+      <name>{network}</name>
+      {old_hop_xml}
+      {next_hop_xml}
+      {preference_xml}
+    </route>'''
+        else:
+            route_xml = f'''
+    <route>
+      <name>{old_network}</name>
+      {old_hop_xml}
+    </route>
+    <route>
+      <name>{network}</name>
+      {next_hop_xml}
+      {preference_xml}
+    </route>'''
+        return _edit_configuration(f'''
+<routing-options xmlns="{NS_ROUTING_OPTIONS}">
+  <static>{route_xml}
+  </static>
+</routing-options>
+    ''')
 
     # Junos เขียนลง candidate แล้ว commit ภายหลัง การรวม key เดิมกับค่าใหม่ไว้ใน
     # edit-config เดียวทำให้ commit สำเร็จทั้งก้อนหรือ discard ทั้งก้อน ไม่มีช่วงที่
@@ -570,9 +624,30 @@ def set_static_route(
 
 # ลบ route ทิ้งทั้งตัว - routing-options/static/route keyed ด้วย name (=network
 # CIDR) ตรงๆ ตัวเดียว (ไม่มี fwd-list ซ้อนแบบ Cisco) ลบ <route> ทั้งก้อนพอ
+# next_hop/interface_* (optional) = ลบเฉพาะค่านั้นออกจาก leaf-list next-hop หน้าเว็บ
+# ส่งมาเมื่อ prefix ยังมี next-hop อื่นอยู่ - เดิมลบทั้ง route เสมอ แถวเดียวจาก ECMP
+# จึงลบ next-hop ตัวอื่นของ prefix เดียวกันทิ้งไปด้วย
 @validate_call
-def remove_static_route(prefix: str, mask: int):
+def remove_static_route(
+    prefix: str,
+    mask: int,
+    next_hop: str | None = None,
+    interface_type: str | None = None,
+    interface_id: str | None = None,
+):
     network = ipaddress.IPv4Network(f"{prefix}/{mask}", strict=False)
+    target = _static_route_target(next_hop, interface_type, interface_id)
+    if target is not None:
+        return _edit_configuration(f'''
+<routing-options xmlns="{NS_ROUTING_OPTIONS}">
+  <static>
+    <route>
+      <name>{network}</name>
+      <next-hop xmlns:nc="{NS_RPC}" nc:operation="remove">{target}</next-hop>
+    </route>
+  </static>
+</routing-options>
+    ''')
     return _edit_configuration(f'''
 <routing-options xmlns="{NS_ROUTING_OPTIONS}">
   <static>
@@ -5222,6 +5297,7 @@ def create_security_tunnel(
     bind_interface: str | None = None,
     gre_interface: str | None = None,
     gre_unit: str | None = None,
+    old_tun_address: str | None = None,
 ) -> str:
     # ipsec: ผูก tunnel interface เข้ากับ gateway/policy ที่
     # create_security_profile สร้างไว้แล้ว (ipsec_profile ในนี้คือ `name` เดิม
@@ -5264,31 +5340,50 @@ def create_security_tunnel(
     # อุปกรณ์ปฏิเสธจน tunnel หายทั้งตัว ฝั่งนี้มีช่องเดียวกันเพราะตรวจแบบเดียวกัน
     tun_ip = validate_host_in_network(tun_ip, tun_subnet, "Tunnel IP")
 
+    # unit ใช้ merge (ไม่ replace ทั้ง unit) - หน้าอื่นเขียนลง unit เดียวกันได้ เช่น ACL
+    # Apply Interface (family inet filter) และ description ซึ่ง replace จะล้างทิ้งเงียบ ๆ
+    # ทุกครั้งที่ Edit Tunnel จึงจัดการเฉพาะ leaf ที่ฟอร์มนี้เป็นเจ้าของ: MTU ว่าง = remove,
+    # address เดิม (old_tun_address) ถูก remove เมื่อเปลี่ยน IP ไม่งั้นจะได้ 2 address
+    inet_mtu_xml = mtu_xml or f'<mtu xmlns:nc="{NS_RPC}" nc:operation="remove"/>'
+    tunnel_address = ipaddress.IPv4Interface(f"{tun_ip}/{tun_subnet}")
+    old_address_xml = ""
+    if old_tun_address:
+        try:
+            old_address = ipaddress.IPv4Interface(old_tun_address)
+        except ValueError:
+            raise ValueError("old_tun_address must be a valid IPv4 address with prefix")
+        if old_address != tunnel_address:
+            old_address_xml = (
+                f'<address xmlns:nc="{NS_RPC}" nc:operation="remove">'
+                f'<name>{old_address}</name></address>'
+            )
+
     if tunnel_type == "gre":
         interface = validate_object_ref(gre_interface, "GRE interface name") if gre_interface else _interface_name("gr-", interface_number)
         unit_name = validate_object_ref(gre_unit, "GRE unit") if gre_unit is not None else "0"
-        tunnel_address = ipaddress.IPv4Interface(f"{tun_ip}/{tun_subnet}")
         ipaddress.IPv4Address(wan_interface)
         ipaddress.IPv4Address(remote_ip)
-        # (bug 91) replace ที่ระดับ unit - ไม่แตะ physical interface entry เพราะ gr- เป็น
-        # pseudo interface ที่มีอยู่บนอุปกรณ์อยู่แล้วและอาจมี unit อื่นอยู่
+        # (bug 91) เขียนที่ระดับ unit - ไม่แตะ physical interface entry เพราะ gr- เป็น
+        # pseudo interface ที่มีอยู่บนอุปกรณ์อยู่แล้วและอาจมี unit อื่นอยู่ (unit เป็น merge
+        # ส่วน <tunnel> replace - ดู inet_mtu_xml/old_address_xml ด้านบน)
         # (bug 98) เดิมเข้าใจว่า MTU อยู่ระดับ physical จึงเพิ่ม remove ใน bug 91
         # เพื่อกันค่าเก่าค้าง แต่ element นั้นเองถูก vSRX ปฏิเสธ ทำให้แม้ไม่กรอก
         # MTU ก็สร้าง GRE ไม่ได้ (ส่วนกรอก MTU พังอยู่ก่อนแล้ว) ย้าย MTU เข้า
-        # family inet ในขอบเขต replace ของ unit จึงล้างค่าเก่าให้เองเมื่อไม่ส่งมา
+        # family inet และส่ง remove เมื่อไม่ได้กรอกเพื่อล้างค่าเก่า
         return _edit_configuration(f'''
 <interfaces xmlns="{NS_INTERFACES}">
   <interface>
     <name>{interface}</name>
-    <unit xmlns:nc="{NS_RPC}" nc:operation="replace">
+    <unit>
       <name>{escape(unit_name)}</name>
-      <tunnel>
+      <tunnel xmlns:nc="{NS_RPC}" nc:operation="replace">
         <source>{wan_interface}</source>
         <destination>{remote_ip}</destination>
       </tunnel>
       <family>
         <inet>
-          {mtu_xml}
+          {inet_mtu_xml}
+          {old_address_xml}
           <address>
             <name>{tunnel_address}</name>
           </address>
@@ -5302,7 +5397,6 @@ def create_security_tunnel(
     if not ipsec_profile:
         raise ValueError("ipsec_profile is required when tunnel_type is 'ipsec'")
 
-    tunnel_address = ipaddress.IPv4Interface(f"{tun_ip}/{tun_subnet}")
     remote_ip = str(ipaddress.IPv4Address(remote_ip))
 
     # โหมด Edit ส่ง old_remote_ip มาเพื่อเปลี่ยน peer ของ IKE gateway ใน RPC
@@ -5356,8 +5450,9 @@ def create_security_tunnel(
     #
     # เพราะ security/ipsec/vpn ยัง bind-interface มาที่ st0.0 อยู่ Junos ตรวจ referential
     # integrity ตอน commit จึงไม่ยอมให้ unit หายไปทั้งที่ยังมีคนผูกอยู่ - ทางแก้เดียวกับ
-    # ฝั่ง Cisco คือ "เลิกลบ" ใช้ nc:operation="replace" แทน node ไม่เคยหาย reference จึง
-    # ไม่เคยขาด และ leaf เก่าที่ไม่ได้ส่งมารอบนี้ (mtu ใต้ family inet) ถูกล้างให้อยู่ดี
+    # ฝั่ง Cisco คือ "เลิกลบ" node ไม่เคยหาย reference จึงไม่เคยขาด - unit เป็น merge
+    # (replace ทั้ง unit เคยล้าง filter/description ที่หน้าอื่นตั้งไว้) ส่วน mtu กับ
+    # address เดิมถูก remove เจาะจงผ่าน inet_mtu_xml/old_address_xml
     #
     # ส่วน <gateway> ยังเป็น merge เหมือนเดิมโดยเจตนา - external-interface เป็น shared
     # infrastructure ของ security profile ที่ tunnel ตัวอื่นอาจอ้างอยู่ ห้าม replace ทิ้ง
@@ -5365,11 +5460,12 @@ def create_security_tunnel(
 <interfaces xmlns="{NS_INTERFACES}">
   <interface>
     <name>st0</name>
-    <unit xmlns:nc="{NS_RPC}" nc:operation="replace">
+    <unit>
       <name>{escape(bind_unit)}</name>
       <family>
         <inet>
-          {mtu_xml}
+          {inet_mtu_xml}
+          {old_address_xml}
           <address>
             <name>{tunnel_address}</name>
           </address>

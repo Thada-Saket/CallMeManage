@@ -7,6 +7,11 @@ import { displayStaticRouteDistance } from "../../../utils/staticRouteDistance";
 import StaticRouteFormModal from "./StaticRouteFormModal";
 import Edit_Result from "../../commandResult/edit_command_result";
 import { rowClickSelection, rowDoubleClick } from "../../../utils/rowDoubleClick";
+import {
+  hasSiblingNextHops,
+  huaweiRouteIfNameParameters,
+  staticRouteTargetParameters,
+} from "../../../utils/staticRouteTarget";
 
 function ensureArray(value) {
   if (value === undefined || value === null) return [];
@@ -77,11 +82,14 @@ function extractConfiguredJuniperRoutes(payload) {
 // โดย maskLength เป็น CIDR อยู่แล้ว ไม่ต้องแปลง netmask แบบ Cisco.
 function extractHuaweiStaticRoutes(payload) {
   const entries = ensureArray(payload?.data?.staticrt?.staticrtbase?.srRoutes?.srRoute);
+  // Invalid0 = placeholder ของ route แบบ next-hop IP (ดู set_static_route) ไม่ใช่ขาออก
+  // จริง แสดงเป็นว่าง แต่เก็บค่าดิบไว้ใน ifName เพื่อใช้เป็น key ตอนลบ/แก้
   return entries.map((entry) => ({
     prefix: entry?.prefix !== undefined && entry?.maskLength !== undefined
       ? `${entry.prefix}/${entry.maskLength}` : entry?.prefix || "",
     nextHop: entry?.nexthop || "",
-    iface: entry?.ifName || "",
+    iface: entry?.ifName && entry.ifName !== "Invalid0" ? entry.ifName : "",
+    ifName: entry?.ifName || "",
     distance: entry?.preference || "",
     metric: entry?.cost || "",
   }));
@@ -256,12 +264,16 @@ export default function StaticRoute({ devId, vendor }) {
     setDeleting(true);
     setDeleteError("");
     try {
-      const removeParameters = { prefix, mask: Number(mask) };
-      // Huawei ระบุ next_hop ตอนลบ static route; ถ้าข้อมูลเก่าไม่มีค่านี้ต้องหยุด
-      // ก่อนยิง RPC เพื่อไม่ให้ VRP ตอบ validation error. สองยี่ห้ออื่นคง payload เดิม.
+      let removeParameters = { prefix, mask: Number(mask) };
+      // Huawei ระบุ next_hop + ifName (key ของ srRoute) ตอนลบ static route; ถ้าข้อมูล
+      // เก่าไม่มี next hop ต้องหยุดก่อนยิง RPC เพื่อไม่ให้ VRP ตอบ validation error.
+      // Cisco/Juniper ระบุ next-hop ของแถวเมื่อ prefix ยังมีแถวอื่น (ไม่ลบทั้ง prefix)
       if (vendor === "huawei") {
         if (!route.nextHop) throw new Error("Next Hop not found for the selected static route");
         removeParameters.next_hop = route.nextHop;
+        removeParameters = { ...removeParameters, ...huaweiRouteIfNameParameters(route) };
+      } else if (hasSiblingNextHops(route, configuredRoutes)) {
+        removeParameters = { ...removeParameters, ...staticRouteTargetParameters(route) };
       }
       await runDeviceCommand(devId, "remove_static_route", removeParameters);
       setShowDeleteConfirm(false);
@@ -303,6 +315,7 @@ export default function StaticRoute({ devId, vendor }) {
           vendor={vendor}
           mode={formMode}
           editTarget={formMode === "edit" ? selectedRoute : null}
+          editSharesPrefix={formMode === "edit" && hasSiblingNextHops(selectedRoute, configuredRoutes)}
           onClose={() => setShowForm(false)}
           onSaved={handleSaved}
         />

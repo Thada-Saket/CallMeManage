@@ -375,10 +375,13 @@ export default function RipRouteFormModal({ devId, vendor, currentRule = null, e
         </div>
       </div>
 
+      {/* แสดงแบบเดียวกับ OspfRouteFormModal: toggle ในตารางเปิด = passive (ทุกขาเปิด
+          ไว้ก่อน ปิดเฉพาะขาที่ต้องส่ง RIP update ออก เช่นขาที่ต่อ router ตัวอื่น) - state
+          ยังเก็บเป็น noPassiveInterfaces เหมือนเดิม แค่กลับค่า checked ตอนแสดงผล */}
       {!isJuniper && (
         <>
           <div className="interface-configuration-form-field">
-            <label className="data-label">Passive Interface Default</label>
+            <label className="data-label">Passive All Interfacs</label>
             <div className="toggle-switch-container">
               <input
                 type="checkbox"
@@ -392,7 +395,7 @@ export default function RipRouteFormModal({ devId, vendor, currentRule = null, e
 
           {values.passiveInterfaceDefault && (
             <div className="interface-configuration-form-field">
-              <label className="data-label">No Passive</label>
+              <label className="data-label">Passive Interfaces Lists</label>
               {ciscoAnnouncedRows.filter((row) => row.interfaceName).length === 0 ? (
                 <span className="field-hint">
                   No interface found bound to the networks above (please select an IP matching an actual interface).
@@ -407,7 +410,7 @@ export default function RipRouteFormModal({ devId, vendor, currentRule = null, e
                           <div className="toggle-switch-container">
                             <input
                               type="checkbox"
-                              checked={values.noPassiveInterfaces.includes(row.interfaceName)}
+                              checked={!values.noPassiveInterfaces.includes(row.interfaceName)}
                               onChange={() => toggleNoPassive(row.interfaceName)}
                               id={`rip-no-passive-${row.interfaceName}`}
                             />

@@ -327,6 +327,12 @@ export default function SecurityTunnelFormModal({ devId, vendor, mode = "create"
     ) {
       params.old_remote_ip = editTarget.destination;
     }
+    // Junos: unit เป็น merge (ไม่ล้าง filter/description ที่หน้าอื่นตั้งไว้) address เป็น
+    // list จึงต้องบอก address เดิมให้ translator ลบออกเมื่อเปลี่ยน IP ไม่งั้นจะได้ 2 address
+    const oldTunAddress = isEdit ? buildTunAddress(editTarget.tunIp, editTarget.tunMask) : "";
+    if (isJuniper && oldTunAddress) {
+      params.old_tun_address = oldTunAddress;
+    }
     // Junos brownfield: แก้ object เดิมด้วยชื่อจริงที่ parser อ่านจากอุปกรณ์ ไม่ derive ชื่อใหม่
     if (isEdit && isJuniper && editTarget.real) {
       if (isJuniperGre) {

@@ -558,7 +558,8 @@ def set_sub_interface_ip(
     interface_type = _interface_type_tag(interface_type)
     interface_id = _interface_id_value(interface_id)
     ip = validate_ipv4(ip, "Sub-interface IP")
-    native_xml = "<native/>" if native else ""
+    # merge ทับ sub-interface เดิม ปิด Native ต้อง remove <native/> เดิม ไม่งั้นค้าง
+    native_xml = "<native/>" if native else f'<native {NC} nc:operation="remove"/>'
     description_xml = _interface_description_xml(description)
     mtu_xml = _mtu_xml(mtu)
     subinterface_id = f"{interface_id}.{vlan_id}"
@@ -658,7 +659,8 @@ def clear_interface_ip(
     switchport_xml = "<switchport-conf><switchport>false</switchport></switchport-conf>" if layer3 and "Ethernet" in interface_type and "." not in interface_id else ""
     if vlan_id is not None and not 1 <= vlan_id <= 4094:
         raise ValueError("vlan_id must be between 1 and 4094")
-    encapsulation_xml = f'<encapsulation><dot1Q><vlan-id>{vlan_id}</vlan-id>{"<native/>" if native else ""}</dot1Q></encapsulation>' if vlan_id is not None else ""
+    native_xml = "<native/>" if native else f'<native {NC} nc:operation="remove"/>'
+    encapsulation_xml = f'<encapsulation><dot1Q><vlan-id>{vlan_id}</vlan-id>{native_xml}</dot1Q></encapsulation>' if vlan_id is not None else ""
     admin_xml = "" if shutdown is None else "<shutdown/>" if shutdown else f'<shutdown {NC} nc:operation="remove"/>'
     desc_xml = _interface_description_xml(description)
     reset_mtu_xml = f'<mtu {NC} nc:operation="remove"/>' if reset_mtu else ""
@@ -749,6 +751,15 @@ def set_shutdown(
     </native>
 '''))
 
+# ค่า fwd ของ next-hop หนึ่งตัวใน fwd-list (IP หรือชื่อ interface) - None = ไม่ได้ระบุ
+def _static_route_target(next_hop: str | None, interface_type: str | None, interface_id: str | None) -> str | None:
+    if next_hop:
+        return validate_ipv4(next_hop, 'next_hop')
+    if interface_type and interface_id:
+        return _interface_name(interface_type, interface_id)
+    return None
+
+
 # set static routing
 @validate_call
 def set_static_route(
@@ -760,6 +771,9 @@ def set_static_route(
     distance: int | None = None,
     replace_prefix: str | None = None,
     replace_mask: int | None = None,
+    replace_next_hop: str | None = None,
+    replace_interface_type: str | None = None,
+    replace_interface_id: str | None = None,
 ):
     # administrative distance เป็น leaf "metric" (ไม่ใช่ "distance-admin" - element
     # นั้นไม่มีอยู่จริงใน Cisco-IOS-XE-ip.yang เลย ยืนยันจาก grep เปล่า) และอยู่
@@ -796,6 +810,55 @@ def set_static_route(
         # ใช้ _interface_name() ตัวเดียวกับที่ huawei/juniper มีอยู่แล้ว (Cisco เพิ่งมี
         # ตอนแก้ bug 13 ส่วนเพิ่มเติม) - ตรวจรูปแบบตั้งแต่ต้นทางแทนการพึ่ง escape() อย่างเดียว
         interface_xml = f"<fwd-list><fwd>{_interface_name(interface_type, interface_id)}</fwd>{distance_xml}</fwd-list>"
+
+    # replace_next_hop/replace_interface_* = next-hop เดิมของแถวที่แก้ หน้าเว็บส่งมา
+    # เฉพาะเมื่อ prefix เดิมยังมี next-hop อื่นอยู่ (ECMP / floating static) - ตอนนั้น
+    # replace/delete ทั้ง prefix จะลบ next-hop ตัวอื่นทิ้งไปด้วย จึงแก้แค่ fwd-list ของ
+    # แถวนั้นแทน (fwd-list keyed ด้วย fwd) ไม่ส่งมา = แถวนั้นเป็น next-hop เดียวของ
+    # prefix ใช้ flow ทั้ง prefix แบบเดิม
+    old_target = _static_route_target(replace_next_hop, replace_interface_type, replace_interface_id)
+    if old_target is not None and (replace_prefix is None or replace_mask is None):
+        raise ValueError("replace_prefix and replace_mask are required with the previous next hop")
+    if old_target is not None:
+        network_target_xml = (next_hop_xml + interface_xml).replace(
+            "<fwd-list>", f'<fwd-list {NC} nc:operation="replace">'
+        )
+        old_network = validate_ipv4_network(replace_prefix, replace_mask)
+        new_targets = {value for value in (
+            validate_ipv4(next_hop, 'next_hop') if next_hop else None,
+            _interface_name(interface_type, interface_id) if interface_type and interface_id else None,
+        ) if value}
+        old_fwd_xml = "" if old_network == network and old_target in new_targets else (
+            f'<fwd-list {NC} nc:operation="delete"><fwd>{old_target}</fwd></fwd-list>'
+        )
+        if old_network == network:
+            route_xml = f'''
+          <ip-route-interface-forwarding-list>
+            <prefix>{network.network_address}</prefix>
+            <mask>{network.netmask}</mask>
+            {old_fwd_xml}
+            {network_target_xml}
+          </ip-route-interface-forwarding-list>'''
+        else:
+            route_xml = f'''
+          <ip-route-interface-forwarding-list>
+            <prefix>{old_network.network_address}</prefix>
+            <mask>{old_network.netmask}</mask>
+            {old_fwd_xml}
+          </ip-route-interface-forwarding-list>
+          <ip-route-interface-forwarding-list>
+            <prefix>{network.network_address}</prefix>
+            <mask>{network.netmask}</mask>
+            {network_target_xml}
+          </ip-route-interface-forwarding-list>'''
+        return open_rpc_tag(edit_config_tag(f'''
+    <native xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-native">
+      <ip>
+        <route>{route_xml}
+        </route>
+      </ip>
+    </native>
+    '''))
 
     # Edit ต้องไม่ให้ frontend ยิง remove แล้วค่อย set เป็นคนละ RPC เพราะถ้า set
     # ล้มเหลว route เดิมจะหายไปแล้ว รับ key เดิมเข้ามาและรวมการเปลี่ยนไว้ใน
@@ -840,9 +903,36 @@ def set_static_route(
 # entry รวมทุก fwd-list (next-hop) ที่ผูกกับ prefix/mask นี้ไปด้วย
 # (bug 13) เดิมฟังก์ชันนี้ไม่มีแม้แต่ @validate_call (ต่างจาก set_static_route ที่มี)
 # จึงไม่มี type check ของ pydantic เลย และ prefix ถูก interpolate ดิบ ๆ แทรก XML ได้
+#
+# next_hop/interface_* (optional) = ลบเฉพาะ next-hop ของแถวนั้น หน้าเว็บส่งมาเมื่อ
+# prefix ยังมี next-hop อื่นอยู่ - เดิมลบทั้ง prefix เสมอ แถวเดียวจาก ECMP/floating
+# static จึงลบเส้นหลักทิ้งไปด้วย (default route หาย อุปกรณ์หลุดได้)
 @validate_call
-def remove_static_route(prefix: str, mask: int):
+def remove_static_route(
+    prefix: str,
+    mask: int,
+    next_hop: str | None = None,
+    interface_type: str | None = None,
+    interface_id: str | None = None,
+):
     network = validate_ipv4_network(prefix, mask)
+    target = _static_route_target(next_hop, interface_type, interface_id)
+    if target is not None:
+        return open_rpc_tag(edit_config_tag(f'''
+    <native xmlns="{NS_NATIVE}">
+      <ip>
+        <route>
+          <ip-route-interface-forwarding-list>
+            <prefix>{network.network_address}</prefix>
+            <mask>{network.netmask}</mask>
+            <fwd-list {NC} nc:operation="remove">
+              <fwd>{target}</fwd>
+            </fwd-list>
+          </ip-route-interface-forwarding-list>
+        </route>
+      </ip>
+    </native>
+    '''))
     return open_rpc_tag(edit_config_tag(f'''
     <native xmlns="{NS_NATIVE}">
       <ip>
@@ -4437,11 +4527,17 @@ def set_vlan(
 ) -> str:
     if not 1 <= vlan_id <= 4094:
         raise ValueError("vlan_id must be between 1 and 4094")
-    if name is not None and not 1 <= len(name) <= 128:
+    if name and not 1 <= len(name) <= 128:
         raise ValueError("name must be between 1 and 128 characters")
 
-    name_xml = f"<name>{escape(name)}</name>" if name else ""
-    shutdown_xml = "<shutdown/>" if shutdown else ""
+    # Edit ใช้ merge ทับ VLAN เดิม ค่าที่ "ไม่ส่ง" จึงไม่ได้แปลว่าล้าง - เดิม shutdown=False
+    # ไม่ส่งอะไรเลย <shutdown/> เดิมจึงค้าง (Edit จาก Shutdown เป็น Enabled ไม่มีผล)
+    # ต้อง remove ตรง ๆ เช่นเดียวกับ name="" = ลบชื่อเดิม (None = ไม่แตะ)
+    if name == "":
+        name_xml = f'<name {NC} nc:operation="remove"/>'
+    else:
+        name_xml = f"<name>{escape(name)}</name>" if name else ""
+    shutdown_xml = "<shutdown/>" if shutdown else f'<shutdown {NC} nc:operation="remove"/>'
 
     return open_rpc_tag(edit_config_tag(f'''
         <native xmlns="{NS_NATIVE}">
@@ -5639,21 +5735,29 @@ def create_security_tunnel(
     # (เช่น ip mtu ที่ผู้ใช้ลบค่าออก หรือ protection ตอนสลับ ipsec -> gre) ถูกล้างให้
     # เหมือนที่การลบแล้วสร้างใหม่เคยทำ - ได้ผลลัพธ์เดิมโดยไม่ต้องแตะ reference ของใคร
     # แพทเทิร์นเดียวกับ create_security_profile และ create_nat_policy ในไฟล์นี้
+    #
+    # แต่ replace ต้องอยู่เฉพาะส่วนที่ฟอร์ม Tunnel เป็นเจ้าของ (ip address, tunnel) ไม่ใช่
+    # ทั้ง <Tunnel> - หน้าอื่นเขียนลง interface เดียวกันได้ (zone-member จาก Interface
+    # Zone, ip nat inside จาก NAT, ip access-group จาก ACL, shutdown/description จาก
+    # Interfaces) replace ทั้ง interface ล้างพวกนี้ทิ้งเงียบ ๆ ทุกครั้งที่ Edit Tunnel เช่น
+    # tunnel หลุดจาก zone แล้ว ZBF drop traffic ทั้งหมด - <Tunnel> จึงเป็น merge ส่วน
+    # ip mtu ที่ไม่ได้กรอกใช้ remove ล้างค่าเดิม
+    ip_mtu_xml = mtu_xml or f'<mtu {NC} nc:operation="remove"/>'
     return open_rpc_tag(edit_config_tag(f'''
         <native xmlns="{NS_NATIVE}">
             <interface>
-                <Tunnel {NC} nc:operation="replace">
+                <Tunnel>
                     <name>{interface_number}</name>
                     <ip>
-                        {mtu_xml}
-                        <address>
+                        {ip_mtu_xml}
+                        <address {NC} nc:operation="replace">
                             <primary>
                                 <address>{tun_ip}</address>
                                 <mask>{tun_subnet}</mask>
                             </primary>
                         </address>
                     </ip>
-                    <tunnel xmlns="{NS_TUNNEL}">
+                    <tunnel xmlns="{NS_TUNNEL}" {NC} nc:operation="replace">
                         <source>{wan_interface}</source>
                         {mode_protection_xml}
                     </tunnel>
