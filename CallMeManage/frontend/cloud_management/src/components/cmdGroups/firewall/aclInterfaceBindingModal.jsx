@@ -1,6 +1,7 @@
 import DismissibleError from "../../DismissibleError";
 import { useState, useEffect } from "react";
 import { runDeviceCommand } from "../../../api/api_devices";
+import { getCliServerInfo } from "../../../api/api_cli";
 import CheckboxDropdown from "../../common/CheckboxDropdown";
 
 export default function AclInterfaceBindingModal({
@@ -24,6 +25,21 @@ export default function AclInterfaceBindingModal({
   const [hasUserEdited, setHasUserEdited] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  // ปลายทางของท่อจัดการ (call-home) - ใช้บอกผู้ใช้ในคำเตือนว่าต้อง permit อะไร ถ้าดึงไม่ได้
+  // ก็ยังเตือนได้แบบไม่มีเลข IP/port
+  const [mgmtServer, setMgmtServer] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getCliServerInfo()
+      .then((info) => {
+        if (!cancelled && info?.cloud_server_ip) {
+          setMgmtServer({ ip: info.cloud_server_ip, port: info.cloud_server_port });
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     if (!hasUserEdited && allInterfaces.length > 0) {
@@ -168,6 +184,24 @@ export default function AclInterfaceBindingModal({
           </div>
         </CheckboxDropdown>
       </div>
+
+      {/* ACL เป็น stateless + implicit deny ท้ายสุด: ผูกขาเข้า (Inbound) บนขาที่ท่อจัดการ
+          (call-home) วิ่งอยู่โดยไม่ permit traffic ที่ตอบกลับจาก server จัดการ = router ทิ้ง
+          packet ของ session นั้น อุปกรณ์หลุดจากระบบจนต้องแก้ทาง console - ผู้ใช้เลือกให้
+          "เตือน" ไม่ใช่ "ล็อก" (แบบเดียวกับการลบ zone ที่มีขาจัดการ) · ระบบบอกไม่ได้แน่ชัดว่า
+          ขาไหนคือขาจัดการ (Cisco ไม่มี convention แบบ zone WAN ของ Juniper) จึงเตือนทุกครั้ง
+          ที่มีขาเข้า พร้อมรายชื่อขาที่เลือกและปลายทางที่ต้อง permit */}
+      {inbound.length > 0 && (
+        <div className="acl-mgmt-warning" role="alert">
+          <strong>Check the management connection before applying.</strong>{" "}
+          This ACL will filter traffic coming in on {inbound.join(", ")}. If one of these interfaces carries this
+          system&apos;s connection to the device, the ACL must permit traffic from the management server
+          {mgmtServer
+            ? <> (<code>{mgmtServer.ip}</code>{mgmtServer.port ? <>, TCP port <code>{mgmtServer.port}</code></> : null})</>
+            : null}
+          {" "}- otherwise the ACL&apos;s implicit deny drops it, the device goes offline here and must be fixed from the console.
+        </div>
+      )}
 
       <div className="interface-form-btn-container">
         <button

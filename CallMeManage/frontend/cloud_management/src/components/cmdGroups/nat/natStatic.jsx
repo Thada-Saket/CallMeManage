@@ -5,6 +5,7 @@ import getDeviceInformation from "../../../hooks/getDeviceInformation";
 import { getDeviceConfigObjects, runDeviceCommand } from "../../../api/api_devices";
 import NatStaticFormModal from "./natStaticFormModal";
 import Edit_Result from "../../commandResult/edit_command_result";
+import CiscoNatDependencyBanner from "./CiscoNatDependencyBanner";
 import { isLastRuleInSet } from "./staticNatRuleSet";
 import { orphanedProxyArpRemoval } from "./proxyArpCleanup";
 import { parseJuniperPortForwards } from "./juniperPortForwardParser";
@@ -244,6 +245,8 @@ export default function NatStatic({ devId, vendor }) {
               onRefresh={refetch}
             />
           </div>
+          {/* Cisco: entry ในตารางนี้ทำงานได้เฉพาะตอนเปิด NAT อยู่ (ดู CiscoNatDependencyBanner) */}
+          {!isJuniper && <CiscoNatDependencyBanner devId={devId} featureName="Static NAT" />}
 
           {rows.length === 0 ? (
             <div className="config-placeholder">No Static NAT configured</div>

@@ -5,6 +5,7 @@ import getDeviceInformation from "../../../hooks/getDeviceInformation";
 import { getDeviceConfigObjects, runDeviceCommand } from "../../../api/api_devices";
 import PfFormModal from "./pfFormModal";
 import Edit_Result from "../../commandResult/edit_command_result";
+import CiscoNatDependencyBanner from "./CiscoNatDependencyBanner";
 import { isLastRuleInSet } from "./staticNatRuleSet";
 import { orphanedProxyArpRemoval } from "./proxyArpCleanup";
 import { parseJuniperStaticNat } from "./juniperStaticNatParser";
@@ -263,6 +264,8 @@ export default function Pf({ devId, vendor }) {
               onRefresh={refetch}
             />
           </div>
+          {/* Cisco: entry ในตารางนี้ทำงานได้เฉพาะตอนเปิด NAT อยู่ (ดู CiscoNatDependencyBanner) */}
+          {!isJuniper && <CiscoNatDependencyBanner devId={devId} featureName="Port Forwarding" />}
 
           {rows.length === 0 ? (
             <div className="config-placeholder">No Port Forwarding configured</div>

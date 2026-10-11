@@ -2305,3 +2305,54 @@ input[type="radio"] {
   line-height: 1.5;
   color: var(--text-secondary);
 }
+
+/* Cisco: Static NAT / Port Forwarding ทำงานได้เฉพาะตอนเปิด NAT (ip nat inside/outside) -
+   แถบเหนือตารางเมื่อยังไม่เปิด NAT (CiscoNatDependencyBanner) และคำเตือนใน popup ปิด NAT */
+/* คำเตือนตอนผูก ACL ขาเข้า (aclInterfaceBindingModal.jsx) - เสี่ยงตัดท่อจัดการของตัวเอง */
+.acl-mgmt-warning {
+  margin: 4px 0 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--warning);
+  border-left-width: 4px;
+  border-radius: var(--radius-sm);
+  background: var(--warning-dim);
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.acl-mgmt-warning code {
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+/* คำเตือนใน popup ลบ Zone (Juniper) เมื่อ zone มีขาจัดการ (ดู zoneInterfaces.jsx) -
+   อยู่ใน <p> ของ Edit_Result จึงเป็น span แบบ block */
+.zone-delete-danger {
+  display: block;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--danger);
+  border-left-width: 4px;
+  border-radius: var(--radius-sm);
+  background: var(--danger-dim);
+  color: var(--text-primary);
+  line-height: 1.55;
+}
+
+.nat-dependency-banner {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--warning);
+  border-left-width: 4px;
+  border-radius: var(--radius-sm);
+  background: var(--warning-dim);
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.nat-dependency-banner code {
+  font-family: var(--mono);
+  font-size: 12px;
+}

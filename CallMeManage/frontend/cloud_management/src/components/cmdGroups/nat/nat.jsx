@@ -333,6 +333,13 @@ function CiscoNatPage({ devId }) {
               </button>
             </div>
             <p>Are you sure you want to disable NAT? (This will remove ACL + NAT rule + ip nat inside/outside on all associated interfaces)</p>
+            {/* Static NAT / Port Forwarding ของ Cisco พึ่ง ip nat inside/outside ที่ NAT ตั้งไว้
+                (ดู CiscoNatDependencyBanner) ปิด NAT แล้ว entry พวกนั้นยังอยู่แต่หยุดทำงานเงียบ ๆ */}
+            <p className="nat-dependency-banner" role="note">
+              <strong>Static NAT and Port Forwarding will stop working.</strong> Their entries stay on the device, but
+              they need the ip nat inside/outside roles that disabling NAT removes. They work again once NAT is
+              enabled.
+            </p>
             {disableError && <DismissibleError message={disableError} onDismiss={() => setDisableError("")} />}
             <div className="modal-actions">
               <button

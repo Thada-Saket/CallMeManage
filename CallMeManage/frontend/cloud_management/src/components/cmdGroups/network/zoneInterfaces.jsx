@@ -170,6 +170,13 @@ export default function ZoneInterfaces({ devId, vendor }) {
   const wanProtectedInterfaces = isJuniper ? protectedWanInterfaces(zones) : new Set();
 
   const selectedZone = zones?.find((zone) => zone.name === selectedName) || null;
+  // ไม่ล็อกปุ่ม Delete (ผู้ใช้เลือกเองว่าจะลบได้ - ไม่ตัดอิสระ) แต่ถ้า zone นี้มีขาที่
+  // protectedWanInterfaces ป้องกันไว้ตอน Edit (ขาที่ NETCONF call-home วิ่งผ่าน) ต้องเตือน
+  // ชัด ๆ ก่อนยืนยัน - ลบ zone = ขานั้นไม่อยู่ใน zone ไหนเลย SRX ทิ้ง traffic ของขานั้น
+  // รวมถึงท่อจัดการ อุปกรณ์หลุดจากระบบจนต้องแก้ทาง console
+  const selectedProtectedInterfaces = isJuniper && selectedZone
+    ? (selectedZone.interfaces || []).filter((name) => wanProtectedInterfaces.has(name))
+    : [];
 
   function handleSaved() {
     setFormMode(null);
@@ -241,7 +248,16 @@ export default function ZoneInterfaces({ devId, vendor }) {
               selectedLabel={selectedZone ? selectedZone.name : ""}
               canEdit={!!selectedZone}
               extraWarning={isJuniper
-                ? "Deleting this Zone will also remove Security Policy pairs and NAT rule-set references that use it in the same atomic operation. This may interrupt traffic or management connectivity."
+                ? <>
+                    Deleting this Zone will also remove Security Policy pairs and NAT rule-set references that use it in the same atomic operation. This may interrupt traffic or management connectivity.
+                    {selectedProtectedInterfaces.length > 0 && (
+                      <span className="zone-delete-danger" role="alert">
+                        <strong>Warning: this Zone contains the management interface{selectedProtectedInterfaces.length > 1 ? "s" : ""} {selectedProtectedInterfaces.join(", ")}.</strong>{" "}
+                        After deletion {selectedProtectedInterfaces.length > 1 ? "these interfaces belong" : "this interface belongs"} to no Zone, so the device drops its traffic - including this system's connection.
+                        The device will go offline here and must be fixed from the console.
+                      </span>
+                    )}
+                  </>
                 : "Deleting the Zone will unbind member interfaces and remove all zone-pairs referencing this Zone in a single operation. Interfaces, policy-maps, and ACLs will not be deleted."}
               canDelete={!!selectedZone && !deleting}
               showDeleteConfirm={showDeleteConfirm}
