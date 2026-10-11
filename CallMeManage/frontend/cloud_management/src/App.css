@@ -2308,28 +2308,31 @@ input[type="radio"] {
 
 /* Cisco: Static NAT / Port Forwarding ทำงานได้เฉพาะตอนเปิด NAT (ip nat inside/outside) -
    แถบเหนือตารางเมื่อยังไม่เปิด NAT (CiscoNatDependencyBanner) และคำเตือนใน popup ปิด NAT */
-/* ปุ่ม Save Configuration (Cisco): มีการแก้ไขที่ยังไม่ได้ save = btn-primary + จุดเหลือง
-   กระพริบต่อเนื่อง · ปกติ = btn-ghost ไม่มีจุด */
+/* ปุ่ม Save Configuration (Cisco/Huawei): มีการแก้ไขที่ยังไม่ได้ save = btn-primary + จุดเหลือง
+   แบบป้ายแจ้งเตือนที่มุมขวาบนของปุ่ม กระพริบติด-ดับต่อเนื่องจนกว่าจะกด save ·
+   ปกติ = btn-ghost ไม่มีจุด */
 .save-config-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+  position: relative;
+  overflow: visible;
 }
 
 .unsaved-dot {
-  flex: 0 0 auto;
-  width: 9px;
-  height: 9px;
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
   background: var(--warning);
-  box-shadow: 0 0 0 2px rgba(6, 33, 29, 0.35);
-  animation: unsaved-dot-blink 1.2s ease-in-out infinite;
+  box-shadow: 0 0 0 2px var(--bg-app), 0 0 8px rgba(224, 168, 62, 0.8);
+  pointer-events: none;
+  animation: unsaved-dot-blink 1s steps(1, end) infinite;
 }
 
+/* ติด-ดับชัด ๆ (ไม่ใช่ค่อย ๆ จาง) แบบไฟแจ้งเตือน */
 @keyframes unsaved-dot-blink {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.25; transform: scale(0.8); }
+  0% { opacity: 1; }
+  50% { opacity: 0.15; }
 }
 
 @media (prefers-reduced-motion: reduce) {
