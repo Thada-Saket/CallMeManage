@@ -75,11 +75,54 @@ const PASTE_HINT = {
   juniper: <>In configuration mode run <code>load merge terminal</code>, paste, press <kbd>Ctrl+D</kbd>, then <code>commit</code>.</>,
 };
 
+// บรรทัดที่ค่าลับถูกซ่อน (backend แทนค่าด้วย <hidden> ก่อนเก็บ snapshot) - ใช้บอกผู้ใช้ใน
+// popup ก่อนดาวน์โหลดว่าต้องเติมค่าอะไรบ้าง พร้อมเลขบรรทัดในไฟล์
+function hiddenLines(text) {
+  return String(text || "")
+    .split("\n")
+    .map((line, index) => ({ number: index + 1, text: line.trim() }))
+    .filter((line) => line.text.includes("<hidden>"));
+}
+
+// ชื่อไฟล์ <ชื่ออุปกรณ์>-config.txt - ตัดอักขระที่ใช้ในชื่อไฟล์ไม่ได้ออก
+function configFileName(devName) {
+  const safe = String(devName || "device").trim().replace(/[\\/:*?"<>|\s]+/g, "_").replace(/^_+|_+$/g, "");
+  return `${safe || "device"}-config.txt`;
+}
+
+function downloadText(fileName, text) {
+  const url = URL.createObjectURL(new Blob([text.endsWith("\n") ? text : `${text}\n`], { type: "text/plain;charset=utf-8" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
 // config รูปแบบของอุปกรณ์ (Cisco CLI / Junos text) - ค่าลับถูกแทนด้วย <hidden> ตั้งแต่ backend
 // ก่อนเก็บ snapshot (ผู้ใช้เลือกให้ซ่อนเหมือนเดิม) บรรทัดพวกนั้นต้องเติมเองก่อนวาง
 function NativeConfiguration({ snapshot }) {
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState("");
+  const [confirmDownload, setConfirmDownload] = useState(false);
+  const missing = hiddenLines(snapshot.native_text);
+  const fileName = configFileName(snapshot.dev_name);
+
+  function handleDownloadClick() {
+    // ไม่มีค่าที่ถูกซ่อน = ไฟล์ครบพร้อมใช้ ดาวน์โหลดได้เลย ไม่ต้องถาม
+    if (missing.length === 0) {
+      downloadText(fileName, snapshot.native_text);
+      return;
+    }
+    setConfirmDownload(true);
+  }
+
+  function handleConfirmDownload() {
+    downloadText(fileName, snapshot.native_text);
+    setConfirmDownload(false);
+  }
 
   async function handleCopy() {
     setCopyError("");
@@ -98,9 +141,14 @@ function NativeConfiguration({ snapshot }) {
           <h2>Device Format</h2>
           <p className="running-config-native-hint">{PASTE_HINT[snapshot.vendor]}</p>
         </div>
-        <button type="button" className="btn btn-primary" onClick={handleCopy}>
-          {copied ? "Copied" : "Copy"}
-        </button>
+        <div className="running-config-native-actions">
+          <button type="button" className="btn btn-ghost" onClick={handleDownloadClick}>
+            Download
+          </button>
+          <button type="button" className="btn btn-primary" onClick={handleCopy}>
+            {copied ? "Copied" : "Copy"}
+          </button>
+        </div>
       </div>
       {snapshot.native_redacted_count > 0 && (
         <p className="running-config-native-warning" role="note">
@@ -110,6 +158,43 @@ function NativeConfiguration({ snapshot }) {
       )}
       {copyError && <p className="running-config-native-warning" role="alert">{copyError}</p>}
       <pre className="running-config-native-text">{snapshot.native_text}</pre>
+
+      {confirmDownload && (
+        <div className="modal-overlay" onClick={() => setConfirmDownload(false)}>
+          <div
+            className="modal-card modal-card-wide"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="rc-download-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h2 id="rc-download-title">Configuration is incomplete</h2>
+            </div>
+            <p>
+              <strong>{fileName}</strong> has {missing.length} secret value{missing.length === 1 ? "" : "s"} replaced
+              with <code>&lt;hidden&gt;</code>. Fill in the real values (or remove these lines) before pasting it into a
+              device, otherwise the device rejects them:
+            </p>
+            <ul className="running-config-missing-list">
+              {missing.map((line) => (
+                <li key={line.number}>
+                  <span className="running-config-missing-line">Line {line.number}</span>
+                  <code>{line.text}</code>
+                </li>
+              ))}
+            </ul>
+            <div className="modal-actions">
+              <button type="button" className="btn btn-ghost" onClick={() => setConfirmDownload(false)}>
+                Cancel
+              </button>
+              <button type="button" className="btn btn-primary" onClick={handleConfirmDownload}>
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

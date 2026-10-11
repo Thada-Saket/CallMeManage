@@ -96,11 +96,17 @@
   .running-config-table td { padding: 9px 12px; }
 }
 
-/* Device Format (Cisco CLI / Junos text) - พร้อมวางกลับลงอุปกรณ์ */
+/* Device Format (Cisco CLI / Junos text) - พร้อมวางกลับลงอุปกรณ์ · section เองไม่มี padding
+   (แถบหัวของ section อื่นมาจาก "> h2") จึงจัดหัว/คำเตือน/กล่องข้อความให้มีระยะขอบเอง */
 .running-config-view-switch { margin: 0 0 14px; }
-.running-config-native-header { align-items: flex-start; display: flex; gap: 12px; justify-content: space-between; margin-bottom: 8px; }
-.running-config-native-header h2 { margin: 0 0 4px; }
+.running-config-native-header { align-items: center; background: color-mix(in srgb, var(--jade-bright) 8%, transparent); border-bottom: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; padding: 14px 18px; }
+.running-config-native-header h2 { font-size: 15px; letter-spacing: .03em; margin: 0 0 4px; }
+.running-config-native-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .running-config-native-hint { color: var(--text-secondary); font-size: 13px; margin: 0; }
-.running-config-native-hint code, .running-config-native-warning code { font-family: var(--mono); font-size: 12px; }
-.running-config-native-warning { background: var(--warning-dim); border: 1px solid var(--warning); border-left-width: 4px; border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px; line-height: 1.55; margin: 0 0 12px; padding: 10px 14px; }
-.running-config-native-text { background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-primary); font-family: var(--mono); font-size: 12.5px; line-height: 1.5; margin: 0; max-height: 70vh; overflow: auto; padding: 14px 16px; tab-size: 4; white-space: pre; }
+.running-config-native-hint code, .running-config-native-warning code, .running-config-missing-list code { font-family: var(--mono); font-size: 12px; }
+.running-config-native-warning { background: var(--warning-dim); border: 1px solid var(--warning); border-left-width: 4px; border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px; line-height: 1.55; margin: 14px 18px 0; padding: 10px 14px; }
+.running-config-native-text { background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-primary); font-family: var(--mono); font-size: 12.5px; line-height: 1.5; margin: 14px 18px 18px; max-height: 70vh; overflow: auto; padding: 14px 16px; tab-size: 4; white-space: pre; }
+.running-config-missing-list { display: grid; gap: 6px; list-style: none; margin: 12px 0 16px; max-height: 320px; overflow: auto; padding: 0; }
+.running-config-missing-list li { align-items: baseline; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); display: flex; gap: 10px; padding: 8px 10px; }
+.running-config-missing-line { color: var(--text-muted); flex: 0 0 auto; font-size: 12px; }
+.running-config-missing-list code { overflow-wrap: anywhere; }
