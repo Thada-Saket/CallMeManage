@@ -1879,6 +1879,18 @@ async def run_device_command(
         except ValueError as exc:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
+    # (continuity) เปิด/แก้ NAT บน Cisco เคยทำ call-home session ของอุปกรณ์หลุดทันที
+    # เพราะ ACL permit ip any ทำให้ traffic ไปหา call-home server ถูก PAT ไปด้วย ฉีด
+    # call-home server เข้าเป็น exclude_destinations ให้เสมอ (translator จะใส่ deny นำหน้า
+    # = ไม่แปล NAT สำหรับ traffic ไป server) session เดิมจึงไม่ถูกตัด - ผู้ใช้ไม่ต้องตั้งเอง
+    if command == "create_nat_policy" and device.dev_vendor == "cisco" and isinstance(body.parameters, dict):
+        from backend.cli_generator import CLOUD_SERVER_IP
+        existing = body.parameters.get("exclude_destinations") or []
+        if not isinstance(existing, list):
+            existing = [existing]
+        if CLOUD_SERVER_IP and CLOUD_SERVER_IP not in existing:
+            body.parameters["exclude_destinations"] = [*existing, CLOUD_SERVER_IP]
+
     deferred_params = None
     if (device.dev_vendor, command) in DEFERRED_PAYLOAD_COMMANDS:
         deferred_params = _validate_deferred_command(device.dev_vendor, command, body.parameters)

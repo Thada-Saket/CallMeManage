@@ -762,7 +762,7 @@ export default function CliGenerator() {
   useEffect(() => {
     if (pendingDeviceOnline && !wasOnlineRef.current) {
       window.dispatchEvent(new CustomEvent("toast:success", {
-        detail: { message: `${pendingDevice?.name || "Device"} is now online`, duration: 4000 },
+        detail: { message: `✓ ${pendingDevice?.name || "Device"} is online & ready to configure`, duration: 4000 },
       }));
     }
     wasOnlineRef.current = pendingDeviceOnline;
@@ -874,11 +874,14 @@ export default function CliGenerator() {
         </div>
 
         {enrollmentOnline && deviceUrl && dismissedOnlineAlertId !== pendingDevice.id && (
-          <div className="cli-generator-online-alert" role="status" aria-live="polite">
+          <div className="cli-generator-online-alert is-ready" role="status" aria-live="polite">
             <span className="cli-generator-online-alert-dot" aria-hidden="true" />
             <div className="cli-generator-online-alert-text">
-              <strong>{pendingDevice.name || "Device"} is online</strong>
-              <span>The device called home successfully and is ready to configure.</span>
+              <strong>
+                <span className="cli-generator-online-alert-check" aria-hidden="true">&#10003;</span>
+                {pendingDevice.name || "Device"} is online &amp; ready
+              </strong>
+              <span>Called home successfully — you can start configuring it now.</span>
             </div>
             <div className="cli-generator-online-alert-actions">
               <button type="button" className="btn btn-primary" onClick={() => navigate(deviceUrl)}>

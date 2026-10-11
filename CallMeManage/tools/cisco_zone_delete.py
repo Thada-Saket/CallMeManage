@@ -13,7 +13,21 @@ def zone_reference_removals(config_xml: str, zone_id: str) -> str:
         raise ValueError("Cannot read Cisco zone references: invalid XML") from exc
     if any(el.tag == f"{{{NC}}}rpc-error" for el in root.iter()):
         raise ValueError("Device rejected reading Cisco zone references")
-    natives = list(root.iter(f"{{{NATIVE}}}native"))
+    # root.iter() จับ element ชื่อ "native" ทุกตัวใน namespace Cisco-IOS-XE-native ซึ่ง
+    # รวม "native-vlan" ที่เป็น presence leaf ใต้ encapsulation/dot1Q ด้วย (เช่น
+    # `encapsulation dot1Q 100 native` บน subinterface) ไม่ใช่แค่ config root -
+    # เจอจริงบน C8000v: มี subinterface ที่ตั้ง native vlan ทำให้นับได้ >1 แล้ว
+    # zone delete พังด้วย "native configuration missing" ทั้งที่อ่าน config ได้ปกติ
+    # config root <native> เป็นลูกของ <data> (หรือเป็น document root เอง) ส่วน
+    # native-vlan leaf อยู่ลึกใต้ dot1Q - คัดด้วย parent เพื่อให้ได้ config root ตัว
+    # เดียวแน่นอน และยังรองรับเคส config root ว่าง (ไม่มี reference) ที่ไม่มี child
+    parent_of = {child: el for el in root.iter() for child in el}
+
+    def is_config_root(el):
+        p = parent_of.get(el)
+        return p is None or p.tag == f"{{{NC}}}data"
+
+    natives = [el for el in root.iter(f"{{{NATIVE}}}native") if is_config_root(el)]
     if len(natives) != 1:
         raise ValueError("Cannot read Cisco zone references: native configuration missing")
     native = natives[0]

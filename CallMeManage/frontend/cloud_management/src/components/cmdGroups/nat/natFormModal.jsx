@@ -1,5 +1,5 @@
 import DismissibleError from "../../DismissibleError";
-import { NAT_RECONNECT_HINT } from "./natReconnectHint";
+import { NAT_RECONNECT_HINT, NAT_RESET_TITLE, NAT_RESET_WARNING } from "./natReconnectHint";
 import { useEffect, useState } from "react";
 import { runDeviceCommand, validateDeviceCommand } from "../../../api/api_devices";
 import getDeviceInformation from "../../../hooks/getDeviceInformation";
@@ -445,6 +445,9 @@ function CiscoNatForm({
   ));
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // ยืนยันก่อน Apply เสมอ เพราะ create_nat_policy รีเซ็ต call-home session ของ Cisco
+  // ผู้ใช้จะได้รู้ล่วงหน้าว่าจะเห็นอุปกรณ์หลุดชั่วคราวแล้วต่อกลับเอง (ดู NAT_RESET_WARNING)
+  const [pendingParams, setPendingParams] = useState(null);
 
   // get_nat_dashboard อ่าน layer จริงมาใน request เดียวอยู่แล้ว ไม่ใช้
   // get_interface_list เพราะคำสั่งนั้นคืนเพียงชื่อและแยก Layer 2/3 ไม่ได้
@@ -519,7 +522,6 @@ function CiscoNatForm({
     const { interfaceType: viaType, interfaceId: viaId } = splitInterfaceName(via);
     const name = currentRule?.name || DEFAULT_NAT_NAME;
 
-    setSubmitting(true);
     try {
       // (ระลอก C3 / bug 65) ยุบทั้ง flow เหลือคำสั่งเดียว
       //
@@ -547,9 +549,23 @@ function CiscoNatForm({
       };
       if (translateMode === "pool") natPolicyParams.pool_name = poolName;
 
-      await validateDeviceCommand(devId, "create_nat_policy", natPolicyParams);
-      await runDeviceCommand(devId, "create_nat_policy", natPolicyParams);
+      // ไม่ยิงทันที - ขอยืนยันก่อนเพราะคำสั่งนี้จะรีเซ็ต management connection ของ
+      // อุปกรณ์ (ผู้ใช้จะเห็นมันหลุดชั่วคราว) ให้รู้ล่วงหน้าว่าเป็นเรื่องปกติ
+      setPendingParams(natPolicyParams);
+    } catch (err) {
+      setError(errorMessage(err, "Failed to configure NAT"));
+    }
+  }
 
+  // ลงมือจริงหลังผู้ใช้กดยืนยันในกล่องเตือน reset connection
+  async function performApply() {
+    if (!pendingParams) return;
+    setError("");
+    setSubmitting(true);
+    try {
+      await validateDeviceCommand(devId, "create_nat_policy", pendingParams);
+      await runDeviceCommand(devId, "create_nat_policy", pendingParams);
+      setPendingParams(null);
       onSaved();
     } catch (err) {
       setError(errorMessage(err, "Failed to configure NAT"));
@@ -710,6 +726,36 @@ function CiscoNatForm({
         </button>
       </div>
       {submitting && <p className="nat-reconnect-hint" role="status">{NAT_RECONNECT_HINT}</p>}
+
+      {pendingParams && (
+        <div className="modal-overlay" onClick={() => !submitting && setPendingParams(null)}>
+          <div className="modal-card" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{NAT_RESET_TITLE}</h2>
+              <button
+                type="button"
+                className="modal-close"
+                onClick={() => setPendingParams(null)}
+                aria-label="Close"
+                disabled={submitting}
+              >
+                &times;
+              </button>
+            </div>
+            <p className="nat-dependency-banner" role="note">{NAT_RESET_WARNING}</p>
+            {error && <DismissibleError message={error} onDismiss={() => setError("")} />}
+            <div className="modal-actions">
+              <button type="button" className="btn btn-ghost" onClick={() => setPendingParams(null)} disabled={submitting}>
+                Cancel
+              </button>
+              <button type="button" className="btn btn-primary" onClick={performApply} disabled={submitting}>
+                {submitting ? "Applying…" : "Apply NAT"}
+              </button>
+            </div>
+            {submitting && <p className="nat-reconnect-hint" role="status">{NAT_RECONNECT_HINT}</p>}
+          </div>
+        </div>
+      )}
     </form>
   );
 }

@@ -1,5 +1,5 @@
 import DismissibleError from "../../DismissibleError";
-import { NAT_RECONNECT_HINT } from "./natReconnectHint";
+import { NAT_RECONNECT_HINT, NAT_RESET_WARNING } from "./natReconnectHint";
 import { useEffect, useState } from "react";
 import getDeviceInformation from "../../../hooks/getDeviceInformation";
 import { runDeviceCommand } from "../../../api/api_devices";
@@ -340,6 +340,8 @@ function CiscoNatPage({ devId }) {
               they need the ip nat inside/outside roles that disabling NAT removes. They work again once NAT is
               enabled.
             </p>
+            {/* เตือนเรื่อง reset connection ให้ชัด ผู้ใช้จะได้ไม่ตกใจว่าอุปกรณ์ล่มตอนมันหลุดชั่วคราว */}
+            <p className="nat-reconnect-hint" role="note">{NAT_RESET_WARNING}</p>
             {disableError && <DismissibleError message={disableError} onDismiss={() => setDisableError("")} />}
             <div className="modal-actions">
               <button

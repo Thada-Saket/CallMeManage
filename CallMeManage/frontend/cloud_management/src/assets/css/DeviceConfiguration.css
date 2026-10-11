@@ -248,22 +248,61 @@
   gap: 12px 16px;
   margin-bottom: 16px;
   padding: 14px 18px;
-  border: 1px solid var(--jade);
+  border: 1.5px solid var(--jade-bright);
   border-radius: var(--radius);
   background:
     linear-gradient(var(--jade-selected, rgba(0, 179, 154, 0.32)), var(--jade-selected, rgba(0, 179, 154, 0.32))),
     var(--bg-panel);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 179, 154, 0.25);
-  animation: cli-online-alert-in 0.25s ease-out;
+  animation: cli-online-alert-in 0.25s ease-out, cli-online-alert-glow 2s ease-in-out 0.25s 2;
 }
 
+/* จุดสถานะ: เต้นเป็นจังหวะให้เห็นชัดว่า "มีชีวิต/พร้อม" ไม่ใช่จุดนิ่ง ๆ */
 .cli-generator-online-alert-dot {
   flex: 0 0 auto;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: var(--jade-bright);
   box-shadow: 0 0 0 4px var(--jade-dim);
+  animation: cli-online-dot-pulse 1.4s ease-in-out infinite;
+}
+
+/* เครื่องหมายถูกหน้าชื่อ ให้รู้ทันทีว่าพร้อมใช้งาน */
+.cli-generator-online-alert-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: var(--jade-bright);
+  color: #06201b;
+  font-size: 12px;
+  font-weight: 800;
+  vertical-align: middle;
+}
+
+.cli-generator-online-alert.is-ready .cli-generator-online-alert-text strong {
+  color: var(--jade-bright);
+  font-size: 16px;
+  letter-spacing: 0.2px;
+}
+
+@keyframes cli-online-dot-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px var(--jade-dim); opacity: 1; }
+  50% { box-shadow: 0 0 0 7px rgba(0, 179, 154, 0.08); opacity: 0.7; }
+}
+
+@keyframes cli-online-alert-glow {
+  0%, 100% { box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 179, 154, 0.25); }
+  50% { box-shadow: 0 6px 22px rgba(0, 0, 0, 0.4), 0 0 0 3px rgba(30, 230, 196, 0.45); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cli-generator-online-alert-dot { animation: none; }
+  .cli-generator-online-alert { animation: cli-online-alert-in 0.25s ease-out; }
 }
 
 .cli-generator-online-alert-text {

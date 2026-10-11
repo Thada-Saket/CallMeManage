@@ -3409,6 +3409,7 @@ def create_nat_policy(
     source_scopes: str | list[str] = "any",
     inside_interfaces: list[str] | None = None,
     release_interfaces: list[str] | None = None,
+    exclude_destinations: list[str] | None = None,
 ) -> str:
     via_type = _interface_type_tag(via_type)
     via_id = _interface_id_value(via_id, 'via_id')
@@ -3433,25 +3434,44 @@ def create_nat_policy(
     if not scopes:
         scopes = ["any"]
 
-    ace_rule_parts = []
-    for index, scope in enumerate(scopes):
+    # (continuity) ขา WAN ที่ใช้ call-home มักโดน PAT ไปด้วยเมื่อ ACL เป็น permit ip any
+    # ทำให้ session จัดการ (call-home) ของอุปกรณ์เองหลุดทันทีที่เปิด NAT - ผู้ใช้ตกใจว่า
+    # การเชื่อมต่อขาด บาง device ไม่ต่อกลับ เพื่อไม่ให้ session เดิมหลุดเลย ใส่ deny นำหน้า
+    # สำหรับ traffic ที่วิ่งไปหา call-home server (exclude_destinations) - ACL เป็น
+    # first-match ดังนั้น deny = "ไม่แปล NAT" (ไม่ใช่ drop) call-home จึงผ่านแบบไม่ถูก PAT
+    # และ session ไม่ถูกตัด ส่วน traffic อื่นยัง permit แปลตามปกติ
+    deny_dsts = []
+    for dst in exclude_destinations or []:
+        text = (dst or "").strip()
+        if not text:
+            continue
+        deny_dsts.append(validate_ipv4(text, "exclude_destination"))
+
+    ace_specs = []
+    for dst in dict.fromkeys(deny_dsts):
+        ace_specs.append(("deny", "<any/>", f"<dst-host-address>{dst}</dst-host-address>"))
+    for scope in scopes:
         if scope.lower() == "any":
-            match_xml = "<any/>"
+            src_xml = "<any/>"
         else:
             network = ipaddress.IPv4Network(scope, strict=False)
-            match_xml = (
+            src_xml = (
                 f"<ipv4-address>{network.network_address}</ipv4-address>"
                 f"<mask>{network.hostmask}</mask>"
             )
+        ace_specs.append(("permit", src_xml, "<dst-any/>"))
+
+    ace_rule_parts = []
+    for index, (action, src_xml, dst_xml) in enumerate(ace_specs):
         sequence = (index + 1) * 10
         ace_rule_parts.append(f'''
                         <access-list-seq-rule>
                             <sequence>{sequence}</sequence>
                             <ace-rule>
-                                <action>permit</action>
+                                <action>{action}</action>
                                 <protocol>ip</protocol>
-                                {match_xml}
-                                <dst-any/>
+                                {src_xml}
+                                {dst_xml}
                             </ace-rule>
                         </access-list-seq-rule>''')
     ace_rules_xml = "".join(ace_rule_parts)
