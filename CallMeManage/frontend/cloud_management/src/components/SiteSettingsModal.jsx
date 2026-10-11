@@ -584,7 +584,7 @@ export default function SiteSettingsModal({ site, isOwner, onClose, onSiteChange
                 Cancel
               </button>
               <button type="button" className="btn btn-danger" onClick={handleDeleteSite} disabled={deleting}>
-                {deleting ? "Deleting Site..." : "Confirm Delete Site"}
+                {deleting ? "Deleting Site..." : "Confirm Delete"}
               </button>
             </div>
           </div>
