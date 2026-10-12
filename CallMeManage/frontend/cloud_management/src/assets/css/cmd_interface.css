@@ -758,6 +758,18 @@
   cursor: not-allowed;
 }
 
+/* toggle ที่ล็อกไว้ (เช่น Cisco Native VLAN เปิดแล้วปิดไม่ได้) - ทำให้ดูจางลงทั้งก้อน
+   ให้ผู้ใช้รู้ทันทีว่ากดไม่ได้ */
+.toggle-switch-container.is-locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: grayscale(0.3);
+}
+
+.toggle-switch-container.is-locked .toggleSwitch {
+  cursor: not-allowed;
+}
+
 /* end addressing mode */
 
 /* start interface form button container */

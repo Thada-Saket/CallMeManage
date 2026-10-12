@@ -27,3 +27,6 @@ __pycache__/
 # local notes
 SUBPATH_FIX_NOTES.md
 cmm_probe.py
+
+HANDOFF_NEXT_SESSION.md
+VPN_TEST_2026-10-12.md

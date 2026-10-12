@@ -574,6 +574,10 @@ export default function InterfaceFormModal({
   const [values, setValues] = useState(initial.values);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // Cisco sub-interface: เปิด Native VLAN แล้ว "ปิดไม่ได้" ผ่านระบบ (การ remove native
+  // ผ่าน NETCONF ทำ IP ของ unit หลุด จึงเลือกไม่รองรับการปิด - ต้องลบ unit แล้วสร้างใหม่)
+  // ถ้า native เปิดมาตั้งแต่เปิดฟอร์ม (initial) ล็อก toggle + ทำให้ดูจางลงให้รู้ว่ากดไม่ได้
+  const nativeLocked = vendor === "cisco" && mode === "edit" && Boolean(initial.values.native);
   // เจอบั๊กจริง (user รายงาน): กดปิด "DHCP Server" ตอน Edit interface ที่มี
   // pool/relay ผูกอยู่แล้วจริง แล้วกด Save - ไม่มีอะไรถูกลบออกจากอุปกรณ์เลย (pool
   // ยังอยู่เหมือนเดิม) เพราะ handleSubmit เดิมสร้าง dhcpAction แค่ตอน
@@ -2133,15 +2137,24 @@ export default function InterfaceFormModal({
               <label className="data-label">
                 Native VLAN
               </label>
-              <div className="toggle-switch-container">
+              <div
+                className={`toggle-switch-container${nativeLocked ? " is-locked" : ""}`}
+                title={nativeLocked ? "Native VLAN can't be turned off once set. To remove it, delete this sub-interface and create it again." : undefined}
+              >
                 <input
                   type="checkbox"
                   checked={values.native}
                   onChange={(event) => setField("native", event.target.checked)}
                   id="toggle"
+                  disabled={nativeLocked}
                 />
                 <label className="toggleSwitch" htmlFor="toggle"></label>
               </div>
+              {nativeLocked && (
+                <span className="field-hint">
+                  Native VLAN can't be turned off here. To remove it, delete this sub-interface and create it again.
+                </span>
+              )}
             </div>
           )}
           {(

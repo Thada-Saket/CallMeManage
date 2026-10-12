@@ -268,6 +268,21 @@ export default function SecurityTunnelFormModal({ devId, vendor, mode = "create"
     if (!remote.valid) return setError("Please enter a valid Destination Public IP, e.g. 203.0.113.5");
     const remoteIp = remote.value;
 
+    // IOS-XE ไม่ยอมให้ IPsec tunnel 2 ตัวมี source + destination คู่เดียวกัน (ยืนยันบน C8000v
+    // 17.16: ปฏิเสธทั้งก้อนด้วย "inconsistent value: Device refused one or more commands" ซึ่ง
+    // ไม่บอกผู้ใช้เลยว่าผิดตรงไหน) - GRE ที่ใช้คู่เดียวกันกับ IPsec ผ่านได้ จึงเทียบเฉพาะ IPsec
+    if (!isJuniper && values.tunnelType === "ipsec") {
+      const clash = knownTunnels.find((t) => (
+        t.type === "IPsec"
+        && !(isEdit && t.name === editTarget?.name)
+        && t.source === values.wanInterface
+        && t.destination === remoteIp
+      ));
+      if (clash) {
+        return setError(`${clash.name} already uses ${values.wanInterface} → ${remoteIp} for IPsec - the device does not allow two IPsec tunnels with the same source and destination`);
+      }
+    }
+
     // hostOnly = ห้ามเป็น network/broadcast ของวงตัวเอง (ยกเว้น /31-/32 ที่ไม่มีแนวคิดนี้)
     // ตรงกับที่ validate_host_in_network ของ translator บังคับอยู่แล้ว - จับตั้งแต่ในฟอร์ม
     // ดีกว่าปล่อยให้ไปตายที่อุปกรณ์แล้ว tunnel หายทั้งตัว (bug 70)
