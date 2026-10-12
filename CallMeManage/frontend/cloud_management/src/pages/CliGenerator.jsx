@@ -70,12 +70,10 @@ const CONSOLE_PASSWORD_RULES = [
 ];
 
 // นโยบายชื่อ console user - ต้องตรงกับ validate_console_username ใน tools/console_user_policy.py
-// (Huawei CE12800 ไม่รับ local-user สั้นกว่า 6 ตัว จึงบังคับขั้นต่ำเฉพาะ Huawei)
-function consoleUsernameRules(vendor, reservedUsername) {
+// บังคับขั้นต่ำ 6 ตัวทุกยี่ห้อ (เดิมเฉพาะ Huawei CE12800 ที่ไม่รับ local-user สั้นกว่า 6 ตัว)
+function consoleUsernameRules(reservedUsername) {
   return [
-    vendor === "huawei"
-      ? { label: "6-32 characters long", test: (v) => v.length >= 6 && v.length <= 32 }
-      : { label: "1-32 characters long", test: (v) => v.length >= 1 && v.length <= 32 },
+    { label: "6-32 characters long", test: (v) => v.length >= 6 && v.length <= 32 },
     { label: "Starts with a letter or number", test: (v) => /^[A-Za-z0-9]/.test(v) },
     { label: "Only letters, numbers, period (.), underscore (_), hyphen (-)", test: (v) => /^[A-Za-z0-9._-]*$/.test(v) },
     {
@@ -474,7 +472,7 @@ export default function CliGenerator() {
     passed: rule.test(values.consolePass),
   }));
   const consolePasswordValid = consolePasswordChecks.every((check) => check.passed);
-  const consoleUsernameChecks = consoleUsernameRules(values.vendor, adminUsername).map((rule) => ({
+  const consoleUsernameChecks = consoleUsernameRules(adminUsername).map((rule) => ({
     label: rule.label,
     passed: rule.test(values.consoleUser.trim()),
   }));
@@ -553,12 +551,12 @@ export default function CliGenerator() {
     }
     // prevent error - console user ไม่ผ่านนโยบายรหัสผ่าน (เฉพาะ vendor/โหมดที่สร้าง user นี้จริง)
     if (consoleUserRequired) {
-      if (!values.consoleUser.trim()) return setError("Enter the Device CLI Username.");
+      if (!values.consoleUser.trim()) return setError("Enter the Admin Username.");
       // CE12800 ไม่รับ local-user ที่ชื่อสั้นกว่า 6 ตัวอักษร - กฎนี้อยู่ใน consoleUsernameRules
       // แล้ว (เฉพาะ Huawei) พร้อมกฎ charset ที่กันชื่อแทรกคำสั่งลง CLI
       if (!consoleUsernameValid) {
         const unmet = consoleUsernameChecks.filter((c) => !c.passed).map((c) => c.label);
-        return setError(`Device CLI Username does not meet requirements: ${unmet.join(", ")}`);
+        return setError(`Admin Username does not meet requirements: ${unmet.join(", ")}`);
       }
       if (!consolePasswordValid) {
         const unmet = consolePasswordChecks.filter((c) => !c.passed).map((c) => c.label);
@@ -1333,9 +1331,9 @@ export default function CliGenerator() {
               {consoleUserRequired && (
                 <div className="field">
                   <div className="field-label-with-hint">
-                    <label>Device CLI Username *</label>
+                    <label>Admin Username (min 6 characters) *</label>
                     <HelpHint
-                      label="Explain Device CLI Username"
+                      label="Explain Admin Username"
                       invalid={Boolean(values.consoleUser) && !consoleUsernameValid}
                     >
                       <strong>A backup admin account on the device</strong>
@@ -1355,7 +1353,7 @@ export default function CliGenerator() {
                     value={values.consoleUser} 
                     placeholder="username"
                     onChange={(event) => setField("consoleUser", event.target.value)}
-                    minLength={isHuawei ? 6 : undefined}
+                    minLength={6}
                     maxLength={32}
                     required
                   />
@@ -1364,7 +1362,7 @@ export default function CliGenerator() {
               {consoleUserRequired && (
                 <div className="field">
                   <div className="field-label-with-hint">
-                    <label>Device CLI Password *</label>
+                    <label>Admin Password *</label>
                     <PasswordPolicyHint
                       checks={consolePasswordChecks}
                       invalid={Boolean(values.consolePass) && !consolePasswordValid}

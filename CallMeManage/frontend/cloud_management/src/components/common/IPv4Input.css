@@ -61,6 +61,27 @@
   opacity: 0.5;
 }
 
+/* ในฟอร์มทั่วไป (.field) ช่อง IPv4 ที่ disabled ต้องดูเหมือน input:disabled ตัวอื่น (App.css
+   .field input:disabled) - เส้นประ พื้นกลืน ตัวจาง/เอียง - ไม่งั้นกรอบยังดูเหมือนช่องที่กรอกได้ */
+.field .ipv4-input-fields:has(input:disabled) {
+  background: var(--bg-panel);
+  border-style: dashed;
+  border-color: var(--border);
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+.field .ipv4-input .ipv4-input-fields input[type="text"]:disabled {
+  color: var(--text-muted);
+  font-style: italic;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.field .ipv4-input-fields:has(input:disabled) .ipv4-input-separator {
+  color: var(--text-muted);
+}
+
 .ipv4-input-separator {
   color: var(--text-secondary);
 }

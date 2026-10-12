@@ -8,7 +8,7 @@ frontend/cloud_management/src/pages/CliGenerator.jsx."""
 import re
 
 USERNAME_MAX_LENGTH = 32
-HUAWEI_USERNAME_MIN_LENGTH = 6      # CE12800 rejects a local-user shorter than 6 characters
+USERNAME_MIN_LENGTH = 6             # all vendors (CE12800 rejects a local-user shorter than 6 characters)
 PASSWORD_MIN_LENGTH = 8
 PASSWORD_MAX_LENGTH = 25            # conservative: IOS-XE plain `username ... secret` is the tightest of the three vendors
 
@@ -26,8 +26,8 @@ def validate_console_username(vendor: str, username: object, reserved_username: 
     if len(username) > USERNAME_MAX_LENGTH or not _USERNAME.fullmatch(username):
         raise ValueError("Console username may only contain letters, digits, '.', '_' and '-' "
                          f"(start with a letter or digit, at most {USERNAME_MAX_LENGTH} characters)")
-    if vendor == "huawei" and len(username) < HUAWEI_USERNAME_MIN_LENGTH:
-        raise ValueError(f"Huawei Console Username must be at least {HUAWEI_USERNAME_MIN_LENGTH} characters long")
+    if len(username) < USERNAME_MIN_LENGTH:
+        raise ValueError(f"Admin Username must be at least {USERNAME_MIN_LENGTH} characters long")
     if reserved_username and username.lower() == str(reserved_username).lower():
         raise ValueError("Console username is reserved by the system")
     return username
