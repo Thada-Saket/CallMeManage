@@ -577,7 +577,7 @@ function CiscoNatForm({
   }
 
   return (
-    <form className="interface-configuration-form" onSubmit={handleSubmit}>
+    <form className="interface-configuration-form cisco-nat-form" onSubmit={handleSubmit}>
       {error && <DismissibleError message={error} onDismiss={() => setError("")} />}
 
       <div className="interface-configuration-form-field">

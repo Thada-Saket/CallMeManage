@@ -519,15 +519,19 @@
     gap: 6px;
 }
 
-.interface-configuration-form-field.nat-network-field { width: min(760px, 100%); align-items: start; }
-.nat-network-field > .data-label { padding-top: 11px; }
-.nat-network-field > .data-label small { display: block; margin-top: 3px; color: var(--text-muted); font-weight: 400; line-height: 1.3; }
+.cisco-nat-form { padding-left: 0; }
+.cisco-nat-form > .interface-configuration-form-field { width: min(760px, 100%); grid-template-columns: 280px minmax(0, 1fr); gap: 18px; margin-bottom: 8px; }
+.cisco-nat-form > .interface-configuration-form-field > .data-label { padding-left: 0; }
+.interface-configuration-form-field.nat-network-field { align-items: start; }
+.cisco-nat-form > .nat-network-field + .nat-network-field { margin-top: 16px; }
+.nat-network-field > .data-label { padding-top: 11px; font-size: 13px; }
+.nat-network-field > .data-label small { display: block; margin-top: 6px; color: var(--text-secondary); font-size: 12.5px; font-weight: 500; line-height: 1.4; }
 .nat-network-table { width: 100%; max-height: 220px; overflow-y: auto; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--bg-input); }
 .nat-network-row { min-width: 0; display: grid; grid-template-columns: 18px minmax(120px, 1fr) minmax(90px, .8fr) auto; align-items: center; gap: 9px; padding: 9px 11px; border-bottom: 1px solid var(--border); cursor: pointer; }
 .nat-network-row:last-child { border-bottom: 0; }
 .nat-network-row:has(input:checked), .nat-network-row.is-fixed { background: var(--jade-dim); }
 .nat-network-row strong { overflow: hidden; text-overflow: ellipsis; font-family: var(--mono); font-size: 13px; }
-.nat-network-row small { overflow: hidden; text-overflow: ellipsis; color: var(--text-muted); white-space: nowrap; }
+.nat-network-row small { overflow: hidden; text-overflow: ellipsis; color: var(--text-secondary); font-size: 12.5px; white-space: nowrap; }
 .nat-network-check-placeholder { width: 13px; height: 13px; }
 .nat-network-add { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: stretch; }
 .nat-network-add .ipv4-input { width: 100%; }
