@@ -1,5 +1,4 @@
 import DismissibleError from "../../DismissibleError";
-import { NAT_RECONNECT_HINT } from "./natReconnectHint";
 import { useEffect, useState } from "react";
 import getDeviceInformation from "../../../hooks/getDeviceInformation";
 import { getDeviceConfigObjects, runDeviceCommand } from "../../../api/api_devices";
@@ -234,7 +233,6 @@ export default function NatStatic({ devId, vendor }) {
               canDelete={!!selectedKey}
               showDeleteConfirm={showDeleteConfirm}
               deleting={deleting}
-              deletingHint={vendor === "cisco" ? NAT_RECONNECT_HINT : ""}
               deleteError={deleteError} onDismissDeleteError={() => setDeleteError("")}
               onNew={() => setFormMode("create")}
               onEditClick={() => setFormMode("edit")}
