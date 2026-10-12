@@ -507,6 +507,7 @@ function CiscoNatForm({
   function addManualScope() {
     const checked = validateIPv4Input(newScope, { mode: "cidr", networkOnly: true });
     if (!checked.valid) return setError(checked.error);
+    if (checked.prefix === 32) return setError("Enter a network subnet, not a /32 host address");
     const existing = uniqueNatScopes(connectedCidrs, routeSuggestions.map((item) => item.cidr), manualScopes);
     if (existing.includes(checked.value)) return setError("This network is already in the list");
     setManualScopes((previous) => [...previous, checked.value]);

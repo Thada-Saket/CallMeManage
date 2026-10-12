@@ -43,7 +43,11 @@ export function normalizeCidr(value) {
 export function isNetworkCidr(value) {
   const text = String(value ?? "").trim();
   const normalized = normalizeCidr(text);
-  return normalized !== null && normalized === text;
+  if (normalized === null || normalized !== text) return false;
+  const prefix = Number(text.split("/")[1]);
+  // IOS-XE publishes each interface address as a local /32 route (for example
+  // 10.100.100.1/32). It is a host route, not a LAN subnet to place in NAT ACL.
+  return prefix < 32;
 }
 
 export function connectedNatNetworks(ifaceRows, selectedNames) {
