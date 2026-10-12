@@ -505,9 +505,11 @@ function CiscoNatForm({
   }
 
   function addManualScope() {
-    const checked = validateSpecificScopes([newScope]);
-    if (checked.error) return setError(checked.error);
-    setManualScopes((previous) => uniqueNatScopes(previous, checked.scopes));
+    const checked = validateIPv4Input(newScope, { mode: "cidr", networkOnly: true });
+    if (!checked.valid) return setError(checked.error);
+    const existing = uniqueNatScopes(connectedCidrs, routeSuggestions.map((item) => item.cidr), manualScopes);
+    if (existing.includes(checked.value)) return setError("This network is already in the list");
+    setManualScopes((previous) => [...previous, checked.value]);
     setNewScope("");
     setError("");
   }
@@ -674,29 +676,33 @@ function CiscoNatForm({
             </CheckboxDropdown>
           </div>
 
-          <div className="nat-network-picker">
+          <div className="interface-configuration-form-field nat-network-field">
             <label className="data-label">Networks Using NAT</label>
-            <div className="nat-network-list">
+            <div className="nat-network-table" role="table" aria-label="Networks using NAT">
               {connectedNetworks.map((item) => (
-                <label className="nat-network-option is-fixed" key={`connected-${item.cidr}`}>
+                <label className="nat-network-row is-fixed" key={`connected-${item.cidr}`} role="row">
                   <input type="checkbox" checked readOnly />
-                  <span><strong>{item.cidr}</strong><small>{item.via}</small></span>
+                  <strong>{item.cidr}</strong><small>{item.via}</small>
                 </label>
               ))}
               {routeLoading && <div className="field-hint">Finding routed networks...</div>}
               {routeSuggestions.map((item) => (
-                <label className="nat-network-option" key={`route-${item.cidr}`}>
+                <label className="nat-network-row" key={`route-${item.cidr}`} role="row">
                   <input type="checkbox" checked={selectedRoutes.has(item.cidr)} disabled={submitting} onChange={() => toggleRoute(item.cidr)} />
-                  <span><strong>{item.cidr}</strong><small>{[item.protocol, item.via].filter(Boolean).join(" · ")}</small></span>
+                  <strong>{item.cidr}</strong><small>{[item.protocol, item.via].filter(Boolean).join(" · ")}</small>
                 </label>
               ))}
               {preservedManualScopes.map((scope) => (
-                <div className="nat-network-option" key={`manual-${scope}`}>
-                  <span><strong>{scope}</strong><small>Added manually</small></span>
+                <div className="nat-network-row" key={`manual-${scope}`} role="row">
+                  <span className="nat-network-check-placeholder" />
+                  <strong>{scope}</strong><small>Added manually</small>
                   <button type="button" className="mini-btn btn-ghost" aria-label={`Remove ${scope}`} onClick={() => setManualScopes((items) => items.filter((item) => item !== scope))}>−</button>
                 </div>
               ))}
             </div>
+          </div>
+          <div className="interface-configuration-form-field nat-network-field">
+            <label className="data-label">Add New Network <small>(if the expected subnet is missing)</small></label>
             <div className="nat-network-add">
               <IPv4Input mode="cidr" label="Add network" value={newScope} onChange={setNewScope} />
               <button type="button" className="btn btn-ghost" onClick={addManualScope}>Add</button>

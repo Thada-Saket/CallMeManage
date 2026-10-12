@@ -40,6 +40,12 @@ export function normalizeCidr(value) {
   return `${intToIpv4(ip & mask)}/${prefix}`;
 }
 
+export function isNetworkCidr(value) {
+  const text = String(value ?? "").trim();
+  const normalized = normalizeCidr(text);
+  return normalized !== null && normalized === text;
+}
+
 export function connectedNatNetworks(ifaceRows, selectedNames) {
   const selected = new Set(selectedNames || []);
   const networks = [];
@@ -64,7 +70,7 @@ export function ciscoRouteNetworkSuggestions(result, outsideInterface = "") {
         // Discovery is intentionally conservative: an Internet/BGP table can
         // contain thousands of public routes. Unusual LAN ranges remain easy
         // to add through the CIDR input without flooding a beginner's form.
-        if (!cidr || cidr === "0.0.0.0/0" || !isPrivateNetwork(cidr)) continue;
+        if (!cidr || !isNetworkCidr(route?.["destination-prefix"]) || cidr === "0.0.0.0/0" || !isPrivateNetwork(cidr)) continue;
         const nextHop = route?.["next-hop"] || {};
         const iface = nextHop?.["outgoing-interface"] || "";
         if (outsideInterface && iface === outsideInterface) continue;
