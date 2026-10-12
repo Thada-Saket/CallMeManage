@@ -3392,7 +3392,7 @@ def remove_nat_interface(
 # ไม่ต้องมี teardown เลย เพราะ replace แทนที่เนื้อหาเดิมให้เองโดยไม่มีช่วงที่ของหายไป
 #
 # Policy-Based NAT: ระดับ "เจตนา" ที่ใช้ได้ทุกยี่ห้อในหน้าเว็บเดียวกัน - ผู้ใช้กรอก
-# แค่ 3 อย่าง (1) name (2) source_scopes (any หรือรายการ CIDR ของฝั่งที่ให้ NAT ได้ -
+# แค่ 3 อย่าง (1) name (2) source_scopes (รายการ CIDR ของฝั่งที่ให้ NAT ได้ -
 # เพิ่มได้หลายอันเหมือนช่อง DNS server) (3) via (interface ขาออกเน็ต) - ที่เหลือ
 # (ACL หลายบรรทัดถ้ามีหลาย scope, nat inside source, ip nat outside) backend
 # จัดการเองหมด ไม่โผล่มาให้ผู้ใช้เห็นเลย - ยี่ห้อ zone-based (Juniper/Huawei) ต้องมี
@@ -3409,7 +3409,6 @@ def create_nat_policy(
     source_scopes: str | list[str] = "any",
     inside_interfaces: list[str] | None = None,
     release_interfaces: list[str] | None = None,
-    exclude_destinations: list[str] | None = None,
 ) -> str:
     via_type = _interface_type_tag(via_type)
     via_id = _interface_id_value(via_id, 'via_id')
@@ -3432,33 +3431,17 @@ def create_nat_policy(
     scopes = [source_scopes] if isinstance(source_scopes, str) else source_scopes
     scopes = [scope.strip() for scope in scopes if scope and scope.strip()]
     if not scopes:
-        scopes = ["any"]
-
-    # (continuity) ขา WAN ที่ใช้ call-home มักโดน PAT ไปด้วยเมื่อ ACL เป็น permit ip any
-    # ทำให้ session จัดการ (call-home) ของอุปกรณ์เองหลุดทันทีที่เปิด NAT - ผู้ใช้ตกใจว่า
-    # การเชื่อมต่อขาด บาง device ไม่ต่อกลับ เพื่อไม่ให้ session เดิมหลุดเลย ใส่ deny นำหน้า
-    # สำหรับ traffic ที่วิ่งไปหา call-home server (exclude_destinations) - ACL เป็น
-    # first-match ดังนั้น deny = "ไม่แปล NAT" (ไม่ใช่ drop) call-home จึงผ่านแบบไม่ถูก PAT
-    # และ session ไม่ถูกตัด ส่วน traffic อื่นยัง permit แปลตามปกติ
-    deny_dsts = []
-    for dst in exclude_destinations or []:
-        text = (dst or "").strip()
-        if not text:
-            continue
-        deny_dsts.append(validate_ipv4(text, "exclude_destination"))
+        raise ValueError("source_scopes must contain at least one IPv4 network")
+    if any(scope.lower() == "any" for scope in scopes):
+        raise ValueError("Cisco NAT requires explicit source networks; add each LAN network as CIDR")
 
     ace_specs = []
-    for dst in dict.fromkeys(deny_dsts):
-        ace_specs.append(("deny", "<any/>", f"<dst-host-address>{dst}</dst-host-address>"))
     for scope in scopes:
-        if scope.lower() == "any":
-            src_xml = "<any/>"
-        else:
-            network = ipaddress.IPv4Network(scope, strict=False)
-            src_xml = (
-                f"<ipv4-address>{network.network_address}</ipv4-address>"
-                f"<mask>{network.hostmask}</mask>"
-            )
+        network = ipaddress.IPv4Network(scope, strict=False)
+        src_xml = (
+            f"<ipv4-address>{network.network_address}</ipv4-address>"
+            f"<mask>{network.hostmask}</mask>"
+        )
         ace_specs.append(("permit", src_xml, "<dst-any/>"))
 
     ace_rule_parts = []

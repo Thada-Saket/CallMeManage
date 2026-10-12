@@ -1,5 +1,4 @@
 import DismissibleError from "../../DismissibleError";
-import { NAT_RECONNECT_HINT, NAT_RESET_TITLE, NAT_RESET_WARNING } from "./natReconnectHint";
 import { useEffect, useState } from "react";
 import { runDeviceCommand, validateDeviceCommand } from "../../../api/api_devices";
 import getDeviceInformation from "../../../hooks/getDeviceInformation";
@@ -13,6 +12,7 @@ import {
   initialCiscoNatOutbound,
 } from "./ciscoNatInterfaces";
 import CheckboxDropdown from "../../common/CheckboxDropdown";
+import { ciscoRouteNetworkSuggestions, connectedNatNetworks, uniqueNatScopes } from "./ciscoNatNetworks";
 
 function ensureArray(value) {
   if (value === undefined || value === null) return [];
@@ -435,19 +435,14 @@ function CiscoNatForm({
     ? new Set((insideNames || []).filter((name) => name !== via))
     : new Set(defaultCiscoNatInsideNames(ifaceRows, via));
   const [insideSet, setInsideSet] = useState(defaultInsideSet);
-  // ACL เดิมที่เป็น any ต้องกลับมาเป็น Any; ACL ที่มี CIDR ให้เปิด Specific เพื่อ
-  // รักษาค่าจริงตอนแก้ไข โดยฟอร์มสร้างใหม่เริ่มจาก Any ตามค่าเริ่มต้นเดิม.
+  // เก็บ ACL เดิมไว้ครบเพื่อไม่ให้วง brownfield หายระหว่างแก้ไข ก่อนแยกวงที่
+  // derive ได้จาก interface/routing table ออกจากวงที่ผู้ใช้เพิ่มเองด้านล่าง.
   const initialScopes = (aclScopes || []).filter(Boolean);
-  const initialScopeMode = initialScopes.length > 0 && !initialScopes.includes("any") ? "specific" : "any";
-  const [scopeMode, setScopeMode] = useState(initialScopeMode);
-  const [scopeEntries, setScopeEntries] = useState(() => (
-    initialScopeMode === "specific" ? initialScopes : [""]
-  ));
+  const [manualScopes, setManualScopes] = useState(() => initialScopes.filter((scope) => scope !== "any"));
+  const [newScope, setNewScope] = useState("");
+  const [selectedRoutes, setSelectedRoutes] = useState(() => new Set(initialScopes));
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  // ยืนยันก่อน Apply เสมอ เพราะ create_nat_policy รีเซ็ต call-home session ของ Cisco
-  // ผู้ใช้จะได้รู้ล่วงหน้าว่าจะเห็นอุปกรณ์หลุดชั่วคราวแล้วต่อกลับเอง (ดู NAT_RESET_WARNING)
-  const [pendingParams, setPendingParams] = useState(null);
 
   // get_nat_dashboard อ่าน layer จริงมาใน request เดียวอยู่แล้ว ไม่ใช้
   // get_interface_list เพราะคำสั่งนั้นคืนเพียงชื่อและแยก Layer 2/3 ไม่ได้
@@ -457,6 +452,7 @@ function CiscoNatForm({
     devId,
     "get_nat_pool_information"
   );
+  const { data: routeData, loading: routeLoading } = getDeviceInformation(devId, "get_routing_table");
   const poolOptions = poolData?.normalized
     ? ensureArray(poolData.result?.payload?.data?.native?.ip?.nat?.pool)
         .map((pool) => pool?.id)
@@ -490,12 +486,30 @@ function CiscoNatForm({
   const selectedInsideNames = toggleCandidates
     .filter((row) => insideSet.has(row.name))
     .map((row) => row.name);
+  const connectedNetworks = connectedNatNetworks(ifaceRows, selectedInsideNames);
+  const connectedCidrs = connectedNetworks.map((item) => item.cidr);
+  const routeSuggestions = routeData?.normalized
+    ? ciscoRouteNetworkSuggestions(routeData.result, via).filter((item) => !connectedCidrs.includes(item.cidr))
+    : [];
+  const preservedManualScopes = manualScopes.filter((scope) => (
+    !connectedCidrs.includes(scope) && !routeSuggestions.some((item) => item.cidr === scope)
+  ));
 
-  function selectScopeMode(mode) {
-    setScopeMode(mode);
-    // LAN Allow คือ ACL scope คนละส่วนกับบทบาท NAT inside ของ interface.
-    // ห้าม reset insideSet เมื่อเลือก Any เพราะจะทำให้ public/tunnel/management
-    // ที่เพิ่งเปิดให้เลือกถูกติ๊กทั้งหมดโดยไม่ได้ตั้งใจ.
+  function toggleRoute(cidr) {
+    setSelectedRoutes((previous) => {
+      const next = new Set(previous);
+      if (next.has(cidr)) next.delete(cidr);
+      else next.add(cidr);
+      return next;
+    });
+  }
+
+  function addManualScope() {
+    const checked = validateSpecificScopes([newScope]);
+    if (checked.error) return setError(checked.error);
+    setManualScopes((previous) => uniqueNatScopes(previous, checked.scopes));
+    setNewScope("");
+    setError("");
   }
 
   async function handleSubmit(event) {
@@ -512,12 +526,12 @@ function CiscoNatForm({
       return setError("At least 1 interface must be enabled for NAT inside");
     }
 
-    let scopes = ["any"];
-    if (scopeMode === "specific") {
-      const checked = validateSpecificScopes(scopeEntries);
-      if (checked.error) return setError(checked.error);
-      scopes = checked.scopes;
-    }
+    const scopes = uniqueNatScopes(
+      connectedCidrs,
+      routeSuggestions.filter((item) => selectedRoutes.has(item.cidr)).map((item) => item.cidr),
+      preservedManualScopes,
+    );
+    if (scopes.length === 0) return setError("Select at least 1 network to use NAT");
 
     const { interfaceType: viaType, interfaceId: viaId } = splitInterfaceName(via);
     const name = currentRule?.name || DEFAULT_NAT_NAME;
@@ -549,23 +563,9 @@ function CiscoNatForm({
       };
       if (translateMode === "pool") natPolicyParams.pool_name = poolName;
 
-      // ไม่ยิงทันที - ขอยืนยันก่อนเพราะคำสั่งนี้จะรีเซ็ต management connection ของ
-      // อุปกรณ์ (ผู้ใช้จะเห็นมันหลุดชั่วคราว) ให้รู้ล่วงหน้าว่าเป็นเรื่องปกติ
-      setPendingParams(natPolicyParams);
-    } catch (err) {
-      setError(errorMessage(err, "Failed to configure NAT"));
-    }
-  }
-
-  // ลงมือจริงหลังผู้ใช้กดยืนยันในกล่องเตือน reset connection
-  async function performApply() {
-    if (!pendingParams) return;
-    setError("");
-    setSubmitting(true);
-    try {
-      await validateDeviceCommand(devId, "create_nat_policy", pendingParams);
-      await runDeviceCommand(devId, "create_nat_policy", pendingParams);
-      setPendingParams(null);
+      setSubmitting(true);
+      await validateDeviceCommand(devId, "create_nat_policy", natPolicyParams);
+      await runDeviceCommand(devId, "create_nat_policy", natPolicyParams);
       onSaved();
     } catch (err) {
       setError(errorMessage(err, "Failed to configure NAT"));
@@ -644,50 +644,6 @@ function CiscoNatForm({
           )}
 
           <div className="interface-configuration-form-field">
-            <label className="data-label">LAN Allow</label>
-            <div className="segmented-control">
-              <input
-                type="radio"
-                id="cisco-scope-any"
-                name="cisco-scope-mode"
-                value="any"
-                checked={scopeMode === "any"}
-                onChange={(event) => selectScopeMode(event.target.value)}
-              />
-              <label htmlFor="cisco-scope-any">Any</label>
-              <input
-                type="radio"
-                id="cisco-scope-specific"
-                name="cisco-scope-mode"
-                value="specific"
-                checked={scopeMode === "specific"}
-                onChange={(event) => selectScopeMode(event.target.value)}
-              />
-              <label htmlFor="cisco-scope-specific">Specific</label>
-            </div>
-          </div>
-
-          {scopeMode === "specific" && scopeEntries.map((scope, index) => (
-            <div className="interface-configuration-form-field-third" key={index}>
-              <label className="data-label">{index === 0 ? "IP/Prefix" : `IP/Prefix ${index + 1}`}</label>
-              <IPv4Input
-                mode="cidr"
-                label={`LAN Allow ${index + 1}`}
-                value={scope}
-                onChange={(value) => setScopeEntries((previous) => previous.map((entry, entryIndex) => (
-                  entryIndex === index ? value : entry
-                )))}
-              />
-              {index === 0 && (
-                <button type="button" className="mini-btn btn-ghost" onClick={() => setScopeEntries((previous) => [...previous, ""])} aria-label="Add LAN Allow">+</button>
-              )}
-              {index > 0 && (
-                <button type="button" className="mini-btn btn-ghost" onClick={() => setScopeEntries((previous) => previous.filter((_, entryIndex) => entryIndex !== index))} aria-label={`Remove LAN Allow ${index + 1}`}>-</button>
-              )}
-            </div>
-          ))}
-
-          <div className="interface-configuration-form-field">
             <label className="data-label">NAT Inside Interface</label>
             <CheckboxDropdown ariaLabel="Select NAT Inside Interface" summary={<>
                 <input
@@ -717,6 +673,35 @@ function CiscoNatForm({
               </div>
             </CheckboxDropdown>
           </div>
+
+          <div className="nat-network-picker">
+            <label className="data-label">Networks Using NAT</label>
+            <div className="nat-network-list">
+              {connectedNetworks.map((item) => (
+                <label className="nat-network-option is-fixed" key={`connected-${item.cidr}`}>
+                  <input type="checkbox" checked readOnly />
+                  <span><strong>{item.cidr}</strong><small>{item.via}</small></span>
+                </label>
+              ))}
+              {routeLoading && <div className="field-hint">Finding routed networks...</div>}
+              {routeSuggestions.map((item) => (
+                <label className="nat-network-option" key={`route-${item.cidr}`}>
+                  <input type="checkbox" checked={selectedRoutes.has(item.cidr)} disabled={submitting} onChange={() => toggleRoute(item.cidr)} />
+                  <span><strong>{item.cidr}</strong><small>{[item.protocol, item.via].filter(Boolean).join(" · ")}</small></span>
+                </label>
+              ))}
+              {preservedManualScopes.map((scope) => (
+                <div className="nat-network-option" key={`manual-${scope}`}>
+                  <span><strong>{scope}</strong><small>Added manually</small></span>
+                  <button type="button" className="mini-btn btn-ghost" aria-label={`Remove ${scope}`} onClick={() => setManualScopes((items) => items.filter((item) => item !== scope))}>−</button>
+                </div>
+              ))}
+            </div>
+            <div className="nat-network-add">
+              <IPv4Input mode="cidr" label="Add network" value={newScope} onChange={setNewScope} />
+              <button type="button" className="btn btn-ghost" onClick={addManualScope}>Add</button>
+            </div>
+          </div>
         </>
       )}
 
@@ -725,37 +710,6 @@ function CiscoNatForm({
           {submitting ? "Sending..." : "Apply"}
         </button>
       </div>
-      {submitting && <p className="nat-reconnect-hint" role="status">{NAT_RECONNECT_HINT}</p>}
-
-      {pendingParams && (
-        <div className="modal-overlay" onClick={() => !submitting && setPendingParams(null)}>
-          <div className="modal-card" onClick={(event) => event.stopPropagation()}>
-            <div className="modal-header">
-              <h2>{NAT_RESET_TITLE}</h2>
-              <button
-                type="button"
-                className="modal-close"
-                onClick={() => setPendingParams(null)}
-                aria-label="Close"
-                disabled={submitting}
-              >
-                &times;
-              </button>
-            </div>
-            <p className="nat-dependency-banner" role="note">{NAT_RESET_WARNING}</p>
-            {error && <DismissibleError message={error} onDismiss={() => setError("")} />}
-            <div className="modal-actions">
-              <button type="button" className="btn btn-ghost" onClick={() => setPendingParams(null)} disabled={submitting}>
-                Cancel
-              </button>
-              <button type="button" className="btn btn-primary" onClick={performApply} disabled={submitting}>
-                {submitting ? "Applying…" : "Apply NAT"}
-              </button>
-            </div>
-            {submitting && <p className="nat-reconnect-hint" role="status">{NAT_RECONNECT_HINT}</p>}
-          </div>
-        </div>
-      )}
     </form>
   );
 }
