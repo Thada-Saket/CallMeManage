@@ -63,10 +63,13 @@ CALLHOME_ADDRESS=
 # Chosen by the installer from a list of interfaces; change it with --configure or here.
 CALLHOME_LISTEN_ADDRESS=
 
-# Where devices download their config file when added (do not add /bootstrap at the end)
+# Where devices download their config file when added (normally selected by the installer;
+# do not add /bootstrap at the end)
 #   Empty (recommended) = straight from this machine: https://<call-home IP>:<BACKEND_PORT>
 #     No DNS needed, and devices must reach this machine directly for call-home anyway.
-#   Through a reverse proxy at /cmm = https://www.labict.sci.ubu.ac.th/cmm/api
+#   Website option is generated as <SITE_URL><ROOT_PATH>api automatically, for example:
+#     SITE_URL=https://www.labict.sci.ubu.ac.th + ROOT_PATH=/cmm/
+#     becomes https://www.labict.sci.ubu.ac.th/cmm/api
 #     Only if devices cannot reach this machine directly. Devices must resolve the domain,
 #     and the proxy needs an RSA certificate: many Cisco IOS-XE versions cannot connect
 #     to an ECDSA-only certificate (error: SSL Handshake failure).

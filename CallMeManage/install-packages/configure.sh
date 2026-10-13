@@ -99,28 +99,59 @@ configure_site() {
     fi
 }
 
-# Where devices download their config file when added. Empty (default) = straight from this
-# machine at https://<call-home IP>:<BACKEND_PORT>. Enter keeps the current value, - clears it.
+# Where devices download their config file when added. The normal choices are
+# built here so nobody has to remember that ROOT_PATH is followed by /api.
 configure_bootstrap() {
     step "Bootstrap download address for devices"
-    local port
-    port="$(conf_get BACKEND_PORT)"
-    say "  Leave it empty (recommended): devices download straight from https://<call-home IP>:${port:-8000}"
-    say "  Or a URL through a reverse proxy, without /bootstrap, e.g. https://www.example.ac.th/cmm/api"
-    say "  (devices then need DNS, and the proxy an RSA certificate - many Cisco IOS-XE cannot use ECDSA)"
-    local current value
+    local port callhome_ip direct root current value answer default_choice=1 custom_choice
+    local options=("") labels=()
+    port="$(conf_get BACKEND_PORT)"; port="${port:-8000}"
+    callhome_ip="$(current_callhome_ip)"
+    direct="https://${callhome_ip:-<call-home IP>}:$port"
+    root="$(normalize_root_path "$(conf_get ROOT_PATH)")"
     current="$(conf_get BOOTSTRAP_BASE_URL)"
-    while true; do
-        value="$(ask "Bootstrap URL${current:+ [$current - Enter keeps it, - clears it]} (Enter = empty)")"
-        [[ -z "$value" ]] && value="$current"
-        [[ "$value" == "-" ]] && value=""
-        value="${value%/}"
-        value="${value%/bootstrap}"
-        if [[ -z "$value" || "$value" =~ ^https://[^/[:space:]]+(/[^[:space:]]*)?$ ]]; then break; fi
-        warn "must start with https:// (or press Enter to leave it empty)"
+
+    labels+=("Direct to this server  ($direct)")
+    local site generated
+    while IFS= read -r site; do
+        [[ -z "$site" ]] && continue
+        generated="${site%/}${root}api"
+        options+=("$generated")
+        labels+=("Website address       ($generated)")
+    done < <(site_list)
+    custom_choice=$(( ${#options[@]} + 1 ))
+
+    say "  Choose how network devices download their one-time configuration:"
+    local index
+    for (( index=0; index<${#labels[@]}; index++ )); do
+        say "    $((index + 1))) ${labels[index]}"
+        [[ "${options[index]}" == "$current" ]] && default_choice=$((index + 1))
     done
+    say "    $custom_choice) Custom URL"
+    if [[ -n "$current" ]] && [[ ! " ${options[*]} " == *" $current "* ]]; then
+        say "       Current custom URL: $current"
+        default_choice=$custom_choice
+    fi
+
+    while true; do
+        answer="$(ask_default "Select" "$default_choice")"
+        [[ "$answer" =~ ^[0-9]+$ ]] && (( answer >= 1 && answer <= custom_choice )) && break
+        warn "choose a number from 1 to $custom_choice"
+    done
+
+    if (( answer == custom_choice )); then
+        while true; do
+            value="$(ask_default "Custom bootstrap URL (without /bootstrap)" "$current")"
+            value="${value%/}"; value="${value%/bootstrap}"
+            if [[ "$value" =~ ^https://[^/[:space:]]+(/[^[:space:]]*)?$ ]]; then break; fi
+            warn "must start with https:// and must not end with /bootstrap"
+        done
+    else
+        value="${options[answer - 1]}"
+    fi
     conf_set BOOTSTRAP_BASE_URL "$value"
-    say "  Devices download from: ${value:-https://<call-home IP>:${port:-8000}}/bootstrap/..."
+    say "  Devices download from: ${value:-$direct}/bootstrap/..."
+    [[ -n "$value" ]] && say "  (website download needs DNS and an RSA certificate accepted by the device)"
 }
 
 # Asks for SITE_URL when a feature needs it and it is still empty. Returns 1 when left empty.

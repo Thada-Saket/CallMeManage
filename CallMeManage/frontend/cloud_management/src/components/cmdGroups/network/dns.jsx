@@ -1,7 +1,19 @@
 import DismissibleError from "../../DismissibleError";
 import { useEffect, useState } from "react";
 import getDeviceInformation from "../../../hooks/getDeviceInformation";
-import { runDeviceCommand } from "../../../api/api_devices";
+import { runDeviceCommand, runDeviceTransaction } from "../../../api/api_devices";
+
+// ลำดับที่ Junos จะได้จริงถ้า merge ทับ list ordered-by user: ตัวที่ยังอยู่คงตำแหน่งเดิม
+// ตัวใหม่ต่อท้าย - ถ้าไม่ตรงกับลำดับที่ผู้ใช้ต้องการ (name-server หรือ forwarders) ต้องจัดใหม่
+function mergedOrder(previous, requested) {
+  return [...previous.filter((s) => requested.includes(s)), ...requested.filter((s) => !previous.includes(s))];
+}
+
+function needsJuniperReorder(previousNameServers, previousForwarders, requested) {
+  const same = (a, b) => a.length === b.length && a.every((s, i) => s === b[i]);
+  return !same(mergedOrder(previousNameServers, requested), requested)
+    || !same(mergedOrder(previousForwarders, requested), requested);
+}
 import { checkIPv4List } from "../../../utils/ipv4List";
 import DnsForm from "./dnsFormModal";
 
@@ -67,7 +79,9 @@ function parseDnsResult(result) {
 
   // name-server no-vrf: leaf-list - _element_to_json คืน string ถ้ามีตัวเดียว,
   // array ถ้าหลายตัว, undefined ถ้าไม่มี - normalize ให้เป็น array เสมอ
-  let servers = nameServer["no-vrf"];
+  // อ่าน no-vrf-ordered ก่อน (ordered-by user = ลำดับ Primary/Secondary จริง) - no-vrf
+  // อุปกรณ์เรียงเอง แสดงตามนั้นจะสลับ Primary/Secondary ที่ผู้ใช้ตั้ง
+  let servers = nameServer["no-vrf-ordered"] ?? nameServer["no-vrf"];
   if (servers === undefined) servers = [];
   else if (!Array.isArray(servers)) servers = [servers];
 
@@ -117,19 +131,52 @@ export default function Dns({ devId }) {
     setApplying(true);
     try {
       const newNameServers = checked.values;
-      await runDeviceCommand(devId, "set_dns_config", {
+      const baseParams = {
         domain_lookup: values.domainLookup,
         dns_server: values.dnsServer,
         domain_name: values.domainName.trim() || undefined,
-        // ตัดช่องว่างออก ส่งเฉพาะ IP ที่กรอกจริง
-        name_servers: newNameServers,
-        // Juniper: ให้ backend รวม remove/set และ sync forwarders ใน
-        // edit-config เดียว ใช้ snapshot จากอุปกรณ์ ไม่ใช่ค่าที่แก้ในฟอร์ม
-        ...(isJuniper ? {
-          previous_name_servers: parseDnsResult(data.result).nameServers,
-          previous_forwarders: parseJuniperForwarders(data.result),
-        } : {}),
-      });
+      };
+      const previousNameServers = isJuniper ? parseDnsResult(data.result).nameServers : [];
+      const previousForwarders = isJuniper ? parseJuniperForwarders(data.result) : [];
+      if (isJuniper && needsJuniperReorder(previousNameServers, previousForwarders, newNameServers)) {
+        // name-server/forwarders ของ Junos เป็น list แบบ ordered-by user: merge คงตำแหน่ง
+        // ของตัวที่มีอยู่แล้ว และต่อตัวใหม่ท้ายสุด - ทดสอบจริงบน vSRX ส่ง [.254, .1] ทับ [.1]
+        // ได้ [.1, .254] = Primary DNS ที่ผู้ใช้เลือกไม่ได้เป็นตัวหลักจริง จึงลบทั้งชุดแล้ว
+        // ใส่ใหม่ตามลำดับ ทั้งสองขั้นอยู่ใน candidate เดียว commit ครั้งเดียว (ไม่มีช่วงที่
+        // DNS หายจริงบนอุปกรณ์)
+        await runDeviceTransaction(devId, [
+          {
+            command: "set_dns_config",
+            parameters: {
+              ...baseParams,
+              name_servers: [],
+              previous_name_servers: previousNameServers,
+              previous_forwarders: previousForwarders,
+            },
+          },
+          {
+            command: "set_dns_config",
+            parameters: {
+              ...baseParams,
+              name_servers: newNameServers,
+              previous_name_servers: [],
+              previous_forwarders: [],
+            },
+          },
+        ]);
+      } else {
+        await runDeviceCommand(devId, "set_dns_config", {
+          ...baseParams,
+          // ตัดช่องว่างออก ส่งเฉพาะ IP ที่กรอกจริง
+          name_servers: newNameServers,
+          // Juniper: ให้ backend รวม remove/set และ sync forwarders ใน
+          // edit-config เดียว ใช้ snapshot จากอุปกรณ์ ไม่ใช่ค่าที่แก้ในฟอร์ม
+          ...(isJuniper ? {
+            previous_name_servers: previousNameServers,
+            previous_forwarders: previousForwarders,
+          } : {}),
+        });
+      }
 
       await refetch(); // โหลดค่าสดกลับมา (useEffect ข้างบนจะรีเซ็ตฟอร์มให้เอง)
       setDirty(false);

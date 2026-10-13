@@ -22,7 +22,8 @@ CallMe Manage - config file: $CONF_FILE
 
   sudo callmemanage config               edit the config file; it is checked, then applied
                                          (website rebuilt if ROOT_PATH changed, services restarted)
-  sudo callmemanage setup site           website address (SITE_URL, ROOT_PATH)
+  sudo callmemanage setup site           website address, path and device download address
+  sudo callmemanage setup bootstrap      device bootstrap download address
   sudo callmemanage setup turnstile      Cloudflare bot check, step by step
   sudo callmemanage setup email          email for sign-up codes / forgot password (Gmail)
   sudo callmemanage setup google         Google sign-in
@@ -99,11 +100,12 @@ cmd_config() {
 cmd_setup() {
     require_root callmemanage setup "${1:-}"
     case "${1:-}" in
-        site)      configure_site ;;
+        site)      configure_site; configure_bootstrap ;;
+        bootstrap) configure_bootstrap ;;
         turnstile) setup_turnstile ;;
         email)     setup_email ;;
         google)    setup_google ;;
-        *) die "usage: sudo callmemanage setup site|turnstile|email|google" ;;
+        *) die "usage: sudo callmemanage setup site|bootstrap|turnstile|email|google" ;;
     esac
     apply_changes
 }

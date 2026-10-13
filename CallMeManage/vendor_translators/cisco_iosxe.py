@@ -1530,7 +1530,11 @@ def set_dns_config(
         raise ValueError("Cisco supports a maximum of 6 name servers")
     for server in servers:
         ipaddress.IPv4Address(server)  # validate ทุกตัวก่อนส่ง
-    ns_entries = "".join(f"<no-vrf>{server}</no-vrf>" for server in servers)
+    # no-vrf-ordered (ordered-by user) ไม่ใช่ no-vrf - no-vrf ถูก deprecate และไม่มี ordered-by
+    # user แล้ว (Cisco-IOS-XE-ip.yang) อุปกรณ์จัดลำดับเอง: ทดสอบจริงบน 17.16 ส่ง
+    # [22.22.22.253, 22.22.22.1] ได้ "ip name-server 22.22.22.1 22.22.22.253" = Primary DNS
+    # ที่ผู้ใช้เลือกไม่ได้เป็นตัวหลักจริง
+    ns_entries = "".join(f"<no-vrf-ordered>{server}</no-vrf-ordered>" for server in servers)
     name_server_xml = f'<name-server {nc} nc:operation="replace">{ns_entries}</name-server>'
 
     return open_rpc_tag(edit_config_tag(f'''
