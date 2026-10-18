@@ -133,11 +133,20 @@ export function formatCiscoApplicationDisplay(app) {
  * Format a raw application string (e.g. "junos-icmp-ping") into a readable display label ("ICMP-PING").
  * "any" becomes "Any". Strips "junos-" prefix and uppercases.
  */
+// Display aliases only: retain native values for selection, editing and payloads.
+// Do not collapse split services such as DNS-TCP/DNS-UDP into DNS.
+const JUNIPER_APPLICATION_DISPLAY_ALIASES = new Map([
+  ["junos-tcp-any", "TCP"],
+  ["junos-udp-any", "UDP"],
+]);
+
 export function formatApplicationDisplay(app) {
   if (!app) return "";
   const trimmed = String(app).trim();
   if (!trimmed) return "";
-  if (trimmed.toLowerCase() === "any") return "Any";
+  if (trimmed.toLowerCase() === "any") return "ANY";
+  const alias = JUNIPER_APPLICATION_DISPLAY_ALIASES.get(trimmed);
+  if (alias) return alias;
   if (trimmed.toLowerCase().startsWith("junos-")) {
     return trimmed.slice(6).toUpperCase();
   }
@@ -148,7 +157,7 @@ export function formatApplicationDisplay(app) {
  * Format an array of applications for display in summaries or table columns.
  * Returns emptyText (defaults to "Any") when empty or only containing "any".
  */
-export function formatApplicationList(apps, emptyText = "Any") {
+export function formatApplicationList(apps, emptyText = "ANY") {
   if (!Array.isArray(apps) || apps.length === 0) return emptyText;
   const filtered = apps.filter((a) => a && String(a).trim().toLowerCase() !== "any");
   if (filtered.length === 0) return emptyText;
@@ -166,7 +175,7 @@ export function getApplicationDisplayItems(apps, known = true) {
   if (!known) return [];
   const filtered = (Array.isArray(apps) ? apps : [])
     .filter((a) => a && String(a).trim() && String(a).trim().toLowerCase() !== "any");
-  if (filtered.length === 0) return ["Any"];
+  if (filtered.length === 0) return ["ANY"];
   return filtered.map((app) => formatApplicationDisplay(app));
 }
 

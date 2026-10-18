@@ -688,6 +688,8 @@ export default function InterfaceFormModal({
     return !state.hasStaticIp;
   });
   const canPickInterface = !ifListError && pickableInterfaceOptions.length > 0;
+  const interfaceListLoaded = !ifListError && ifListData?.normalized && Array.isArray(ifListData.result);
+  const noAvailableInterface = mode === "create" && interfaceListLoaded && pickableInterfaceOptions.length === 0;
   const capabilityRow = layerRows.find(row => row.name === values.interfaceName
     || (isJuniper && row.name === `${values.interfaceName}.0`)) || (mode === "edit" ? editTarget?.layer : null);
   const selectableLayers = ifType === IF_TYPE.INTERFACE
@@ -1088,7 +1090,25 @@ export default function InterfaceFormModal({
 
   async function handleSubmit(event) {
     event.preventDefault();
+    if (submitting) return;
     setError("");
+
+    if (needsInterfacePicker && mode === "create") {
+      if (ifListLoading) {
+        setError("Please wait for the interface list to load.");
+        return;
+      }
+      if (interfaceListLoaded && !pickableInterfaceOptions.includes(values.interfaceName)) {
+        setError("Please select an available interface. To change a configured interface, use Edit.");
+        return;
+      }
+      // Keep known configured ports protected even if the list request fails.
+      const state = stateForPort(values.interfaceName.trim());
+      if (ifType === IF_TYPE.SUB_INTERFACE ? state?.isL2 : state?.hasStaticIp) {
+        setError("This interface is already configured. Please use Edit.");
+        return;
+      }
+    }
 
     // Interface identity is immutable in Edit mode.  Keep this check in the
     // submit path as well as disabling the field below so a stale render or a
@@ -1919,6 +1939,10 @@ export default function InterfaceFormModal({
             <select disabled value="">
               <option value="">Loading interface information...</option>
             </select>
+          ) : noAvailableInterface ? (
+            <select disabled value="">
+              <option value="">No available interfaces — use Edit for configured interfaces</option>
+            </select>
           ) : canPickInterface ? (
             <select
               value={values.interfaceName}
@@ -2221,6 +2245,16 @@ export default function InterfaceFormModal({
               physical mtu ตามเดิม (Junos ไม่มี concept แยก ip mtu ต่างหาก) */}
           {ipMode !== IP_MODE.NONE && (
           <>
+          {ipMode === IP_MODE.STATIC && (
+            <div className="interface-configuration-form-field">
+              <div className="data-label">Interface IPv4</div>
+              <IPv4Input id="interface-ip" label="Interface IP" mode="cidr"
+                value={values.ip}
+                onChange={(value) => setField("ip", value)}
+                required
+              />
+            </div>
+          )}
           <div className="interface-configuration-form-field">
             <label className="data-label">{isJuniper ? "MTU (bytes)" : "IP MTU (bytes)"}</label>
             <input
@@ -2232,19 +2266,6 @@ export default function InterfaceFormModal({
               onChange={(event) => setField("mtu", event.target.value)}
             />
           </div>
-
-          {ipMode === IP_MODE.STATIC && (
-            <>
-              <div className="interface-configuration-form-field">
-                <div className="data-label">Interface IPv4</div>
-                <IPv4Input id="interface-ip" label="Interface IP" mode="cidr"
-                  value={values.ip}
-                  onChange={(value) => setField("ip", value)}
-                  required
-                />
-              </div>
-            </>
-          )}
 
           {/* Huawei ไม่รองรับ DHCP ผ่าน NETCONF จึงซ่อนทั้ง Server/Relay รวม
               pool, range, gateway, DNS และ lease ไม่ให้เกิดคำสั่งที่รองรับไม่ได้ */}
@@ -2439,10 +2460,10 @@ export default function InterfaceFormModal({
       )}
 
       <div className="interface-form-btn-container">
-        <button type="submit" className="btn btn-primary" disabled={submitting}>
+        <button type="submit" className="btn btn-primary" disabled={submitting || (needsInterfacePicker && mode === "create" && (ifListLoading || noAvailableInterface))}>
           {submitting ? "Sending..." : mode === "edit" ? "Save" : "OK"}
         </button>
-        <button type="button" className="btn btn-ghost" onClick={onClose}>
+        <button type="button" className="btn btn-ghost" onClick={onClose} disabled={submitting}>
           Cancel
         </button>
       </div>

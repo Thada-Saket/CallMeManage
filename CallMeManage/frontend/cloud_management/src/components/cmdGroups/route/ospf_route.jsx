@@ -5,6 +5,7 @@ import getDeviceInformation from "../../../hooks/getDeviceInformation";
 import { ospfAreaToNumber } from "../../../utils/ospfArea";
 import { parseJuniperOspf } from "./parseOspf";
 import OspfRouteFormModal from "./OspfRouteFormModal";
+import { Reload_Result } from "../../commandResult/reload_command_result";
 
 function ensureArray(value) {
   if (value === undefined || value === null) return [];
@@ -141,7 +142,7 @@ function buildJuniperInterfaceRows(juniperOspf, ifaceRows) {
 // เหมือนเดิม เพราะ Junos operational RPC (get-route-information/get-interface-
 // information) เป็นคนละ RPC verb กับ get-config เลยรวมเป็น request เดียวไม่ได้
 // แบบ Cisco ที่ทุกอย่างผ่าน <get><filter type="subtree"> เหมือนกันหมด) ----------
-function OspfPage({ devId, vendor, ospfResult, routesPayload, ifaceRows, onRefresh, readError = "", onDismissReadError }) {
+function OspfPage({ devId, vendor, ospfResult, routesPayload, ifaceRows, busy, onRefresh, readError = "", onDismissReadError }) {
   const isJuniper = vendor === "juniper";
   const [formOpen, setFormOpen] = useState(false); // toggle "Enable OSPF" - ใช้ร่วมกันทั้ง 2 ยี่ห้อ
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -329,7 +330,10 @@ function OspfPage({ devId, vendor, ospfResult, routesPayload, ifaceRows, onRefre
 
           {!hasConfig ? null : (
             <>
-              <div className="command-output-title">All OSPF Routes</div>
+              <div className="command-output-title">
+                All OSPF Routes
+                <Reload_Result loading={busy} onRefresh={onRefresh} />
+              </div>
               {routes === null ? (
                 <div className="config-placeholder">Failed to retrieve routing table or not supported on this vendor</div>
               ) : routes.length === 0 ? (
@@ -359,7 +363,10 @@ function OspfPage({ devId, vendor, ospfResult, routesPayload, ifaceRows, onRefre
                 </table>
               )}
 
-              <div className="command-output-title">Configured Interfaces and IPs</div>
+              <div className="command-output-title">
+                Configured Interfaces and IPs
+                <Reload_Result loading={busy} onRefresh={onRefresh} />
+              </div>
               {interfaceRows.length === 0 ? (
                 <div className="config-placeholder">No OSPF area/interfaces configured</div>
               ) : (

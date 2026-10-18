@@ -230,7 +230,7 @@ function ApplicationCheckboxPicker({
             onChange={() => onModeChange("any")}
             disabled={disabled}
           />
-          <label htmlFor={`${idPrefix}-app-any`}>Any</label>
+          <label htmlFor={`${idPrefix}-app-any`}>ANY</label>
           <input
             type="radio"
             id={`${idPrefix}-app-specific`}

@@ -498,33 +498,6 @@ export default function SecurityTunnelFormModal({ devId, vendor, mode = "create"
           readOnly={destinationFromProfile || juniperProfileWithoutPeer}
           required
         />
-        {destinationFromProfile && (
-          <div className="field-hint">
-            Filled from the Peer IP of Security Profile <strong>{selectedProfile.name}</strong>. To change it, edit that
-            profile in the Security Profile page.
-          </div>
-        )}
-        {juniperProfileWithoutPeer && (
-          <div className="field-hint">
-            Security Profile <strong>{selectedProfile.name}</strong> has no Peer IP. Set it in the Security Profile page
-            first - the tunnel uses the profile&apos;s Peer IP as its destination.
-          </div>
-        )}
-        {!isJuniper && values.tunnelType === "ipsec" && selectedProfile && !profilePeer && (
-          <div className="field-hint">
-            Security Profile <strong>{selectedProfile.name}</strong> has no single Peer IP to copy - enter the destination
-            manually (it must match the peer the profile accepts).
-          </div>
-        )}
-        {ciscoEditPeerMismatch && (
-          <div className="field-hint">
-            This tunnel&apos;s current destination ({editTarget.destination}) differs from the Peer IP of Security Profile{" "}
-            <strong>{selectedProfile.name}</strong> ({profilePeer}). It is kept unchanged.{" "}
-            <button type="button" className="link-button" onClick={() => setUseProfilePeer(true)}>
-              Use {profilePeer} instead
-            </button>
-          </div>
-        )}
       </div>
 
       {/* MTU - optional, เหมือนหน้า Interfaces (ไม่กรอก = ใช้ default ของอุปกรณ์
