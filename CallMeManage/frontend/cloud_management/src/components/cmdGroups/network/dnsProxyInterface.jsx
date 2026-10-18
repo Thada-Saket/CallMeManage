@@ -1,5 +1,6 @@
 import { useState } from "react";
 import DismissibleError from "../../DismissibleError";
+import FieldHelp from "../../common/FieldHelp";
 import { runDeviceCommand } from "../../../api/api_devices";
 import getDeviceInformation from "../../../hooks/getDeviceInformation";
 import { isJuniperSelectableInterfaceUnit } from "../../../utils/interfaceKind";
@@ -86,13 +87,16 @@ export default function DnsProxyInterface({ devId, result, loading, onRefresh })
   return (
     <div role="tabpanel" id="tabpanel-dns_proxy" aria-labelledby="tab-dns_proxy">
       <div className="command-output-title">DNS Proxy Interfaces</div>
-      <p>Choose which interface accepts DNS requests. Interfaces using DHCP Server with Interface IP are also managed from Interfaces.</p>
       {error && <DismissibleError message={error} onDismiss={() => setError("")} />}
       {interfaceError && <DismissibleError message={interfaceError} onDismiss={clearInterfaceError} />}
       <div className="interface-configuration-form">
         <div className="interface-configuration-form-field-third"
           style={{ width: "min(600px, 100%)", gridTemplateColumns: "110px minmax(0, 1fr) auto" }}>
-          <label className="data-label" htmlFor="dns-proxy-interface">Interface</label>
+          <label className="data-label" htmlFor="dns-proxy-interface">
+            Interface <FieldHelp label="About DNS Proxy interfaces">
+              Choose which interface accepts DNS requests. Interfaces using DHCP Server with Interface IP are also managed from Interfaces.
+            </FieldHelp>
+          </label>
           <select id="dns-proxy-interface" value={selected} disabled={!!busy || loading || interfaceLoading || !!interfaceError}
             onChange={(event) => setSelected(event.target.value)}>
             <option value="">-- Select Interface --</option>
