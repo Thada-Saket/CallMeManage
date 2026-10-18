@@ -16,6 +16,13 @@ function needsJuniperReorder(previousNameServers, previousForwarders, requested)
 }
 import { checkIPv4List } from "../../../utils/ipv4List";
 import DnsForm from "./dnsFormModal";
+import DnsProxyInterface from "./dnsProxyInterface";
+import PageTabs from "../../common/PageTabs";
+
+const DNS_JUNIPER_TABS = [
+  { id: "dns_settings", label: "DNS Settings" },
+  { id: "dns_proxy", label: "DNS Proxy" },
+];
 
 function ensureArray(value) {
   if (value === undefined || value === null) return [];
@@ -23,14 +30,9 @@ function ensureArray(value) {
 }
 
 // Juniper เท่านั้น: DNS Relay forwarders (system/services/dns/forwarders) -
-// เดิมมี UI แยกให้เพิ่ม/ลบเองรวมกับ "DNS Server interface" (dns-proxy/interface)
-// และ "DNS lookup ip" (dns-proxy/cache) แต่ user ขอตัดทั้ง 3 ส่วนนี้ออกจากหน้านี้
-// ไปเลย: DNS Server interface ผูก/ปลดอัตโนมัติแล้วผ่าน dhcpDnsMode ตอน DHCP
-// Server toggle (ดู InterfacesFormModal.jsx's dnsProxyBinding/
-// remove_dns_server_interface - ทำเสร็จรอบก่อนหน้านี้แล้ว) ส่วน forwarders ตอนนี้
-// sync อัตโนมัติจาก name-server ที่กรอกในฟอร์มนี้เองเลย (ดู handleApply) ไม่ต้อง
-// มี UI ให้กรอกซ้ำอีกที่ - เหลือแค่ต้องอ่านค่า forwarders ปัจจุบันมาเทียบตอน sync
-// เท่านั้น ไม่ต้อง parse dns-proxy/interface หรือ cache อีกต่อไป
+// DNS Proxy interface จัดการในแท็บแยก ส่วน forwarders ยัง sync อัตโนมัติจาก
+// name-server ที่กรอกในฟอร์ม DNS Settings (ดู handleApply) ไม่ต้องกรอกซ้ำ
+// ตรงนี้อ่าน forwarders ปัจจุบันมาเทียบตอน sync เท่านั้น
 function parseJuniperForwarders(result) {
   const dns = result?.payload?.data?.configuration?.system?.services?.dns || {};
   return ensureArray(dns.forwarders)
@@ -94,6 +96,7 @@ export default function Dns({ devId }) {
   const [applying, setApplying] = useState(false);
   const [applyError, setApplyError] = useState("");
   const [dirty, setDirty] = useState(false);
+  const [activeTab, setActiveTab] = useState("dns_settings");
 
   // ทุกครั้งที่ data มา (โหลดครั้งแรก / หลัง apply refetch / เปลี่ยนหน้ากลับมา
   // mount ใหม่) รีเซ็ตฟอร์มเป็นค่าสดจากอุปกรณ์ - ทำให้ "เปลี่ยนหน้าแล้วกลับเป็น
@@ -218,24 +221,33 @@ export default function Dns({ devId }) {
   return (
     <div className="command-configuration">
       {error && <DismissibleError message={error} onDismiss={clearError} />}
-      <DnsForm
-        values={values}
-        setValue={setValue}
-        onApply={handleApply}
-        applying={applying}
-        error={applyError}
-        onDismissError={() => setApplyError("")}
-        loading={loading}
-        onRefresh={handleRefresh}
-        // Juniper ไม่มี toggle เปิด/ปิด DNS server จริง (resolver ทำงานอัตโนมัติ
-        // เสมอทันทีที่ตั้ง name-server อย่างน้อย 1 ตัว - ดู comment ยาวใน
-        // parseDnsResult/set_dns_config ด้านบน) ค่า dnsServer เดิมเป็นแค่ค่า
-        // derived ไว้โชว์ ไม่เคยมีผลจริงกับอุปกรณ์ - ซ่อน toggle ทิ้งไปเลยกัน user
-        // เข้าใจผิดว่าต้อง "เปิด" อะไรก่อนถึงจะใช้ DNS ได้ - Cisco ยังโชว์ปกติ
-        // เพราะเป็น toggle จริง (presence container ip/dns/server)
-        showDnsServerToggle={!isJuniper}
-        showDomainLookupToggle={!isJuniper}
-      />
+      {isJuniper && <PageTabs tabs={DNS_JUNIPER_TABS} activeId={activeTab} onChange={setActiveTab} ariaLabel="DNS Configuration Tabs" />}
+      {(!isJuniper || activeTab === "dns_settings") && (
+        <div role={isJuniper ? "tabpanel" : undefined}
+          id={isJuniper ? "tabpanel-dns_settings" : undefined} aria-labelledby={isJuniper ? "tab-dns_settings" : undefined}>
+          <DnsForm
+            values={values}
+            setValue={setValue}
+            onApply={handleApply}
+            applying={applying}
+            error={applyError}
+            onDismissError={() => setApplyError("")}
+            loading={loading}
+            onRefresh={handleRefresh}
+            // Juniper ไม่มี toggle เปิด/ปิด DNS server จริง (resolver ทำงานอัตโนมัติ
+            // เสมอทันทีที่ตั้ง name-server อย่างน้อย 1 ตัว - ดู comment ยาวใน
+            // parseDnsResult/set_dns_config ด้านบน) ค่า dnsServer เดิมเป็นแค่ค่า
+            // derived ไว้โชว์ ไม่เคยมีผลจริงกับอุปกรณ์ - ซ่อน toggle ทิ้งไปเลยกัน user
+            // เข้าใจผิดว่าต้อง "เปิด" อะไรก่อนถึงจะใช้ DNS ได้ - Cisco ยังโชว์ปกติ
+            // เพราะเป็น toggle จริง (presence container ip/dns/server)
+            showDnsServerToggle={!isJuniper}
+            showDomainLookupToggle={!isJuniper}
+          />
+        </div>
+      )}
+      {isJuniper && activeTab === "dns_proxy" && (
+        <DnsProxyInterface devId={devId} result={data.result} loading={loading} onRefresh={refetch} />
+      )}
     </div>
   );
 }
