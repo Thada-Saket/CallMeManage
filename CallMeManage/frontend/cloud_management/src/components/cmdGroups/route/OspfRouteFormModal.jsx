@@ -8,6 +8,7 @@ import { buildRoutingPickerOptions, networkAddressOf, selectAnyRoutingNetworks }
 import IPv4Input from "../../common/IPv4Input";
 import { acceptsOspfAreaInput, acceptsOspfProcessIdInput, ospfAreaToNumber } from "../../../utils/ospfArea";
 import CheckboxDropdown from "../../common/CheckboxDropdown";
+import FieldHelp from "../../common/FieldHelp";
 
 // pre-fill จาก currentRule = ผลลัพธ์ get_ospf_information ตรงๆ (Cisco -
 // process_id/router_id/networks[]/active_interfaces[]/passive_interface_default/
@@ -326,7 +327,7 @@ export default function OspfRouteFormModal({ devId, vendor, currentRule = null, 
           ซ่อนไปเลยสำหรับ Juniper */}
       {!isJuniper && (
         <div className="interface-configuration-form-field">
-          <label className="data-label">Process ID</label>
+          <label className="data-label">Process ID {isEdit && <FieldHelp label="Why is Process ID locked?">Process ID cannot be changed - disable OSPF and re-enable to use a different ID</FieldHelp>}</label>
           {/* 1-65535 ตาม schema จริงของอุปกรณ์ - ปฏิเสธคีย์ที่ทำให้ค่าออกนอกช่วง
               ตั้งแต่ตอนพิมพ์ ค่าเดิมจึงคงอยู่เสมอ (แนวเดียวกับช่อง Area)
               ใช้ type="text" ไม่ใช่ number เพราะ input number ปล่อยให้พิมพ์ e/+/-
@@ -342,9 +343,6 @@ export default function OspfRouteFormModal({ devId, vendor, currentRule = null, 
             readOnly={isEdit}
             required
           />
-          {isEdit && (
-            <div className="field-hint">Process ID cannot be changed - disable OSPF and re-enable to use a different ID</div>
-          )}
         </div>
       )}
 

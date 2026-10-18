@@ -1,4 +1,5 @@
 import DismissibleError from "../../DismissibleError";
+import FieldHelp from "../../common/FieldHelp";
 import { useState, useEffect } from "react";
 import { runDeviceCommand } from "../../../api/api_devices";
 import getDeviceInformation from "../../../hooks/getDeviceInformation";
@@ -714,31 +715,17 @@ export default function Stateless({ devId, vendor }) {
                 />
               </div>
 
-              {selectedAclRules.some((r) => r.isRepresentable === false || (isJuniper && r.filterHasBrownfield)) && (
-                <div
-                  style={{
-                    background: "var(--warning-dim)",
-                    color: "var(--warning)",
-                    border: "1px solid var(--warning)",
-                    borderRadius: "4px",
-                    padding: "8px 12px",
-                    marginBottom: "12px",
-                    fontSize: "13px",
-                  }}
-                >
-                  {!isJuniper
-                    ? "This ACL contains rules with non-contiguous wildcards that cannot be converted to Prefixes without changing their meaning, and cannot be edited via this form, but can still be deleted."
-                    : "This Filter has configurations from the device not yet supported by this form. The system will preserve existing values and only allow editing supported Terms."}
-                </div>
-              )}
-
               {rules.length === 0 ? (
                 <div className="config-placeholder">No Access Lists configured</div>
               ) : (
                 <table className="acl-data-table">
                   <thead>
                     <tr>
-                      <th>ACL Name</th>
+                      <th>ACL Name {selectedAclRules.some((r) => r.isRepresentable === false || (isJuniper && r.filterHasBrownfield)) && <FieldHelp label="Why are some ACL rules locked?">
+                        {!isJuniper
+                          ? "This ACL contains rules with non-contiguous wildcards that cannot be converted to Prefixes without changing their meaning, and cannot be edited via this form, but can still be deleted."
+                          : "This Filter has configurations from the device not yet supported by this form. The system will preserve existing values and only allow editing supported Terms."}
+                      </FieldHelp>}</th>
                       {!isJuniper && <th>Type</th>}
                       <th>{isJuniper ? "Term" : "Seq"}</th>
                       <th>Action</th>

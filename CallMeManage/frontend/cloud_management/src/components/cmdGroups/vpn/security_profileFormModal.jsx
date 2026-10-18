@@ -1,4 +1,5 @@
 import DismissibleError from "../../DismissibleError";
+import FieldHelp from "../../common/FieldHelp";
 import { useEffect, useState } from "react";
 import { runDeviceCommand, validateDeviceCommand } from "../../../api/api_devices";
 import getDeviceInformation from "../../../hooks/getDeviceInformation";
@@ -582,7 +583,7 @@ export default function SecurityProfileFormModal({ devId, vendor, mode = "create
       {error && <DismissibleError message={error} onDismiss={() => setError("")} />}
 
       <div className="interface-configuration-form-field">
-        <label className="data-label">Security Profile Name</label>
+        <label className="data-label">Security Profile Name {nameLocked && <FieldHelp label="Why is Security Profile Name locked?">Profile name is fixed after creation. Create a new profile to use another name.</FieldHelp>}</label>
         <input
           type="text"
           placeholder="HQ-BRANCH1"
@@ -594,7 +595,7 @@ export default function SecurityProfileFormModal({ devId, vendor, mode = "create
       </div>
 
       <div className="interface-configuration-form-field">
-        <label className="data-label">Peer IP</label>
+        <label className="data-label">Peer IP {peerReason && <FieldHelp label="Why is Peer IP locked?">{peerReason}</FieldHelp>}</label>
         <IPv4Input
           id="security-profile-peer-ip"
           mode="address"
@@ -608,7 +609,7 @@ export default function SecurityProfileFormModal({ devId, vendor, mode = "create
 
       {isJuniper && <>
       <div className="interface-configuration-form-field">
-        <label className="data-label">IKEv2 Proposal</label>
+        <label className="data-label">IKEv2 Proposal {ikev2Reason && <FieldHelp label="Why is IKEv2 Proposal locked?">{ikev2Reason}</FieldHelp>}</label>
         <div
           className={`segmented-control${ikev2Reason ? " locked-choice" : ""}`}
           title={ikev2Reason || undefined}
@@ -674,7 +675,7 @@ export default function SecurityProfileFormModal({ devId, vendor, mode = "create
 
       {isEdit && (
         <div className="interface-configuration-form-field">
-          <label className="data-label">Pre-Shared Key (PSK)</label>
+          <label className="data-label">Pre-Shared Key (PSK) {pskChangeBlocked && <FieldHelp label="Why is PSK change locked?">{real.sections.psk.reason}</FieldHelp>}</label>
           <div
             className={`segmented-control${pskChangeBlocked ? " locked-choice" : ""}`}
             title={pskChangeBlocked ? real.sections.psk.reason : undefined}
@@ -716,7 +717,7 @@ export default function SecurityProfileFormModal({ devId, vendor, mode = "create
       )}
 
       <div className="interface-configuration-form-field">
-        <label className="data-label">IPsec Proposal</label>
+        <label className="data-label">IPsec Proposal {ipsecReason && <FieldHelp label="Why is IPsec Proposal locked?">{ipsecReason}</FieldHelp>}</label>
         <div
           className={`segmented-control${ipsecReason ? " locked-choice" : ""}`}
           title={ipsecReason || undefined}
@@ -773,7 +774,7 @@ export default function SecurityProfileFormModal({ devId, vendor, mode = "create
       )}
 
       <div className="interface-configuration-form-field">
-        <label className="data-label">IPSec DH Group</label>
+        <label className="data-label">IPSec DH Group {pfsReason && <FieldHelp label="Why is IPSec DH Group locked?">{pfsReason}</FieldHelp>}</label>
         <div className="toggle-switch-container">
           <input
             type="checkbox"
@@ -788,7 +789,7 @@ export default function SecurityProfileFormModal({ devId, vendor, mode = "create
 
       {values.enablePfs && (
         <div className="interface-configuration-form-field">
-          <label className="data-label">PFS DH Group</label>
+          <label className="data-label">PFS DH Group {pfsReason && <FieldHelp label="Why is PFS DH Group locked?">{pfsReason}</FieldHelp>}</label>
           <select value={values.pfsGroup} disabled={Boolean(pfsReason)} onChange={(event) => setField("pfsGroup", event.target.value)} >
             {shown(pfsGroupOptions, values.pfsGroup, real ? [real.raw.pfsGroup] : []).map((option) => (
               <option key={option.value} value={option.value}>
@@ -820,7 +821,7 @@ export default function SecurityProfileFormModal({ devId, vendor, mode = "create
 
       {!isJuniper && (
         <div className="interface-configuration-form-field">
-          <label className="data-label">Tunnel Mode</label>
+          <label className="data-label">Tunnel Mode {ipsecReason && <FieldHelp label="Why is Tunnel Mode locked?">{ipsecReason}</FieldHelp>}</label>
           <div
             className={`segmented-control${ipsecReason ? " locked-choice" : ""}`}
             title={ipsecReason || undefined}

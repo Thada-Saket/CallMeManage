@@ -1,4 +1,5 @@
 import DismissibleError from "../../DismissibleError";
+import FieldHelp from "../../common/FieldHelp";
 import { useEffect, useState } from "react";
 import { runDeviceCommand, validateDeviceCommand } from "../../../api/api_devices";
 import getDeviceInformation from "../../../hooks/getDeviceInformation";
@@ -398,7 +399,7 @@ export default function SecurityTunnelFormModal({ devId, vendor, mode = "create"
       {error && <DismissibleError message={error} onDismiss={() => setError("")} />}
 
       <div className="interface-configuration-form-field">
-        <label className="data-label">Tunnel Type</label>
+        <label className="data-label">Tunnel Type {isEdit && <FieldHelp label="Why is Tunnel Type locked?">Tunnel type is fixed after creation. Create a new tunnel to use another type.</FieldHelp>}</label>
         <div
           className={`segmented-control${isEdit ? " locked-choice" : ""}`}
           title={isEdit ? "Tunnel type is fixed after creation" : undefined}
@@ -488,7 +489,7 @@ export default function SecurityTunnelFormModal({ devId, vendor, mode = "create"
       </div>
 
       <div className="interface-configuration-form-field">
-        <label className="data-label">Destination Public IP</label>
+        <label className="data-label">Destination Public IP {(destinationFromProfile || juniperProfileWithoutPeer) && <FieldHelp label="Why is Destination Public IP locked?">{destinationFromProfile ? "This IP comes from the selected Security Profile. Edit the profile to change it." : "This Juniper profile does not provide an editable peer IP here."}</FieldHelp>}</label>
         <IPv4Input
           id="tunnel-remote-ip"
           label="Destination Public IP"

@@ -1,4 +1,5 @@
 import DismissibleError from "../../DismissibleError";
+import FieldHelp from "../../common/FieldHelp";
 import { useEffect, useRef, useState } from "react";
 import { runDeviceCommand, validateDeviceCommand } from "../../../api/api_devices";
 import { computeDhcpExclusions, filterExplicitExclusions } from "../../../utils/dhcpRange";
@@ -238,7 +239,7 @@ export default function DhcpFormModal({ devId, vendor, mode = "create", editTarg
       {error && <DismissibleError message={error} onDismiss={() => setError("")} />}
       {isEdit && <div className="command-output-title">Edit: {editTarget?.name}</div>}
       <div className="interface-configuration-form-field">
-        <label className="data-label">Pool Name</label>
+        <label className="data-label">Pool Name {lockName && <FieldHelp label="Why is Pool Name locked?">Pool name is fixed while editing. Create a new pool to use another name.</FieldHelp>}</label>
         <input
           type="text"
           placeholder="LAN_POOL"
@@ -250,7 +251,7 @@ export default function DhcpFormModal({ devId, vendor, mode = "create", editTarg
       </div>
 
       <div className="interface-configuration-form-field">
-        <label className="data-label" htmlFor="dhcp-pool-network">Network</label>
+        <label className="data-label" htmlFor="dhcp-pool-network">Network {lockNetwork && <FieldHelp label="Why is Network locked?">This pool's network is fixed while editing. Create a new pool for a different network.</FieldHelp>}</label>
         <IPv4Input
           id="dhcp-pool-network"
           label="Network"

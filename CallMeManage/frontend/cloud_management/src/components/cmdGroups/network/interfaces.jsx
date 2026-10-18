@@ -1,4 +1,5 @@
 import DismissibleError from "../../DismissibleError";
+import FieldHelp from "../../common/FieldHelp";
 import { Fragment, useState } from "react";
 import getDeviceInformation from "../../../hooks/getDeviceInformation";
 import { normalizeStatus } from "../../../utils/normalizeStatus";
@@ -790,6 +791,13 @@ export default function Interfaces({ devId, vendor, model }) {
         ) : (
           <>
             <div className="command-output-title">
+              {(isJuniperPhysicalSelected || isTunnelSelected) && (
+                <span>Interface <FieldHelp label="Why is interface editing unavailable?">
+                  {isJuniperPhysicalSelected
+                    ? `Juniper physical interfaces cannot be edited or deleted here. Select a logical interface such as ${selectedName}.0 instead.`
+                    : "Tunnel interfaces are managed under VPN > Security Tunnel. Edit or delete this tunnel there."}
+                </FieldHelp></span>
+              )}
               <Edit_Result
                 featureName={isClearIpTarget && !ciscoPortIsSwitchCapable ? "IP configuration" : isSwitchportReset || ciscoPortIsSwitchCapable ? "interface configuration" : "interface"}
                 selectedLabel={selectedName}
@@ -824,20 +832,6 @@ export default function Interfaces({ devId, vendor, model }) {
                 onRefresh={handleRefresh}
               />
             </div>
-
-            {isJuniperPhysicalSelected && (
-              <div className="config-placeholder">
-                Juniper physical interfaces cannot be edited or deleted here. Please select a logical interface such as {selectedName}.0 instead.
-              </div>
-            )}
-
-            {isTunnelSelected && (
-              <div className="config-placeholder">
-                Tunnel interfaces are managed exclusively under VPN &gt; Security Tunnel (with full
-                Edit/Delete support for tunnel source/destination/IPsec profile). Edit/Delete buttons
-                are disabled here for Tunnel interfaces to prevent accidental misconfiguration of other interfaces.
-              </div>
-            )}
 
             {showDeleteConfirm && (
               <div className="modal-overlay" onClick={() => !deleting && setShowDeleteConfirm(false)}>

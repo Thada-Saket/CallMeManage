@@ -268,6 +268,11 @@ button.topbar-element:focus-visible {
   position: relative;
 }
 
+.data-label .field-help {
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
 .field-help-trigger {
   align-items: center;
   background: transparent;

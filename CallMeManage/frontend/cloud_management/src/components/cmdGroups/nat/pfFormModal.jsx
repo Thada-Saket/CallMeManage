@@ -1,4 +1,5 @@
 import DismissibleError from "../../DismissibleError";
+import FieldHelp from "../../common/FieldHelp";
 import { useEffect, useState } from "react";
 import { runDeviceCommand, validateDeviceCommand } from "../../../api/api_devices";
 import getDeviceInformation from "../../../hooks/getDeviceInformation";
@@ -573,7 +574,7 @@ export default function PfFormModal({ devId, vendor, mode = "create", editTarget
 
       {isJuniper && (
         <div className="interface-configuration-form-field">
-          <label className="data-label">Proxy ARP Interface</label>
+          <label className="data-label">Proxy ARP Interface {proxyArpMode === "overlap" && <FieldHelp label="Why is Proxy ARP unavailable?">This range overlaps an IP configured on the device and cannot be used for Proxy ARP.</FieldHelp>}</label>
           {proxyArpMode === "not-required" ? (
             <span>Not required — this WAN IP is already configured on the device.</span>
           ) : (
@@ -591,9 +592,6 @@ export default function PfFormModal({ devId, vendor, mode = "create", editTarget
                   </option>
                 ))}
               </select>
-              {proxyArpMode === "overlap" && (
-                <small>This range overlaps an IP configured on the device and cannot be used for Proxy ARP.</small>
-              )}
             </>
           )}
         </div>

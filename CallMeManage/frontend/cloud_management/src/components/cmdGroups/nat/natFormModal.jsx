@@ -1,4 +1,5 @@
 import DismissibleError from "../../DismissibleError";
+import FieldHelp from "../../common/FieldHelp";
 import { useEffect, useState } from "react";
 import { runDeviceCommand, validateDeviceCommand } from "../../../api/api_devices";
 import getDeviceInformation from "../../../hooks/getDeviceInformation";
@@ -69,7 +70,7 @@ function ZoneCheckboxPicker({ label, values, options, onToggle, disabled = false
   const full = values.length >= 8;
   return (
     <div className="interface-configuration-form-field">
-      <label className="data-label">{label}</label>
+      <label className="data-label">{label} {full && <FieldHelp label="Why can’t I add another zone?">Up to 8 zones can be selected per Junos limit.</FieldHelp>}</label>
       <CheckboxDropdown
         ariaLabel={`Select ${label}`}
         disabled={disabled}
@@ -103,7 +104,6 @@ function ZoneCheckboxPicker({ label, values, options, onToggle, disabled = false
           })}
         </div>
       </CheckboxDropdown>
-      {full && <span className="field-hint">Up to 8 zones can be selected per Junos limit</span>}
     </div>
   );
 }
@@ -272,7 +272,7 @@ function JuniperNatForm({ devId, mode = "create", editTarget = null, allRows = [
       {error && <DismissibleError message={error} onDismiss={() => setError("")} />}
 
       <div className="interface-configuration-form-field">
-        <label className="data-label">NAT Rule Name</label>
+        <label className="data-label">NAT Rule Name {isEdit && <FieldHelp label="Why is NAT Rule Name locked?">The rule name is fixed after creation. Create a new rule to use another name.</FieldHelp>}</label>
         <input
           type="text"
           placeholder="SNAT-TO-INTERNET"

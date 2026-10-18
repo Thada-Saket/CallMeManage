@@ -1,4 +1,5 @@
 import DismissibleError from "../../DismissibleError";
+import FieldHelp from "../../common/FieldHelp";
 import { useState } from "react";
 import { runDeviceCommand } from "../../../api/api_devices";
 import { VLAN_ID_MAX, VLAN_ID_MIN, acceptsVlanIdDraft, validateVlanId } from "../../../utils/vlanId";
@@ -81,6 +82,7 @@ export default function VlanFormModal({ devId, vendor, mode = "create", editTarg
       <div className="interface-configuration-form-field">
         <label className="data-label" htmlFor="vlan-id-input">
           VLAN ID ({VLAN_ID_MIN}-{VLAN_ID_MAX})
+          {isEdit && <> <FieldHelp label="Why is VLAN ID locked?">VLAN ID is fixed after creation. Create another VLAN to use a different ID.</FieldHelp></>}
         </label>
         <input
           id="vlan-id-input"

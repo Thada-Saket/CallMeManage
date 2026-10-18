@@ -1,4 +1,5 @@
 import DismissibleError from "../../DismissibleError";
+import FieldHelp from "../../common/FieldHelp";
 import { useState } from "react";
 import { runDeviceCommand, validateDeviceCommand } from "../../../api/api_devices";
 import IPv4Input from "../../common/IPv4Input";
@@ -143,7 +144,7 @@ export default function AddressPoolFormModal({ devId, mode = "create", editTarge
       {error && <DismissibleError message={error} onDismiss={() => setError("")} />}
 
       <div className="interface-configuration-form-field">
-        <label className="data-label">Pool Name</label>
+        <label className="data-label">Pool Name {isEdit && <FieldHelp label="Why is Pool Name locked?">Pool name is fixed after creation. Create a new pool to use another name.</FieldHelp>}</label>
         <input
           type="text"
           placeholder="NAT_POOL_1"

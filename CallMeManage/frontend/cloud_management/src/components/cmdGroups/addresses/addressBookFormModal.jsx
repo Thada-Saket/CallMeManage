@@ -1,4 +1,5 @@
 import DismissibleError from "../../DismissibleError";
+import FieldHelp from "../../common/FieldHelp";
 import { useState } from "react";
 import { runDeviceCommand } from "../../../api/api_devices";
 import IPv4Input from "../../common/IPv4Input";
@@ -73,7 +74,7 @@ export default function AddressBookFormModal({ devId, mode = "create", editTarge
       {error && <DismissibleError message={error} onDismiss={() => setError("")} />}
 
       <div className="interface-configuration-form-field">
-        <label className="data-label">Name</label>
+        <label className="data-label">Name {isEdit && <FieldHelp label="Why is Name locked?">The address entry name is fixed after creation. Create a new entry to use another name.</FieldHelp>}</label>
         <input
           type="text"
           placeholder="SERVER-1"
@@ -85,7 +86,7 @@ export default function AddressBookFormModal({ devId, mode = "create", editTarge
       </div>
 
       <div className="interface-configuration-form-field">
-        <label className="data-label">IP Address/CIDR</label>
+        <label className="data-label">IP Address/CIDR {isLegacyIpv6 && <FieldHelp label="About editing this IPv6 address">This entry is an existing IPv6 address on the device and can be edited as IPv6/prefix - this form only creates new entries as IPv4/prefix.</FieldHelp>}</label>
         {isLegacyIpv6 ? (
           <>
             <input
@@ -100,9 +101,6 @@ export default function AddressBookFormModal({ devId, mode = "create", editTarge
               title={addressTouched && !addressValidation.valid ? addressValidation.error : ""}
               required
             />
-            <span className="field-hint">
-              This entry is an existing IPv6 address on the device and can be edited as IPv6/prefix - this form only creates new entries as IPv4/prefix.
-            </span>
           </>
         ) : (
           <IPv4Input

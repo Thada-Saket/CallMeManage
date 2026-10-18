@@ -1,4 +1,5 @@
 import DismissibleError from "../../DismissibleError";
+import FieldHelp from "../../common/FieldHelp";
 import { useState } from "react";
 import { runDeviceCommand, runDeviceTransaction } from "../../../api/api_devices";
 import getDeviceInformation from "../../../hooks/getDeviceInformation";
@@ -330,7 +331,7 @@ export default function ZoneInterfacesFormModal({
       {membersUnknownError && <DismissibleError message={membersUnknownError} />}
 
       <div className="interface-configuration-form-field">
-        <label className="data-label">Zone Name</label>
+        <label className="data-label">Zone Name {isEdit && <FieldHelp label="Why is Zone Name locked?">Zone name is fixed after creation. Create a new zone to use another name.</FieldHelp>}</label>
         <input
           type="text"
           placeholder="trust"
@@ -368,7 +369,9 @@ export default function ZoneInterfacesFormModal({
                 >
                   <input type="checkbox" checked={checked} disabled={locked || ifLoading || submitting} onChange={() => toggleInterface(row.name)} />
                   {row.name}
-                  {locked && <span className="locked-form-indicator" aria-hidden="true">🔒</span>}
+                  {locked && <FieldHelp label={`Why is ${row.name} locked?`}>
+                    {row.otherZone ? `This interface is already in Zone ${row.otherZone}. Remove it there before selecting it here.` : "Protected WAN interface cannot be removed from WAN zone."}
+                  </FieldHelp>}
                 </label>
               );
             })}

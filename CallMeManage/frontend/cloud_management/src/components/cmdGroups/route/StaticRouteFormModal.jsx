@@ -1,4 +1,5 @@
 import DismissibleError from "../../DismissibleError";
+import FieldHelp from "../../common/FieldHelp";
 import { useState } from "react";
 import { runDeviceCommand, validateDeviceCommand } from "../../../api/api_devices";
 import getDeviceInformation from "../../../hooks/getDeviceInformation";
@@ -220,7 +221,7 @@ export default function StaticRouteFormModal({
         </div>
       ) : (
         <div className="interface-configuration-form-field">
-          <label className="data-label">Exit Interface</label>
+          <label className="data-label">Exit Interface <FieldHelp label="Which interfaces are available?">Static route with Exit Interface can only select Layer 3 interfaces.</FieldHelp></label>
           {layerLoading ? (
             <select disabled value="">
               <option value="">Loading Layer 3 interfaces...</option>
@@ -244,11 +245,6 @@ export default function StaticRouteFormModal({
                 {layerError ? "Failed to load interface Layer information" : "No Layer 3 interfaces found"}
               </option>
             </select>
-          )}
-          {!canPickInterface && !layerLoading && (
-            <span className="field-hint">
-              Static route with Exit Interface can only select Layer 3 interfaces.
-            </span>
           )}
         </div>
       )}

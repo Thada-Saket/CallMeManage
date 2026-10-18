@@ -1,4 +1,5 @@
 import DismissibleError from "../../DismissibleError";
+import FieldHelp from "../../common/FieldHelp";
 import { useEffect, useRef, useState } from "react";
 import { runDeviceCommand, runDeviceTransaction } from "../../../api/api_devices";
 import getDeviceInformation from "../../../hooks/getDeviceInformation";
@@ -1884,7 +1885,7 @@ export default function InterfaceFormModal({
           เกิดขึ้นจริงบนอุปกรณ์เลย) ถ้าจะเปลี่ยนประเภทจริงๆ ต้องลบตัวเดิมแล้วสร้าง
           ใหม่แทน (ไปหน้า Create New) */}
       <div className="interface-configuration-form-field">
-        <label className="data-label">Interface Type</label>
+        <label className="data-label">Interface Type {mode === "edit" && <FieldHelp label="Why is Interface Type locked?">Interface type is fixed after creation. Delete and recreate the interface to use another type.</FieldHelp>}</label>
         <div
           className={`segmented-control${mode === "edit" ? " locked-choice" : ""}`}
           title={mode === "edit" ? "Interface type is fixed after creation" : undefined}
@@ -1934,7 +1935,7 @@ export default function InterfaceFormModal({
       {/* VLAN Interface (SVI/irb) ไม่ผูกกับ physical port เลย - ข้ามขั้นตอนนี้ไปตรงๆ */}
       {needsInterfacePicker && (
         <div className="interface-configuration-form-field">
-          <label className="data-label">Interface</label>
+          <label className="data-label">Interface {mode === "edit" && <FieldHelp label="Why is Interface locked?">The interface cannot be changed while editing. Select another interface from the list instead.</FieldHelp>}</label>
           {ifListLoading ? (
             <select disabled value="">
               <option value="">Loading interface information...</option>
@@ -2125,7 +2126,7 @@ export default function InterfaceFormModal({
         <>
           {(ifType === IF_TYPE.SUB_INTERFACE || ifType === IF_TYPE.VLAN) && (
             <div className="interface-configuration-form-field">
-              <label className="data-label" htmlFor="interface-vlan-id">VLAN ID ({VLAN_ID_MIN}-{VLAN_ID_MAX})</label>
+              <label className="data-label" htmlFor="interface-vlan-id">VLAN ID ({VLAN_ID_MIN}-{VLAN_ID_MAX}) {mode === "edit" && <FieldHelp label="Why is VLAN ID locked?">VLAN ID identifies this interface. Delete and recreate it to use another ID.</FieldHelp>}</label>
               <input
                 id="interface-vlan-id"
                 type="text"
@@ -2159,7 +2160,7 @@ export default function InterfaceFormModal({
           {ifType === IF_TYPE.SUB_INTERFACE && vendor === "cisco" && (
             <div className="interface-configuration-form-field">
               <label className="data-label">
-                Native VLAN
+                Native VLAN {nativeLocked && <FieldHelp label="Why is Native VLAN locked?">Native VLAN can't be turned off here. Delete this sub-interface and create it again to remove it.</FieldHelp>}
               </label>
               <div
                 className={`toggle-switch-container${nativeLocked ? " is-locked" : ""}`}
@@ -2174,11 +2175,6 @@ export default function InterfaceFormModal({
                 />
                 <label className="toggleSwitch" htmlFor="toggle"></label>
               </div>
-              {nativeLocked && (
-                <span className="field-hint">
-                  Native VLAN can't be turned off here. To remove it, delete this sub-interface and create it again.
-                </span>
-              )}
             </div>
           )}
           {(

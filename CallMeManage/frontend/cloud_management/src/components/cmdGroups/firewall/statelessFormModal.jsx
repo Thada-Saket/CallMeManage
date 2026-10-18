@@ -1,4 +1,5 @@
 import DismissibleError from "../../DismissibleError";
+import FieldHelp from "../../common/FieldHelp";
 import { useState } from "react";
 import { runDeviceCommand, validateDeviceCommand } from "../../../api/api_devices";
 import IPv4Input from "../../common/IPv4Input";
@@ -755,7 +756,7 @@ export default function StatelessFormModal({
       {!isJuniper ? (
         <div className="interface-configuration-form-field">
           <label className="data-label">
-            ACL Type
+            ACL Type {isEdit && <FieldHelp label="Why is ACL Type locked?">ACL type is fixed after creation. Create a new ACL to use another type.</FieldHelp>}
           </label>
           <div
             className={`segmented-control${isEdit ? " locked-choice" : ""}`}
@@ -810,7 +811,7 @@ export default function StatelessFormModal({
       )}
 
       <div className="interface-configuration-form-field">
-        <label className="data-label">ACL Name</label>
+        <label className="data-label">ACL Name {isEdit && <FieldHelp label="Why is ACL Name locked?">ACL name is fixed after creation. Create a new ACL to use another name.</FieldHelp>}</label>
         <input
           type="text"
           placeholder="BLOCK_GUEST"

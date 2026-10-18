@@ -1,4 +1,5 @@
 import DismissibleError from "../../DismissibleError";
+import FieldHelp from "../../common/FieldHelp";
 import { useState } from "react";
 import { runDeviceCommand, validateDeviceCommand } from "../../../api/api_devices";
 import getDeviceInformation from "../../../hooks/getDeviceInformation";
@@ -44,11 +45,11 @@ function makeScopeRow(value = "") {
 // From/To Zone dropdown ใช้ markup เดียวกันทั้งสอง vendor - Juniper ไม่เปิด
 // checkStale (พฤติกรรมเดิมทุกประการ) ส่วน Cisco เปิดเพื่อกัน Save ทับ Zone ที่ไม่มี
 // อยู่แล้วบนอุปกรณ์ (เช่น Zone ถูกลบไปหลังผู้ใช้เปิดฟอร์ม)
-function ZoneSelectField({ id, label, value, onChange, options, placeholder, disabled, checkStale = false, staleHint }) {
+function ZoneSelectField({ id, label, value, onChange, options, placeholder, disabled, checkStale = false, staleHint, lockHint }) {
   const isStale = checkStale && !!value && !options.includes(value);
   return (
     <div className="interface-configuration-form-field">
-      <label className="data-label" htmlFor={id}>{label}</label>
+      <label className="data-label" htmlFor={id}>{label} {lockHint && <FieldHelp label={`Why is ${label} locked?`}>{lockHint}</FieldHelp>}</label>
       <select
         id={id}
         value={value}
@@ -922,6 +923,7 @@ export default function StatefulFormModal({
         <div className="interface-configuration-form-field">
           <label className="data-label" htmlFor="fw-policy-name">
             Policy Name
+            {isEdit && <> <FieldHelp label="Why is Policy Name locked?">Policy name identifies this policy. Create a new policy to use another name.</FieldHelp></>}
           </label>
           <input
             id="fw-policy-name"
@@ -943,6 +945,7 @@ export default function StatefulFormModal({
           placeholder="-- Select Zone --"
           disabled={isJuniper ? (juniperFieldsDisabled || undefined) : ciscoFieldsDisabled || isEdit}
           checkStale={!isJuniper}
+          lockHint={!isJuniper && isEdit ? "Cisco Zone Pair source zone is fixed while editing this policy. Create a new policy to use another pair." : undefined}
         />
 
         <ZoneSelectField
@@ -954,6 +957,7 @@ export default function StatefulFormModal({
           placeholder="-- Select Zone --"
           disabled={isJuniper ? (juniperFieldsDisabled || undefined) : ciscoFieldsDisabled || isEdit}
           checkStale={!isJuniper}
+          lockHint={!isJuniper && isEdit ? "Cisco Zone Pair destination zone is fixed while editing this policy. Create a new policy to use another pair." : undefined}
         />
 
         {!isJuniper && ciscoZonePairHint && (
