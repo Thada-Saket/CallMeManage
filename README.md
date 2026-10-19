@@ -19,12 +19,16 @@ again) and only asks:
 2. Which IP devices call home to (pick an interface or type an IP)
 3. Which address of this server listens for call-home: all interfaces (default) or one
    interface's IP (`CALLHOME_LISTEN_ADDRESS`)
-4. The website address (`SITE_URL`) and path (`ROOT_PATH`: `/`, or e.g. `/cmm/` behind a
-   reverse proxy) - press Enter to skip
-5. Where devices download their config (`BOOTSTRAP_BASE_URL`) - press Enter to leave it empty
-   (recommended: straight from this machine)
-6. Whether to set up Cloudflare / Email / Google now (optional - the system works without them)
-7. The first website account: username, email, password
+4. The website address(es) (`SITE_URL`, one at a time - "Add another address?" - e.g. with
+   and without www) and path (`ROOT_PATH`: `/`, or e.g. `/cmm/` behind a reverse proxy) -
+   press Enter to skip
+5. Where devices download their config (`BOOTSTRAP_BASE_URL`) - choose the direct call-home IP,
+   an address generated from `SITE_URL + ROOT_PATH + api`, or a custom URL
+6. Cloudflare, Email and Google, each under its own heading: set it up now or later
+   (optional - the system works without them)
+7. Whether people may create their own account (Sign Up) - asked only when both Email and
+   Google are on; off by default
+8. The first website account: username, email, password
 
 When it finishes, the system runs as Linux services: it starts on boot and restarts after a
 crash. Website at `https://<machine>:8080` · API and bootstrap files at `:8000` · device
@@ -46,6 +50,8 @@ so `git pull` never touches it). The file explains every setting and where to ge
 | `sudo callmemanage disable turnstile` / `email` / `google` | Turn that service off |
 | `sudo callmemanage user add` | Create a website account |
 | `sudo callmemanage user passwd <name>` | Set a new password for a user who forgot it |
+| `sudo callmemanage user list` | List website accounts |
+| `sudo callmemanage user delete <name>` | Delete an account and the sites it owns (same as Delete Account on the website) |
 | `callmemanage logs` | Follow the log |
 | `callmemanage help` | Every command |
 
@@ -90,9 +96,10 @@ the file first and rebuilds the website when `ROOT_PATH` changed.
   ProxyPassReverse /cmm/  https://<this machine>:8080/cmm/
   ```
   Keep the trailing slash the same on both sides.
-- Leave `BOOTSTRAP_BASE_URL` empty (recommended): devices download their config straight from
-  `https://<call-home IP>:8000`, with no DNS needed. Set it to
-  `https://www.example.ac.th/cmm/api` only if devices cannot reach this machine directly; the
+- The installer offers the direct address and automatically builds the website option as
+  `SITE_URL + ROOT_PATH + api` (here: `https://www.example.ac.th/cmm/api`), so the proxy path
+  does not have to be typed by hand. Prefer the direct option when devices can reach
+  `https://<call-home IP>:8000`; it needs no DNS. The website option is useful when they cannot; the
   proxy then needs an RSA certificate, because many Cisco IOS-XE versions cannot connect to an
   ECDSA-only one.
 - The call-home port (`4334`) is SSH and cannot go through an HTTP proxy; devices must reach
